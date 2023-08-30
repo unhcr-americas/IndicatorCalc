@@ -12,6 +12,271 @@ editor_options:
 library(testthat)
 ```
 
+```{r development-load}
+# Load already included functions if relevant
+pkgload::load_all(export_all = FALSE)
+```
+
+# Data Wrangling
+
+Each indicator calculation is based on predefined frame, variable name and variable value.
+
+Therefore each indicator function is organised in 3  steps:
+
+ * Check if the standard frame/variable/modalities are already present in the dataset (organised as a list..) `fct_check_map`
+ 
+ * If not apply the mapping supplied as argument within the function `fct_re_map`
+ 
+ * Apply the calculation - either to append the new variable to the existing data or to output just the final vector with results. 
+ 
+## fct_check_map
+    
+```{r function-fct_check_map}
+#' fct_check_map
+#' 
+#' This check is the standard variable and modalities
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#' 
+#' 
+#' @return TRUE or FALSE
+#' 
+#' @export
+fct_check_map <- function(datalist, mapper){
+
+   ## Loop around the variables within mapper
+   for ( i in 1:nrow(mapper[["variablemap"]]) ) {
+     # i <- 1
+     thisvar <-  mapper[["variablemap"]][["variable"]][[i]]
+    if ( is.null(datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]]) ) 
+    {cli::cli_alert_info(paste0( thisvar ," standard variable was not found in the dataset.\n"))
+      }
+     else {
+       ## If present check modalities
+       mod <- mapper[["modalitymap"]] |>
+         dplyr::filter( variable == thisvar ) |>
+         dplyr::pull(standard)
+      
+      if( any(levels(as.factor(datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]])) %in%  mod ) )
+           { cat(paste0( thisvar ," is in the dataset and has at least one of the expected modality for calculation\n")) } else {
+            cli::cli_alert_info(paste0( thisvar ,
+                  " standard variable in the dataset misses at least one response among : ",
+                                    mod))  }
+     }
+   }
+}
+```
+  
+```{r example-fct_check_map}
+
+mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98")
+            )
+          )
+
+## Correct format
+data <- list(main = data.frame(
+                LIGHT01 = c("1",  "1",  "0", "1",  "1",  "0", "1",  "1",  "1"),
+                LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
+             )
+fct_check_map(datalist = data, mapper = mapper )
+
+## One variable is not correctly 
+data <- list(main = data.frame(
+                LIGHT01 = c("1",  "1",  "0", "1",  "1",  "0", "1",  "1",  "1"),
+                LIGH03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
+             )
+fct_check_map(datalist = data, mapper = mapper )
+
+## The first variable does not include a single 1...
+data <- list(main = data.frame(
+                LIGHT01 = c("0",  "0",  "0", "0",  "0",  "0", "0",  "0",  "0"),
+                LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
+             )
+fct_check_map(datalist = data, mapper = mapper )
+
+
+```
+  
+```{r tests-fct_check_map}
+test_that("fct_check_map works", {
+  expect_true(inherits(fct_check_map, "function")) 
+})
+```
+  
+   
+
+## fct_get_all_variable_names
+    
+```{r function-fct_get_all_variable_names}
+#' fct_get_all_variable_names
+#' 
+#' Generate a map of all variables within the datalist obtained from RIDL - 
+#'   standard Kobo extract in Excel
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#' 
+#' @return dataframe with variables and list member names 
+#' 
+#' @importFrom purrr imap list_rbind
+#' @importFrom tibble tibble as_tibble_col
+#' @importFrom tidyr unnest
+#' 
+#' @export
+fct_get_all_variable_names <- function(datalist){
+  
+    dico <- purrr::imap(datalist,
+       function(x, y) tibble::tibble(df = y,
+                      vars = tibble::as_tibble_col(names(x))) |> 
+         tidyr::unnest(vars)) |>
+       purrr::list_rbind()
+    
+    return(dico)
+    
+}
+```
+  
+```{r example-fct_get_all_variable_names}
+data <- kobocruncher::kobo_data( here::here("data-raw", "data2.xlsx"))
+varname <-   fct_get_all_variable_names(datalist = data)
+head(varname, 10)
+```
+  
+```{r tests-fct_get_all_variable_names}
+test_that("fct_get_all_variable_names works", {
+  expect_true(inherits(fct_get_all_variable_names, "function")) 
+})
+```
+
+
+
+## fct_re_map
+    
+```{r function-fct_re_map}
+#' fct_re_map
+#' 
+#' Take a list with a hierarchical survey as an entry - use another list to remap
+#' variables and modalities for specific questions 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#' @return
+#' 
+#' @export
+fct_re_map <- function(datalist, mapper){
+  
+   varname <-   fct_get_all_variable_names(datalist)
+   ## Loop around the variables within mapper
+   for ( i in 1:nrow(mapper[["variablemap"]]) ) {
+     # i <- 2 
+     thisvar <-  mapper[["variablemap"]][["variable"]][[i]]
+     thismappattern <-  mapper[["variablemap"]][["mappattern"]][[i]]
+     
+     ## get the list member and variable name based on pattern matching
+     thismatch <- varname |>
+                 dplyr::mutate( match = grepl(pattern = thismappattern ,
+                                              x = value)) |>
+                 dplyr::filter( match == TRUE ) 
+     
+    if ( nrow(thismatch) ==0) { cli::cli_alert_info(paste0( thisvar ,
+           " variable pattern was not found in the dataset.\n"))
+      }
+     else if ( nrow(thismatch) > 1) {cli::cli_alert_info(paste0( thisvar ,
+            " variable pattern has more than one match in the dataset.\n")) }
+     else {
+     ## Now  transform
+     datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]]  <- 
+        datalist[[thismatch |> dplyr::pull(df) ]][[thismatch |> dplyr::pull(value)]]
+       
+    ## Apply modalities transformation
+    mod <- mapper[["modalitymap"]] |>
+         dplyr::filter( variable == thisvar ) 
+    
+    datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]] <- plyr::mapvalues(
+      x = datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]] ,
+      from = mod[["map"]],
+      to=  mod[["standard"]])
+     }
+   }
+  
+   return(datalist)
+    
+}
+```
+  
+```{r example-fct_re_map}
+
+mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("yes",
+                      "Noelec", "Other", "Dontknow")
+            )
+          )
+
+
+## One variable is not correctly 
+datalist <- list(mainhousehold = data.frame(
+                group.LIGHT01 = c("yes",  "yes",  "no", "yes",  "yes",
+                                  "no", "yes",  "yes",  "yes"),
+                group.LIGHT03 = c("Noelec", "Other", "Dontknow", "Noelec", "Other",
+                                  "Dontknow", "Nuclear", "Other", "Dontknow"))
+             )
+datalist <- fct_re_map(datalist = datalist, mapper = mapper )
+fct_check_map(datalist = datalist, mapper = mapper )
+ 
+
+```
+  
+```{r tests-fct_re_map}
+test_that("fct_re_map works", {
+  expect_true(inherits(fct_re_map, "function")) 
+})
+```
+  
+
+ 
  
 # Impact Indicators
  
@@ -35,70 +300,52 @@ library(testthat)
 #'  **Formula**: *LIGHT01* = 1 & *LIGHT03* != 1, 96, 98
 #' 
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-electricity <- function(.data, 
-                        LIGHT01 = "LIGHT01", 
-                        LIGHT03 = "LIGHT03",
-                        encoded_values = c(0,1)) {
+electricity <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE) {
   
-  ## So first we check that we have what we need in the data set
-  varname <- names(.data)
-  varname <- names(data[["main"]])
-  
-  
-  # Use name_spec to control how inner and outer names are combined
-    #  library(purrr)
-    # x <- list(x = list(a = 1, b = 2), y = list(c = 1, d = 2))
-    # x |> list_flatten() |> names()
-    # x |> list_flatten(name_spec = "{outer}") |> names()
-    # x |> list_flatten(name_spec = "{inner}") |> names()
-  
-  
-  varname <- purrr::map(data , names) |> 
-             purrr::list_flatten(name_spec = "{inner}")
-  #varname
-  #varname <- purrr::map_df(data , names)
- 
-  ### Perform some  check..
-  var_LIGHT01 <- varname[grepl(pattern = LIGHT01 , x = varname)]
-  if(length(var_LIGHT01) == 0){
-    cli::cli_alert_info("LIGHT01 not found in dataset")
-    return(.data)
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
   }
-  if(!all(0 %in% .data[[var_LIGHT01]] | 1 %in% .data[[var_LIGHT01]])){
-    cli::cli_alert_info("The data does not include the expected values for var_LIGHT01")
-    return(.data)
-  }
-  
-  var_LIGHT03 <- varname[grepl(pattern = LIGHT03 , x = varname)]
-  if(length(var_LIGHT03) == 0){
-    cli::cli_alert_info("LIGHT03 not found in dataset")
-    return(.data)
-  }
-  if(!all(0 %in% .data[[var_LIGHT03]] | 1 %in% .data[[var_LIGHT03]])){
-    cli::cli_alert_info("The data does not include the expected values for var_LIGHT03")
-    return(.data)
-  }
+          
   
   ## now pull the calculation...
   .data |>
@@ -122,7 +369,7 @@ electricity <- function(.data,
 ```{r example-electricity}
 data <- kobocruncher::kobo_data( here::here("data-raw", "data2.xlsx"))
 
-data2 <- electricity( data )
+data2 <- electricity( .data = data )
 ```
   
 ```{r tests-electricity}
@@ -172,10 +419,34 @@ test_that("electricity works", {
 #' 
 #' @export
 #' 
-healthcare <- function(.data, 
-                       HEA01 = "HEA01", 
-                       HEA03,
-                        encoded_values = c(0,1)){
+healthcare <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
   
 
 main <- main |> 
@@ -248,13 +519,38 @@ test_that("healthcare works", {
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-drinkingwater <- function(){
+drinkingwater <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
   
+    ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
   
 main <- main |> 
   mutate(time_DWA=case_when(
@@ -336,6 +632,9 @@ test_that("drinkingwater works", {
 #'      *DWE04* = 10,11,12,13,14,15 & 
 #'      crowding (*HH01*/*DWE05*) \<= 3
 #' 
+#' Adequate shelter is calculated from the main dataset
+#' classify as habitable when improved/adequate shelter
+#' 
 #' @param .data object 
 #' 
 #' @param LIGHT01 variable name pattern used to encode the question: 
@@ -357,11 +656,34 @@ test_that("drinkingwater works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-shelter <- function(){
+shelter <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
   
-  ###Adequate shelter is calculated from the main dataset
-
-##classify as habitable when improved/adequate shelter
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
 
 main <- main |> 
   
@@ -452,28 +774,52 @@ test_that("shelter works", {
 #'  
 #'  Impact 2.2 is "1" if all services above are accessible
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-impact2_2 <- function(){
+impact2_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
   main <-main |> 
   
   mutate(impact2_2=case_when(
@@ -540,28 +886,51 @@ test_that("impact2_2 works", {
 #'   Calculate those who were not able to access due to reasons 
 #'   unrelated to asked services (when HACC04 is 7 or 8 or 96)
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-impact2_3 <- function(){
+impact2_3 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
  
 ind <- ind |>  #Those who could not access
   
@@ -647,29 +1016,51 @@ test_that("impact2_3 works", {
 #' 
 #' This indicator comes from the individual dataset
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-impact3_2a <- function(){
-  
+impact3_2a <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
   
 
 ind$EDU01 <- labelled_chr2dbl(ind$EDU01)
@@ -753,29 +1144,51 @@ test_that("impact3_2a works", {
 #'   
 #'   Include if they are attending secondary or secondary -technical and vocational
 #'    
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-impact3_2b <- function(){
-  
+impact3_2b <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  } 
   
 ind <- ind |> 
   mutate(edu_secondary=case_when(
@@ -843,29 +1256,51 @@ test_that("impact3_2b works", {
 #'  if unsafe or very unsafe 0, 98 and 99 go into blank
 #'  I never walk alone will also go into blank if any
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-impact3_3 <- function(){
- 
+impact3_3 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
   
   main <- main |> 
    mutate(impact3_3=case_when(
@@ -945,30 +1380,53 @@ test_that("impact3_3 works", {
 #'     This indicator comes from the individual dataset
 #'      ind$REG03 - birth certificate
 #'      ind$REG04 - birth has been registered
-  
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome1_2 <- function(){
+outcome1_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
   ##Calculate children who has a birth certificate
   
   
@@ -1070,31 +1528,54 @@ test_that("outcome1_2 works", {
 #'  ind$REG06 - any other document establishes identity
 #'  add birth certificate as additional document from REG03
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome1_3 <- function(){
+outcome1_3 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
     
 #Make sure to delete REG05e below from the script if you don't have any stateless 
-
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+  
   ind <- ind |> 
     mutate(document_under5=case_when(
       REG05a==1 | REG05b==1 | REG05c==1 | REG05d==1 | REG05e==1 | REG05f==1 |REG06==1 | REG03==1 ~ 1, 
@@ -1183,28 +1664,53 @@ test_that("outcome1_3 works", {
 #' This indicator comes from main dataset based on the respondent randomly selected for individual level
 #' 
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome4_1 <- function(){main <- main |> 
+outcome4_1 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+  main <- main |> 
     mutate(outcome4_1=case_when(
       GBV01a==1 |  GBV01b==1 |  GBV01c==1 |  GBV01d==1 ~ 1,
       TRUE ~ 0)
@@ -1280,28 +1786,51 @@ test_that("outcome4_1 works", {
 #' If yes selected for any of the circumstances
 #' Prefer not to respond will be put into missing
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome4_2 <- function(){
+outcome4_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
 
  main <- main |> 
    mutate(outcome4_2=case_when(
@@ -1355,28 +1884,52 @@ test_that("outcome4_2 works", {
 #'  
 #' Children who participate in community-based programmes at least 2 times, under adult supervision in a physically safe area
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome5_2 <- function(){
+outcome5_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
      ind <- ind |> 
    mutate(outcome5_2=case_when(
      (COMM01==1 & COMM02 >=2 & COMM03==1 & COMM04==1) ~ 1,
@@ -1434,28 +1987,51 @@ test_that("outcome5_2 works", {
 #' This indicator comes from household level dataset
 #' Based on MICS calculation : TC4.1
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome8_2 <- function(){
+outcome8_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
      
 main <- main |> 
    mutate(
@@ -1530,30 +2106,51 @@ test_that("outcome8_2 works", {
 #' 
 #' classify as habitable when improved/adequate shelter
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome9_1 <- function(){
+outcome9_1 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
 
-  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
   
 
 main <- main |> 
@@ -1662,30 +2259,53 @@ test_that("outcome9_1 works", {
 #' This comes from the main dataset
 #' 
 #'  The below Calculates percentage of PoC having access to clean fuel for lighting and / or basic connectivity (9.1 Outcome Indicator)
-
+#'  
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome9_2 <- function(){
+outcome9_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
     
 main <- main |>  
   mutate(outcome9_2=
@@ -1744,28 +2364,54 @@ test_that("outcome9_2 works", {
 #' MICS TC.1.1 UNICEF calculates on the first dose received##
 #' Children who had et least one dose of measles vaccination
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome10_1 <- function(){
+outcome10_1 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+  
     ind <- ind |> 
   mutate(outcome10_1=case_when(
     MMR03==1 ~ 1, MMR03==0  | MMR03==98 ~ 0)
@@ -1822,28 +2468,51 @@ test_that("outcome10_1 works", {
 #' If there are live births in the last 2 years 
 #'  Traditional birth attendant and community health worker can be included if they are trained
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome10_2 <- function(){
+outcome10_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
     
 main <- main |> 
   mutate(outcome10_2=case_when( 
@@ -1907,28 +2576,53 @@ test_that("outcome10_2 works", {
 #' There are two conditions as below improved source, in dwelling/yard/plot or reachable under 30 minutes 
 #' 
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome12_1 <- function(){
+outcome12_1 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+  
     main <- main |> 
   mutate(time_DWA=case_when(
     DWA03a==1~1, DWA03a==2~60) #convert hour into minutes
@@ -1994,28 +2688,52 @@ test_that("outcome12_1 works", {
 #' This comes from the main dataset
 #' MICS calculation WS3.1/WS3.4
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome12_2 <- function(){
+outcome12_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
     
 main <- main |> 
   mutate(toi_cond1=case_when(TOI01==1 |TOI01==2 | TOI01==3 | TOI01==4 |TOI01==5 |TOI01==6 | TOI01==7 | TOI01==9 ~ 1,
@@ -2056,13 +2774,6 @@ test_that("outcome12_2 works", {
   expect_true(inherits(outcome12_2, "function")) 
 })
 ```
-  
-
-
-
-
-
-
 
 ## outcome13_1 - Financial Inclusion
     
@@ -2090,39 +2801,56 @@ test_that("outcome12_2 works", {
 #' or personally used phone to send money (proxy)
 #' 
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome13_1 <- function(){
+outcome13_1 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
   
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
   
-  .data <- data
   ## So first we check that we have what we need in the data set
   #varname1 <- names(.data)
   #varname3 <- purrr::map(data , names) |>         purrr::list_flatten(name_spec = "{inner}")
-  dico <- purrr::imap(data,
-       function(x, y) tibble::tibble(df = y,
-                      vars = tibble::as_tibble_col(names(x))) |> 
-         tidyr::unnest(vars)) |>
-       purrr::list_rbind()
+
   
   hierar <- "main"
   varname <- names(data[[hierar]])
@@ -2231,28 +2959,54 @@ test_that("outcome13_1 works", {
 #' This indicator comes from main dataset based on the respondent randomly selected for individual level
 #'  Only calculate as positive if they responded 'more' 
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome13_2 <- function(){
+outcome13_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
    main <- main |> 
   mutate(outcome13_2=case_when(
     INC01==1 ~ 1,
@@ -2305,28 +3059,54 @@ test_that("outcome13_2 works", {
 #' #Numerator: Those of working age who were not in employment, looked for employment in the past 30 days and were available to take up employment
 ####Denominator: Those of working age in labour force
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome13_3 <- function(){
+outcome13_3 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
 
 main <- main |> 
   mutate(employed=case_when(
@@ -2394,28 +3174,53 @@ test_that("outcome13_3 works", {
 #'This indicator comes from the individual dataset
 #' Calculate valid identity documents for under 5 with REG05 and REG06 variables
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome14_1 <- function(){
+outcome14_1 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
      
   
   #ind$REG05a - passport
@@ -2509,28 +3314,53 @@ test_that("outcome14_1 works", {
 #' **Formula**: *DWE011* = 1,2 & *DWE10* = 1,2,3,4,5,6 & *DWE06* != 9, 96,98,99 & *DWE07* = 9, 96,98,99 
 #' This indicator is calculated from the main dataset
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome16_1 <- function(){
+outcome16_1 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
   
 main <- main |> 
   mutate(housing_cond1=case_when(
@@ -2597,31 +3427,56 @@ test_that("outcome16_1 works", {
 #' This indicator is calculated from the main dataset
 #' If PoC has covered by at least one of the social protection floors/systems
 #' 
-#' @param .data object 
-#' 
-#' @param LIGHT01 variable name pattern used to encode the question: 
-#'                    "Does this household use anything for lighting?"
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
 #'                    
-#' @param LIGHT03 variable name pattern used to encode the question: 
-#'                    "What source of electricity is used most of the time in this household?"
-#' 
-#' @param expected_values values used to encode the question 
-#'                       can be c(0,1) per default or c("yes","no")
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
 #'                       
 #' @param chain Boolean TRUE/FALSE to tell whether the function should return
 #'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
 #' 
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome16_2 <- function(){
+outcome16_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
     main <- main |> 
   mutate(outcome16_2=case_when(
-    SPF01a==1 |SPF01b==1 |SPF01c==1 |SPF01d==1 | SPF01e==1 | SPF01f==1 | SPF01g==1 | SPF01h==1 ~ 1, 
+    SPF01a==1 |SPF01b==1 |SPF01c==1 |SPF01d==1 | 
+      SPF01e==1 | SPF01f==1 | SPF01g==1 | SPF01h==1 ~ 1, 
     TRUE ~ 0)
   ) |> 
   mutate(outcome16_2=labelled(outcome16_2,
