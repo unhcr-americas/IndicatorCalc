@@ -1,0 +1,3545 @@
+---
+title: "Indicators calculation functions"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+<!-- Run this 'development' chunk -->
+<!-- Store every call to library() that you need to explore your functions -->
+
+```{r development, include=FALSE}
+library(testthat)
+```
+
+```{r development-load}
+# Load already included functions if relevant
+pkgload::load_all(export_all = FALSE)
+```
+
+# Data Wrangling
+
+Each indicator calculation is based on predefined frame, variable name and variable value.
+
+Therefore each indicator function is organised in 3  steps:
+
+ * Check if the standard frame/variable/modalities are already present in the dataset (organised as a list..) `fct_check_map`
+ 
+ * If not apply the mapping supplied as argument within the function `fct_re_map`
+ 
+ * Apply the calculation - either to append the new variable to the existing data or to output just the final vector with results. 
+ 
+## fct_check_map
+
+```{r function-fct_check_map}
+#' fct_check_map
+#' 
+#' This check is the standard variable and modalities
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#' 
+#' 
+#' @return TRUE or FALSE
+#' 
+#' @export
+fct_check_map <- function(datalist, mapper){
+
+   ## Loop around the variables within mapper
+   for ( i in 1:nrow(mapper[["variablemap"]]) ) {
+     # i <- 1
+     thisvar <-  mapper[["variablemap"]][["variable"]][[i]]
+    if ( is.null(datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]]) ) 
+    {cli::cli_alert_info(paste0( thisvar ," standard variable was not found in the dataset.\n"))
+      }
+     else {
+       ## If present check modalities
+       mod <- mapper[["modalitymap"]] |>
+         dplyr::filter( variable == thisvar ) |>
+         dplyr::pull(standard)
+      
+      if( any(levels(as.factor(datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]])) %in%  mod ) )
+           { cat(paste0( thisvar ," is in the dataset and has at least one of the expected modality for calculation\n")) } else {
+            cli::cli_alert_info(paste0( thisvar ,
+                  " standard variable in the dataset misses at least one response among : ",
+                                    mod))  }
+     }
+   }
+}
+```
+  
+```{r example-fct_check_map}
+
+mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98")
+            )
+          )
+
+## Correct format
+data <- list(main = data.frame(
+                LIGHT01 = c("1",  "1",  "0", "1",  "1",  "0", "1",  "1",  "1"),
+                LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
+             )
+fct_check_map(datalist = data, mapper = mapper )
+
+## One variable is not correctly 
+data <- list(main = data.frame(
+                LIGHT01 = c("1",  "1",  "0", "1",  "1",  "0", "1",  "1",  "1"),
+                LIGH03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
+             )
+fct_check_map(datalist = data, mapper = mapper )
+
+## The first variable does not include a single 1...
+data <- list(main = data.frame(
+                LIGHT01 = c("0",  "0",  "0", "0",  "0",  "0", "0",  "0",  "0"),
+                LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
+             )
+fct_check_map(datalist = data, mapper = mapper )
+
+
+```
+  
+```{r tests-fct_check_map}
+test_that("fct_check_map works", {
+  expect_true(inherits(fct_check_map, "function")) 
+})
+```
+  
+   
+
+## fct_get_all_variable_names
+    
+```{r function-fct_get_all_variable_names}
+#' fct_get_all_variable_names
+#' 
+#' Generate a map of all variables within the datalist obtained from RIDL - 
+#'   standard Kobo extract in Excel
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#' 
+#' @return dataframe with variables and list member names 
+#' 
+#' @importFrom purrr imap list_rbind
+#' @importFrom tibble tibble as_tibble_col
+#' @importFrom tidyr unnest
+#' 
+#' @export
+fct_get_all_variable_names <- function(datalist){
+  
+    dico <- purrr::imap(datalist,
+       function(x, y) tibble::tibble(df = y,
+                      vars = tibble::as_tibble_col(names(x))) |> 
+         tidyr::unnest(vars)) |>
+       purrr::list_rbind()
+    
+    return(dico)
+    
+}
+```
+  
+```{r example-fct_get_all_variable_names}
+data <- kobocruncher::kobo_data( here::here("data-raw", "data2.xlsx"))
+varname <-   fct_get_all_variable_names(datalist = data)
+head(varname, 10)
+```
+  
+```{r tests-fct_get_all_variable_names}
+test_that("fct_get_all_variable_names works", {
+  expect_true(inherits(fct_get_all_variable_names, "function")) 
+})
+```
+
+
+
+## fct_re_map
+    
+```{r function-fct_re_map}
+#' fct_re_map
+#' 
+#' Take a list with a hierarchical survey as an entry - use another list to remap
+#' variables and modalities for specific questions 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#' 
+#' @importFrom dplyr filter row_number mutate pull
+#' @importFrom cli cli_alert_info
+#' @return datalist
+#' 
+#' @export
+fct_re_map <- function(datalist, mapper){
+  
+   varname <-   fct_get_all_variable_names(datalist)
+   ## Loop around the variables within mapper
+   for ( i in 1:nrow(mapper[["variablemap"]]) ) {
+     # i <- 2 
+     thisvar <-  mapper[["variablemap"]][["variable"]][[i]]
+     thismappattern <-  mapper[["variablemap"]][["mappattern"]][[i]]
+     
+     ## get the list member and variable name based on pattern matching
+     thismatch <- varname |>
+                 dplyr::mutate( match = grepl(pattern = thismappattern ,
+                                              x = value)) |>
+                 dplyr::filter( match == TRUE ) 
+     
+     ## In case multiple pattern match take the first one
+     if ( nrow(thismatch) > 1) {
+       cli::cli_alert_info(paste0( thisvar ,
+   " variable has more than one variable pattern match in the dataset. We will take the first one but good to check... \n")) 
+       thismatch <- thismatch |> dplyr::filter( dplyr::row_number() == 1)
+       }
+     
+     ## If matches push!
+    if ( nrow(thismatch) ==0) { 
+      cli::cli_alert_info(paste0( thisvar ,
+           " variable pattern was not found in the dataset.\n"))
+      }  else {
+     ## Now  transform
+     datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]]  <- 
+        datalist[[thismatch |> dplyr::pull(df) ]][[thismatch |> dplyr::pull(value)]]
+       
+    ## Apply modalities transformation
+    mod <- mapper[["modalitymap"]] |>
+         dplyr::filter( variable == thisvar ) 
+    
+    datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]] <- plyr::mapvalues(
+      x = datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]] ,
+      from = mod[["map"]],
+      to=  mod[["standard"]])
+    
+    newlev <- paste(
+      levels(as.factor(datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]] )),  
+      collapse = ', ')  
+    
+    ## Inform user
+    cat(paste0("Mapped levels for ", 
+               thisvar, " are now: ", 
+               newlev,
+               "\n"))
+    rm(thisvar, newlev)
+     }
+   }
+  
+   return(datalist)
+    
+}
+```
+  
+```{r example-fct_re_map}
+mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("yes",
+                      "Noelec", "Other", "Dontknow")
+            )
+          )
+
+
+## One variable is not correctly 
+datalist <- list(mainhousehold = data.frame(
+                group.LIGHT01 = c("yes",  "yes",  "no", "yes",  "yes",
+                                  "no", "yes",  "yes",  "yes"),
+                group.LIGHT03 = c("Noelec", "Other", "Dontknow", "Noelec", "Other",
+                                  "Dontknow", "Nuclear", "Other", "Dontknow"))
+             )
+datalist <- fct_re_map(datalist = datalist, mapper = mapper )
+
+fct_check_map(datalist = datalist, mapper = mapper )
+ 
+
+```
+  
+```{r tests-fct_re_map}
+test_that("fct_re_map works", {
+  expect_true(inherits(fct_re_map, "function")) 
+})
+```
+  
+
+ 
+ 
+# Impact Indicators
+ 
+## electricity
+    
+```{r function-electricity}
+#' electricity
+#' 
+#'  Households lighting provides a sense of safety and security within and outside 
+#'  the households after sunset.
+#'  
+#'  If households lack access to electricity, especially for lighting and 
+#'  connectivity, this affects the occupants' security and limits their 
+#'  opportunities for socialization, learning and self-reliance.
+#'  
+#'  **Numerator**: Population with access to electricity, especially for lighting 
+#'  and connectivity
+#'  
+#'  **Denominator**: Total population
+#'  
+#'  **Formula**: *LIGHT01* = 1 & *LIGHT03* != 1, 96, 98
+#' 
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+electricity <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+       "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98")))  ) {
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+   fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  #if (check_map == FALSE) {
+  datalist <- fct_re_map(datalist = datalist,
+                              mapper = mapper)
+ # }
+  
+  ## now pull the calculation...
+  datalist[["main"]]$electricity <-  dplyr::case_when(datalist[["main"]]$LIGHT01=="1" & 
+                       (datalist[["main"]]$LIGHT03!="1" | 
+                        datalist[["main"]]$LIGHT03!="96" |
+                        datalist[["main"]]$LIGHT03!="98")  ~ "1", 
+                     TRUE ~ "0" )
+  ## Apply Label
+  datalist[["main"]]$electricity <- labelled::labelled(  
+                            datalist[["main"]]$electricity,
+                                 labels = c(
+                                   "Yes" = "1",
+                                   "No" = "0"
+                                 ),
+                                 label = "Access to electricity")
+  return(datalist)
+}
+```
+  
+```{r example-electricity}
+datalist <- kobocruncher::kobo_data( here::here("data-raw", "data2.xlsx"))
+
+datalist2 <- electricity( datalist =datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+       "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("yes",
+                      "1", "96", "98")))  )
+```
+  
+```{r tests-electricity}
+test_that("electricity works", {
+  expect_true(inherits(electricity, "function")) 
+})
+```
+  
+
+## healthcare
+    
+```{r function-healthcare}
+#' healthcare
+#' 
+#' Access to healthcare depends on availability of healthcare, including physical 
+#' reach, acceptability and affordability for all.
+#' For this indicator, the focus is on the availability of healthcare system.
+#' According to [The Sphere Handbook](https://spherestandards.org/wp-content/uploads/Sphere-Handbook-2018-EN.pdf),
+#'  primary healthcare facility should be accessible within one hour's walk from dwellings.
+#'  **Numerator**: Population that can reach a primary healthcare facility within one hour from dwellings
+#'  **Denominator**: Total population
+#'  **Formula**: *HEA01* != 96, 98 & *HEA03* <= 60 
+#'  (reachable within one hour/60 minutes)
+#' 
+#'  
+#' @param .data object 
+#' 
+#' @param HEA01 variable name pattern used to encode the question: 
+#'                    " In general, when anyone in your household is sick,
+#'                     where do they go to seek care?"
+#'                    
+#' @param HEA03 variable name pattern used to encode the question: 
+#'                    "How long does it take to go there when you use the mode
+#'                     of transport that you mentioned above?"
+#' 
+#' @param expected_values values used to encode the question if not numeric
+#'                       can be c(0,1) per default or c("yes","no")
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' @importFrom cli cli_alert_info
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+#' 
+healthcare <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+
+main <- main |> 
+  mutate(healthcare=
+           dplyr::case_when((HEA01!="96" | HEA01!="98") & HEA03 <= 60 ~ "1",
+                     TRUE ~ "0")
+  ) |> 
+  mutate( healthcare = labelled(healthcare,
+                                labels = c(
+                                  "Yes" = "1",
+                                  "No" = "0"
+                                ),
+                                label = "Access to healthcare facility"))
+    
+}
+```
+  
+```{r example-healthcare}
+healthcare()
+```
+  
+```{r tests-healthcare}
+test_that("healthcare works", {
+  expect_true(inherits(healthcare, "function")) 
+})
+```
+
+## drinkingwater
+    
+```{r function-drinkingwater}
+#' drinkingwater
+#' 
+#' Access to clean drinking water is essential for a person's survival and well 
+#' being and a precursor for achieving protection outcomes related to health, 
+#' education and economic developed.
+#' The calculation for access drinking water is linked to SGD Indicator
+#'  [6.1.1](https://unstats.un.org/sdgs/metadata/files/Metadata-06-01-01.pdf).
+#'  The questionnaire module and the analysis guidance is taken from [UNICEF MICS6](https://mics.unicef.org/tools#analysis).
+#'  
+#'  **Numerator**: Population using improved sources of drinking water either in their dwelling/yard/plot or within 30 minutes round trip collection time
+#'  
+#'  **Denominator**: Total population
+#'  
+#'  **Formula**: 
+#'   *DWA03* < 30 (under 30 minutes), &
+#'   *DWA01* != 7,9,13,96,98 &
+#'   *DWA02* != 3
+#'   
+#'  This basic service is calculated from the main dataset
+#'  There are three conditions as below  improved source, 
+#'  in dwelling/yard/plot and reachable under 30 minutes 
+#' 
+#' @param .data object 
+#' 
+#' @param DWA01 variable name pattern used to encode the question: 
+#'             "What is the main source of drinking water for this household?"
+#'                    
+#' @param DWA02 variable name pattern used to encode the question: 
+#'             "DWhere is this source located?"
+#'                    
+#' @param DWA03 variable name pattern used to encode the question: 
+#'        "How long does it take to go there, get water, and come back,
+#'         including waiting time?"
+#' 
+#' @param expected_values values used to encode the question 
+#'                       can be c(0,1) per default or c("yes","no")
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+drinkingwater <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+    ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+main <- main |> 
+  mutate(time_DWA= dplyr::case_when(
+    DWA03a=="1"~ "1", DWA03a=="2"~"60") #convert hour into minutes
+  )
+
+main$time_DWA <- as.numeric(main$time_DWA)
+
+main <- main |> 
+  mutate(time_tot=time_DWA*DWA03b
+  ) |>  
+  mutate(reachableU30= dplyr::case_when( time_tot > 30 ~ "0", 
+                              TRUE ~ "1") # reachable under 30 minutes
+  ) |>  
+  mutate(dwa_cond1= dplyr::case_when(DWA01!="7" |DWA01 !="9" |DWA01 != "13" | DWA01 != "96" |DWA01 !="98" ~ "1",
+                             TRUE ~ "0") # improved source
+  ) |> 
+  mutate(dwa_cond2= dplyr::case_when( reachableU30=="1" & DWA02 == "3" ~ "1", #UNDER30 MIN
+                             reachableU30=="0" & DWA02 == "3" ~ "0", # NOT UNDER30 MIN
+                             DWA02=="1" | DWA02=="2" ~ "1", # in the dwelling/yard/plot
+                             TRUE ~ NA_character_ ) 
+  ) |>  
+  mutate(drinkingwater= dplyr::case_when(
+    (dwa_cond1=="1" & dwa_cond2=="1" ) ~ "1", TRUE ~ "0")
+  ) |> 
+  mutate(drinkingwater = labelled(drinkingwater,
+                                  labels = c(
+                                    "Yes" = "1",
+                                    "No" = "0"
+                                  ),
+                                  label = "Access to drinking water"))
+
+table(main$drinkingwater)
+    
+}
+```
+  
+```{r example-drinkingwater}
+drinkingwater()
+```
+  
+```{r tests-drinkingwater}
+test_that("drinkingwater works", {
+  expect_true(inherits(drinkingwater, "function")) 
+})
+```
+  
+
+
+## shelter
+    
+```{r function-shelter}
+#' shelter
+#' 
+#' The right to access adequate housing is protected by international law.
+#' The concept of "adequacy" means that housing is more than four walls and a 
+#' roof as indicated in [The Sphere Handbook](https://spherestandards.org/wp-content/uploads/Sphere-Handbook-2018-EN.pdf).
+#' Habitable housing primarily refers to the fact that the housing should provide
+#'  protection from cold, damp, heat, rain, wind, and other threats to health,
+#'   structural hazards, and disease vectors and it should not be overcrowded.
+#'   As shelter/housing is primarily a contextual element, there may be 
+#'   discrepancies from country to country on how this data is measured.
+#'   
+#'   Adequate shelter is measured based on having improved material for the
+#'    dwelling as indicated in [DHS](https://dhsprogram.com/pubs/pdf/AS61/AS61.pdf) 
+#'    publication on housing conditions which is also used by [MICS6](https://mics.unicef.org/tools).
+#'    
+#'    Overcrowding is also used which occurs if there are more than three people
+#'     per habitable room as defined by [UN-Habitat](https://www.ncbi.nlm.nih.gov/books/NBK535289/table/ch3.tab2/).
+#'     
+#'     **Numerator**: Population that have access to adequate housing
+#'     **Denominator**: Total population
+#'     
+#' **Formula**: 
+#' 
+#'      *DWE01* = 1,2 &
+#'      *DWE02* = 3,4,5,6,7,8,9 & 
+#'      *DWE03* = 8,9,10,11,12,13 & 
+#'      *DWE04* = 10,11,12,13,14,15 & 
+#'      crowding (*HH01*/*DWE05*) \<= 3
+#' 
+#' Adequate shelter is calculated from the main dataset
+#' classify as habitable when improved/adequate shelter
+#' 
+#' @param .data object 
+#' 
+#' @param LIGHT01 variable name pattern used to encode the question: 
+#'                    "Does this household use anything for lighting?"
+#'                    
+#' @param LIGHT03 variable name pattern used to encode the question: 
+#'                    "What source of electricity is used most of the time in this household?"
+#' 
+#' @param expected_values values used to encode the question 
+#'                       can be c(0,1) per default or c("yes","no")
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' @importFrom cli cli_alert_info
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+shelter <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+
+main <- main |> 
+  
+  mutate(dwe01_cat= dplyr::case_when( #Only apartment and house
+    (DWE01=="1" | DWE01=="2") ~ "1", TRUE ~ "0" )
+  ) |> 
+  mutate(dwe02_cat= dplyr::case_when( #unimproved floor when earth,sand,clay,mud, dung or other
+    (DWE02=="1" | DWE02=="2" | DWE02=="96") ~ "0", TRUE ~ "1" )
+  ) |> 
+  mutate(dwe03_cat= dplyr::case_when( #unimproved roof all options except metal,wood,ceramic tiles, cement, roofing shingles/sheets
+    (DWE03=="8" |DWE03=="9" | DWE03=="10" | DWE03=="11" |
+       DWE03=="12" | DWE03=="13" ) ~ "1" , TRUE ~ "0")
+  ) |> 
+  mutate(dwe04_cat= dplyr::case_when( #improved wall: cement,stone,bricks,cement blocks, covered adobe, wood planks
+    (DWE04=="10"| DWE04=="11"| DWE04=="12"| DWE04=="13"| DWE04=="14"| DWE04=="15") ~ "1",
+    TRUE ~ "0")
+  ) 
+
+
+####Calculate crowding index - overcrowded when more than 3 persons
+
+main <- main |> 
+  
+  mutate(crowding=HH01/DWE05
+  ) |> 
+  mutate(dwe05_cat= dplyr::case_when( ##if crowding <= 3, not overcrowded 
+    crowding <= 3 ~ "1", TRUE ~ "0")
+  )
+
+
+####Calculate if all 5 conditions are met for adequate shelter
+
+##dwe01_cat / dwe02_cat / dwe03_cat / dwe04_cat / dwe05_cat
+
+table(main$dwe01_cat)
+table(main$dwe02_cat)
+table(main$dwe03_cat)
+table(main$dwe04_cat)
+table(main$dwe05_cat)
+
+
+main <- main |> 
+  
+  mutate(shelter= dplyr::case_when(
+    dwe01_cat=="0" | dwe02_cat=="0" | dwe03_cat=="0" | dwe04_cat=="0" | dwe05_cat=="0"  ~ "0", 
+    dwe01_cat=="1" & dwe02_cat=="1" & dwe03_cat=="1" & dwe04_cat=="1" & dwe05_cat=="1" ~ "1")
+  ) |> 
+  mutate( shelter = labelled(shelter,
+                             labels = c(
+                               "Yes" = "1",
+                               "No" = "0"
+                             ),
+                             label = "Access to adequate shelter"))
+
+table(main$shelter)
+    
+}
+```
+  
+```{r example-shelter}
+shelter()
+```
+  
+```{r tests-shelter}
+test_that("shelter works", {
+  expect_true(inherits(shelter, "function")) 
+})
+```
+  
+
+## impact2_2 
+    
+```{r function-impact2_2}
+#' impact2_2
+#' 
+#' **Proportion of Persons of Concern residing in physically safe and secure 
+#' settlements with access to basic facilities**
+#' 
+#' Once electricity, healthcare, drinking water and adequate shelter are
+#'  calculated, check the values for each variable before, 
+#'  calculating 2.2 impact indicator. 
+#'  
+#'  Once all variables are correctly calculated, we can compute the final 
+#'  variable for impact 2.2 indicator.
+#'  **Numerator**: Population residing in physically safe and secure settlements with access to basic facilities
+#'  **Denominator**: Total population
+#'  **Formula**: *shelter*=1 & *electricity*=1 & *healthcare*=1 & *drinkingwater*=1
+#'  
+#'  Impact 2.2 is "1" if all services above are accessible
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+impact2_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+  main <-main |> 
+  
+  mutate(impact2_2= dplyr::case_when(
+    shelter=="0" | electricity=="0" | drinkingwater=="0" | healthcare=="0" ~ "0",
+    shelter=="1" & electricity=="1" & drinkingwater=="1" & healthcare=="1" ~ "1")
+  ) |>  
+  mutate(impact2_2=labelled(impact2_2,
+                            labels =c(
+                              "Yes"="1",
+                              "No"="0"
+                            ),
+         label="Proportion of PoCs residing in physically safe and secure settlements with access to basic facilities"))
+
+
+}
+```
+  
+```{r example-impact2_2}
+impact2_2()
+```
+  
+```{r tests-impact2_2}
+test_that("impact2_2 works", {
+  expect_true(inherits(impact2_2, "function")) 
+})
+```
+  
+
+ 
+## impact2_3
+    
+```{r function-impact2_3}
+#' impact2_3
+#' 
+#' **Proportion of PoC with access to health services** 
+#' 
+#' This indicator measures access to primary health care services for persons 
+#' of concern in need of health services.
+#' 
+#' Health services refers to preventive, pro-motive, curative, rehabilitative 
+#' and palliative health services.
+#' 
+#' It is linked to SDG indicator [3.8.1](https://www.who.int/data/gho/data/themes/topics/service-coverage) 
+#' on the coverage of essential health services.
+#' 
+#' The standard questions for this indicator are taken from UNHCR's [HAUS](https://www.unhcr.org/strategic-health-information.html) monitors trends
+#'  in how refugees outside of camps access and utilize health services over time.
+#'  Healthcare can be delivered through a combination of community level, mobile
+#'   and fixed healthcare facilities.
+#'   The number, type and location of each will vary by context.
+#'   The standard questionnaire module will help us to understand these differences.
+#'   
+#'   | Standard Questions |
+#'   |:------------------:|
+#'   |  HACC01 - HACC04   |
+#'   
+#'   **Numerator**: Population who have received the asked for health services in the previous 30 days
+#'   
+#'   **Denominator**: Total population who have asked for health services in the previous 30 days
+#'   
+#'   **Formula**: *HACC01*=1 + / ((*HACC03*=1 & *HACC04*!=7,8,96) + *HACC01*=1)
+#'   
+#'   This indicator comes from the individual dataset 
+#'   Calculate those who were not able to access due to reasons 
+#'   unrelated to asked services (when HACC04 is 7 or 8 or 96)
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+impact2_3 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+ 
+ind <- ind |>  #Those who could not access
+  
+  mutate(health_NOacc= dplyr::case_when(
+    HACC03=="1" & (HACC04_7=="1" | HACC04_8=="1" | HACC04_96=="1" ) ~ "0",
+    HACC03=="1" & (HACC04_1=="1" | HACC04_2=="1" | HACC04_3=="1" | HACC04_4=="1" |HACC04_5=="1" |
+                   HACC04_6=="1" | HACC04_9=="1" | HACC04_10=="1") ~ "1", TRUE ~ "0")
+  ) 
+ind$health_NOacc <- as.numeric(ind$health_NOacc)
+ind$HACC01 <- labelled_chr2dbl(ind$HACC01)
+
+
+ind <- ind |>   ## Add up who needed services ( both who accessed and did not access)
+  mutate(HACC_need=HACC01 + health_NOacc
+  ) |> 
+  mutate(impact2_3=HACC01/HACC_need 
+  ) |> 
+  mutate(impact2_3= dplyr::case_when(
+    impact2_3==1 ~ 1, impact2_3==0.5 ~ 0,
+    impact2_3==0 ~ 0, TRUE ~ NA_real_ )
+  ) |> 
+  mutate(impact2_3=labelled(impact2_3,
+                            labels =c(
+                              "Yes"=1,
+                              "No"=0
+                            ),
+                            label="Proportion of PoC with access to health services"))
+   
+}
+```
+  
+```{r example-impact2_3}
+impact2_3()
+```
+  
+```{r tests-impact2_3}
+test_that("impact2_3 works", {
+  expect_true(inherits(impact2_3, "function")) 
+})
+```
+  
+
+## impact3_2a
+    
+```{r function-impact3_2a}
+#' impact3_2a
+#' 
+#'  **Proportion of Persons of Concern enrolled in primary education** 
+#'  
+#'  This indicator measures the number of students enrolled in primary education,
+#'   regardless of age, expressed as a percentage of the official school-age population 
+#'   corresponding to the respective same level of education.
+#'   
+#'   This is also referred to as Gross enrollment rate (GER).
+#'   
+#'   It is linked to SGD indicator 4.1.1 on quality education.
+#'   
+#'   The standard questions for this indicator are taken from UNHCR's
+#'    [Standardized Education Module](https://www.unhcr.org/60804b214.pdf) which 
+#'    are adapted primarily from the IHSN/EPDC and MICS indicator and questionnaire frameworks.
+#'    
+#'    *Definitions*:
+#'    
+#'    1.  "Enrollment" refers individuals officially registered in a primary/secondary school education programme.
+#'    
+#'    2.  "Primary education" is designed to provide students with fundamental skills in reading, writing and mathematics.
+#'    
+#'    Duration typically varies from 4 to 7 years.
+#'    The most common duration is 6 years.
+#'    It corresponds to ISCED (International Standard Classification of Education) level 1.
+#'    
+#'    3.  "Primary school age" depends on the education system and it varies from country to country.
+#'    Children typically enter in primary education between age 5 and 7 and leave at the age of 10 and 12.
+#'    
+#'    | Standard Questions |
+#'    |:------------------:|
+#'    |    EDU01-EDU04     |
+#'    
+#'    **Numerator**: Population enrolled in primary education (regardless of age)
+#'    **Denominator**: Total primary school age population (to be adjusted by the country for enumeration)
+#'    
+#'    **Formula**: (*EDU01*=1 & *EDU02*=1 & *EDU03*=2) / Number of children aged from 6 to 10
+#' 
+#' This indicator comes from the individual dataset
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+impact3_2a <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+
+ind$EDU01 <- labelled_chr2dbl(ind$EDU01)
+ind$EDU02 <- labelled_chr2dbl(ind$EDU02)
+ind$EDU03 <- labelled_chr2dbl(ind$EDU03)
+
+
+ind<- ind |> 
+  mutate(edu_primary= dplyr::case_when(
+    EDU01==1 & EDU02==1 & EDU03==2 ~ 1, EDU01==0 | EDU02==0 ~ 0, TRUE ~ 0)
+  ) |> 
+  mutate(age_primary= dplyr::case_when(
+    HH07 >= 6 & HH07 <=10 ~ 1, TRUE ~ NA_real_) #Adjust age group for primary school  enrollment 
+  ) |> 
+  mutate(impact3_2a=sum(edu_primary)/sum(age_primary)
+  ) |> 
+  mutate(impact3_2a=labelled(impact3_2a,
+                             labels =c(
+                               "Yes"=1,
+                               "No"=0
+                             ),
+                             label="Proportion of persons of concern enrolled in primary education"))
+
+    
+}
+```
+  
+```{r example-impact3_2a}
+impact3_2a()
+mean(ind$impact3_2a)
+```
+  
+```{r tests-impact3_2a}
+test_that("impact3_2a works", {
+  expect_true(inherits(impact3_2a, "function")) 
+})
+```
+   
+ 
+## impact3_2b
+    
+```{r function-impact3_2b}
+#' impact3_2b
+#' 
+#' **Proportion of Persons of Concern enrolled in secondary education**
+#' 
+#' This indicator measures the number of students enrolled in secondary education,
+#'  regardless of age, expressed as a percentage of the official school-age population
+#'   corresponding to the respective same level of education.
+#'   
+#'   This is also referred to as Gross enrollment rate (GER).
+#'   It is linked to SGD indicator 4.1.1 on quality education.
+#'   
+#'   The standard questions for this indicator are taken from UNHCR's [Standardized Education Module](https://www.unhcr.org/60804b214.pdf) which are adapted primarily from 
+#'   the IHSN/EPDC and MICS indicator and questionnaire frameworks.
+#'   
+#'   Definitions:
+#'   
+#'   1.  "Enrollment" refers individuals officially registered in a primary/secondary school education programme.
+#'   
+#'   2.  "Secondary education" provides learning and educational activities building on primary education and preparing for both first labour market entry as well as further study.
+#'   
+#'   The common duration is 6 years and is often divided between lower and upper secondary education (corresponding respectively to ISCED 2 and 3).
+#'   
+#'   3.  "Secondary school age" depends on the education system and differ from 
+#'   country to country. 
+#'   Children typically enter secondary education between age 11 and 13 and leave between age 17-19.
+#'   
+#'   4.  Whenever possible, operations are encouraged also to disaggregate data between lower and upper secondary
+#'   
+#'   | Standard Questions |
+#'   |:------------------:|
+#'   |    EDU01-EDU04     |
+#'   
+#'   **Numerator**: Population enrolled in secondary education (regardless of age)
+#'   **Denominator**: Total secondary school age population (to be adjusted by the country for enumeration)
+#'   
+#'   **Formula**: (*EDU01*=1 & *EDU02*=1 & (*EDU03*=3,4) / Number of children aged from 11 to 18
+#'   
+#'   This indicator comes from the individual dataset
+#'   
+#'   Include if they are attending secondary or secondary -technical and vocational
+#'    
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+impact3_2b <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  } 
+  
+ind <- ind |> 
+  mutate(edu_secondary= dplyr::case_when(
+    EDU01==1 & EDU02==1 & (EDU03==3 | EDU03==4) ~ 1, EDU01==0 | EDU02==0 ~ 0, 
+    TRUE ~ 0)
+  ) |> 
+  mutate(age_secondary= dplyr::case_when(
+    HH07 >= 11 & HH07 <=18 ~ 1, TRUE ~ NA_real_)
+    
+    #Adjust age group for secondary school enrollment 
+    ##calculated as 11 to 18 above 
+  ) |> 
+  mutate(impact3_2b=sum(edu_secondary)/sum(age_secondary)
+  ) |> 
+  mutate(impact3_2b=labelled(impact3_2b,
+                             labels =c(
+                               "Yes"=1,
+                               "No"=0
+                             ),
+  label="Proportion of persons of concern enrolled in secondary education"))
+
+    
+}
+```
+  
+```{r example-impact3_2b}
+impact3_2b()
+```
+  
+```{r tests-impact3_2b}
+test_that("impact3_2b works", {
+  expect_true(inherits(impact3_2b, "function")) 
+})
+```
+  
+ 
+## impact3_3
+    
+```{r function-impact3_3}
+#' impact3_3
+#' 
+#' **Proportion of population that feel safe walking alone in their neighbourhood**
+#' 
+#' This indicator measures the proportion of persons of concern who self-report 
+#' feeling safe while walking alone in her/his neighborhood after dark.
+#' It is linked to SDG indicator [16.1.4](https://unstats.un.org/sdgs/metadata/files/Metadata-16-01-04.pdf).
+#' 
+#' The standard module for this indicator is taken from SGD indicator owner UNODC.
+#' This indicator only pertains to self-reported feeling of 'safety' and not 
+#' 'security' since security is associated with additional external factors.
+#' 
+#' | Standard Questions |
+#' |:------------------:|
+#' |       SAF01        |
+#' 
+#' **Numerator**: Population who self-report feeling safe walking alone in 
+#' their neighborhood after dark
+#' 
+#' **Denominator**: Total population
+#' **Formula**: *SAF01*=1,2 / *SAF01*=1,2,3,4
+#' 
+#' This indicator comes from main dataset based on the respondent randomly
+#'  selected for individual level
+#'  
+#'  if unsafe or very unsafe 0, 98 and 99 go into blank
+#'  I never walk alone will also go into blank if any
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+impact3_3 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+  main <- main |> 
+   mutate(impact3_3= dplyr::case_when(
+     SAF01==1 | SAF01==2 ~ 1,
+     SAF01==3 | SAF01==4 ~ 0 , 
+     SAF01==98 | SAF01==99 ~ NA_real_)
+   ) |>  
+    mutate(impact3_3=labelled(impact3_3,
+                                   labels =c(
+                                     "Yes"=1,
+                                     "No"=0
+                                   ),
+                                   label="Proportion of population that feel safe walking alone in their neighbourhood"))
+    
+  
+     
+}
+```
+  
+```{r example-impact3_3}
+impact3_3()
+```
+  
+```{r tests-impact3_3}
+test_that("impact3_3 works", {
+  expect_true(inherits(impact3_3, "function")) 
+})
+```
+  
+
+# Outcome indicators
+
+## outcome1_2 
+    
+```{r function-outcome1_2}
+#' outcome1_2 
+#' 
+#' **Proportion of children under 5 years of age whose births have been registered with a civil authority**
+#' 
+#' This indicator measures the proportion of children under 5 years old whose births
+#'  have been registered with a civil authority and civil documentation has been issued.
+#'  This is directly linked to SGD indicator [16.9.1](https://unstats.un.org/sdgs/metadata/files/Metadata-16-09-01.pdf).
+#'  
+#'  The standard module for this indicator is taken from MICS and adjusted to UNHCR context.
+#'  
+#'  **Definitions**
+#'  
+#'  •**Birth registration** refers to the registration of new births by civil 
+#'  authorities and completion of the process through the issuance of a birth certificate.
+#'  This also includes documents issued by UNHCR or other relevant organizations 
+#'  when **given the authority by the State and these documents are recognized by national authorities**.
+#'  
+#'  **Clarifications**
+#'  
+#'  •Birth notifications or other hospital records and records from midwives or 
+#'  traditional birth attendants, **issued solely by UNHCR or its partners shall
+#'   not be considered** as birth certificates although they are important sources 
+#'   for establishing the total number of births.
+#'   Operations are encouraged to track both the number of birth notifications and
+#'    birth registrations but for the purpose of this indicator should report 
+#'    the number of births registered.
+#'    
+#'    • The standard indicator used in DHS, MICS and RMS to report on birth 
+#'    registration refers to the percentage of children under age 5 (0-59 months) 
+#'    with a birth certificate, regardless of whether or not it was seen by the 
+#'    interviewer, or whose birth was reported as registered with civil
+#'     authorities at the time of survey.
+#'     
+#'     | Standard Questions |
+#'     |:------------------:|
+#'     |   REG03 - REG04    |
+#'     
+#'     **Numerator**: Number of children under 5 years old who are registered with civil authorities
+#'     **Denominator**: Total number of children under 5 years old
+#'     **Formula**: (*REG03=1 \| REG04=1) / Number of children under 5*
+#'     
+#'     This indicator comes from the individual dataset
+#'      ind$REG03 - birth certificate
+#'      ind$REG04 - birth has been registered
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome1_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+  ##Calculate children who has a birth certificate
+  
+  
+  ind <- ind |> 
+    mutate(birthCertificate= dplyr::case_when(
+      REG03==0 | REG03==98 ~ 0, REG03==1 ~ 1)
+           ) |> 
+    mutate(birthCertificate=labelled(birthCertificate,
+                                  labels=c(
+                                    'Yes'=1,
+                                    'No'=0
+                                  ),
+                                  label="Children under 5 with a birth certificate"))
+  
+  ##Calculate children who has been registered with civil authorities
+  
+  ind <- ind |> 
+    mutate(birthRegistered= dplyr::case_when(
+      REG04==0 | REG04==98 ~ 0, REG04==1 ~ 1, REG04==99 ~NA_real_)
+    ) |> 
+    mutate(birthRegistered=labelled(birthRegistered,
+                                  labels=c(
+                                    'Yes'=1,
+                                    'No'=0
+                                  ),
+                                  label="Children under 5 birth registered with civil authorities"))
+  
+  
+  ##if the birth is registered or child has a birth certificate
+                                 
+  
+  ind <- ind |> 
+    mutate(outcome1_2= dplyr::case_when(
+      (birthRegistered==1 | birthCertificate==1) 
+      & HH07 <5 ~ 1, 
+      (birthRegistered==0 & birthCertificate==0) 
+      & HH07 <5 ~ 0)
+    ) |> 
+    mutate(outcome1_2=labelled(outcome1_2,
+                                    labels=c(
+                                      'Yes'=1,
+                                      'No'=0
+                                    ),
+                                    label="Proportion of children under 5 years of age whose births have been registered with a civil authority"))
+    
+}
+```
+  
+```{r example-outcome1_2}
+outcome1_2()
+```
+  
+```{r tests-outcome1_2}
+test_that("outcome1_2 works", {
+  expect_true(inherits(outcome1_2, "function")) 
+})
+```
+  
+## outcome1_3
+    
+```{r function-outcome1_3}
+#' outcome1_3
+#' 
+#' **Proportion of Persons of Concern with legally recognized identity documents or credentials**
+#' 
+#' This indicator measures the proportion of persons of concern who possess legally 
+#' recognized and valid identity documents or credentials.
+#' 
+#' Establishing one's identity and possessing legally recognized and valid identity
+#'  documents or credentials ensures the legal protection of persons of concern,
+#'   protection from refoulement, registration of life events to prevent statelessness,
+#'    as well as access to services.
+#'    
+#'    **Definitions**
+#'    
+#'     Identity document or credential is any document or credential which may be 
+#'     used as proof of identity, which may also include reference to the
+#'      individuals' legal status and associated rights vis-à-vis the host 
+#'      State and/or UNHCR.
+#'      
+#'  |          Standard Questions           |
+#'  |:-------------------------------------:|
+#'  | REG01 - REG02 - REG03 / REG05 - REG06 |
+#'  
+#'  **Numerator**: Total population with valid identity documents or credentials
+#'  
+#'  **Denominator**: Total population
+#'  
+#'  **Formula**: ( *REG01=1 \| REG02=1 \| REG03=1 \| REG05=1 \| REG06=1) / Total population*
+#'  
+#'  This indicator comes from the individual dataset - 
+#'  Calculate valid identity documents for under 5 with REG05 and REG06 variables
+#'  ind$REG05a - passport
+#'  ind$REG05b - civil/government issued ID
+#'  ind$REG05c - residency permit
+#'  ind$REG05d - statelessness documentation
+#'  ind$REG05e - household card of address/family book
+#'  ind$REG05f - social security card
+#'  ind$REG06 - any other document establishes identity
+#'  add birth certificate as additional document from REG03
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome1_3 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+    
+#Make sure to delete REG05e below from the script if you don't have any stateless 
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+  
+  ind <- ind |> 
+    mutate(document_under5= dplyr::case_when(
+      REG05a==1 | REG05b==1 | REG05c==1 | REG05d==1 | REG05e==1 | REG05f==1 |REG06==1 | REG03==1 ~ 1, 
+      REG05a!=1 & REG05b!=1 & REG05c!=1 & REG05d!=1 & REG05e!=1 & REG05f!=1 & REG06!=1 & REG03!=1 ~ 0, TRUE ~ NA_real_
+    ))
+  
+  ###Calculate  valid identity documents for above 5 with REG01 and REG02 variables
+  
+  
+  #ind$REG01a # passport
+  #ind$REG01b # birth certificate
+  #ind$REG01c # civil/ government issued ID
+  #ind$REG01d # residency permit
+  #ind$REG01e # statelessness documentation
+  #ind$REG01f # household card of address/family book
+  #ind$REG01g # social security card
+  #ind$REG02 # any other document establishes identity
+
+#Make sure to delete REG01e below from the script if you don't have any stateless   
+
+  ind <- ind |> 
+    mutate(document_above5= dplyr::case_when(
+      REG01a==1 | REG01b==1 | REG01c==1 | REG01d==1 | REG01e==1 | REG01f==1 | REG01g==1 |REG02==1 ~ 1,
+      REG01a!=1 & REG01b!=1 & REG01c!=1 & REG01d!=1 & REG01e!=1 & REG01f!=1 & REG01g!=1 & REG02!=1 ~ 0, TRUE ~ NA_real_)
+      
+  ##Combine both age groups
+    ) |> 
+    mutate(outcome1_3= dplyr::case_when(
+     (document_above5==1 | document_under5==1) ~ 1,  
+     (document_above5==0 | document_under5==0) ~ 0)
+    ) |> 
+    mutate(outcome1_3=labelled(outcome1_3,
+                               labels=c(
+                                 'Yes'=1,
+                                 'No'=0
+                               ),
+                               label="Proportion of Persons of Concern with legally recognized identity documents or credentials"))
+}
+```
+  
+```{r example-outcome1_3}
+outcome1_3()
+```
+  
+```{r tests-outcome1_3}
+test_that("outcome1_3 works", {
+  expect_true(inherits(outcome1_3, "function")) 
+})
+```
+   
+   
+## outcome4_1
+    
+```{r function-outcome4_1}
+#' outcome4_1
+#' 
+#' 
+#' **Proportion of Persons of Concern who know where to access available GBV services**
+#' 
+#' The indicator is defined as the proportion of persons of concern who know where to access at least one of the four available gender-based violence services in the aftermath of a GBV incident.
+#' 
+#' This is linked to the Inter-Agency Minimum Standards for Gender-Based Violence in Emergencies Programming.
+#' 
+#' The response options will appear as below when the standardized module is used.
+#' 
+#' *Definitions:*
+#' 
+#' 1.  **GBV01a (**Health): "Medical treatment and health care to address the immediate and long-term physical and mental health effects of GBV. This can include initial examination and treatment, follow-up medical care, mental health care, and health-related legal services, such as preparation of documentation and provision of evidence during judicial and related processes."
+#' 
+#' 2.  **GBV01b** (Psycho-social/ case management): "Psychosocial care and support to assist with healing and recovery from emotional, psychological and social effects. This includes crisis care as well as longer-term emotional and practical support for the survivor and her/his family, information and advocacy, case management, and educating family members so that they can support the survivor's healing and recovery.
+#' 
+#' 3.  **GBV01c** (Safety/security): "Options for safety and protection for survivors and their families who are at risk of further violence and who wish to be protected. This can include safe shelters, police or community security, relocation, or in the case of children, alternative care arrangements".
+#' 
+#' 4.  **GBV01d** (Legal assistance): "Legal actors will clearly and honestly inform the victim/survivor of the #' procedures, limitations, pros, and cons of all existing legal options".
+#' 
+#' | Standard Questions |
+#' |:------------------:|
+#' |       GBV01        |
+#' 
+#' **Numerator**: Total population who indicates knowing where to access available GBV services
+#' 
+#' **Denominator**: Total population
+#' 
+#' **Formula**: ( *GBV01a=1 \| GBV01b=1 \| GBV01c=1 \| GBV01d=1) / Total population*
+#' 
+#' This indicator comes from main dataset based on the respondent randomly selected for individual level
+#' 
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome4_1 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+  main <- main |> 
+    mutate(outcome4_1= dplyr::case_when(
+      GBV01a==1 |  GBV01b==1 |  GBV01c==1 |  GBV01d==1 ~ 1,
+      TRUE ~ 0)
+    ) |> 
+    mutate(outcome4_1=labelled(outcome4_1,
+                               labels=c(
+                                 'Yes'=1,
+                                 "No"=0
+                               ),
+                               label="Proportion of PoC who know where to access available GBV services"
+                               ))
+    
+}
+```
+  
+```{r example-outcome4_1}
+outcome4_1()
+```
+  
+```{r tests-outcome4_1}
+test_that("outcome4_1 works", {
+  expect_true(inherits(outcome4_1, "function")) 
+})
+```
+     
+
+## outcome4_2
+    
+```{r function-outcome4_2}
+#' outcome4_1
+#' 
+#' 
+#' **Proportion of Persons of Concern who do not accept violence against women**
+#' 
+#' This indicator measures the proportion of persons of concern who disagree that a husband is justified in hitting or beating his wife for a list of specific reasons.
+#' This serves as a proxy indicator for those who do not accept violence against women.
+#' 
+#' This module is taken from [Domestic Violence Module](https://dhsprogram.com/pubs/pdf/DHSQMP/DHS6_Module_Domestic_Violence_6Aug2014_DHSQMP.pdf) from DHS and similar module used by MICS.
+#' Due to its sensitivity, this module is only recommended for face-to-face surveys.
+#' 
+#' *Data Collection Safeguards*
+#' 
+#' Enumerators (and data collection teams) must be trained on GBV safe disclosures and referrals prior to undertaking household surveys (or at least get a briefing on the GBV referral pathway in their area).
+#' To ensure quality feedback and limit risks of harm, it is advisable to administer the survey to members of the household separately in confidential spaces (consider using interview rooms at community centres in settings where layout of communities' homes do not allow for confidential discussions).
+#' 
+#' It is also recommended to ensure same-sex enumerators to minimize risks of SEA particularly for female respondents.
+#' 
+#' | Standard Questions |
+#' |:------------------:|
+#' |       VAW01        |
+#' 
+#' **Numerator**: Population 18 and above who disagree that a husband is justified in hitting or beating his wife for all the following reasons:
+#' 
+#' 1.  Going out without telling him.
+#' 
+#' 2.  Neglecting the children.
+#' 
+#' 3.  Arguing with him.
+#' 
+#' 4.  Refusing to have sexual intercourse with him.
+#' 
+#' 5.  Burning food.
+#' 
+#' **Denominator**: Total population 18 and above
+#' 
+#' **Formula**: ( *GBV01a=1 \| GBV01b=1 \| GBV01c=1 \| GBV01d=1) / Total population*
+#' 
+#' 
+#' This indicator comes from main dataset based on the respondent randomly selected for individual level
+#' 
+#' If randomly selected adult who believes that a  husband is justified in beating his wife in various circumstances
+#' 
+#' If yes selected for any of the circumstances
+#' Prefer not to respond will be put into missing
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome4_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+
+ main <- main |> 
+   mutate(outcome4_2= dplyr::case_when(
+     VAW01a==1 | VAW01b==1 |  VAW01c==1 |  VAW01d==1 | VAW01e==1 ~ 0,
+     VAW01a==0 & VAW01b==0 &  VAW01c==0 &  VAW01d==0 & VAW01e==0 ~ 1,
+     TRUE ~ NA_real_)
+   ) |> 
+   mutate(outcome4_2=labelled(outcome4_2,
+                              labels=c(
+                                'Yes'=1,
+                                "No"=0
+                              ),
+                              label="Proportion of PoC who do not accept violence against women"
+   ))    
+}
+```
+  
+```{r example-outcome4_2}
+outcome4_2()
+```
+  
+```{r tests-outcome4_2}
+test_that("outcome4_2 works", {
+  expect_true(inherits(outcome4_2, "function")) 
+})
+```
+
+## outcome5_2
+    
+```{r function-outcome5_2}
+#' outcome5_2
+#' 
+#' **Proportion of children who participate in community-based child protection programmes**
+#' 
+#' The indicator is defined as the the proportion of children who participate in community-based child protection programmes.
+#' The module for this question comes from UNHCR Core indicator metadata.
+#' 
+#' Children' participation in community-based recreational and child protection activities is a key mechanism for the protection of children by providing children with a protected environment in which they can participate in organized activities to play, socialize, learn, and express themselves, promoting their psycho-social well-being and reducing the risk of abuse, violence or exploitation.
+#' 
+#' | Standard Questions |
+#' |:------------------:|
+#' |   COMM01-COMM04    |
+#' 
+#' **Numerator**: Total number of children between 4-17 years who participate in community-based recreational and child protection programmes
+#' 
+#' **Denominator**: Total [number of children between 4-17 years
+#' 
+#' **Formula**: ( *COMM01=1 & COMM02 \>=2 \| & COMM03=1 & COMM04=1) / Total number of children 4-17 years*
+#' This indicator comes from the individual level dataset
+#' 
+#'  
+#' Children who participate in community-based programmes at least 2 times, under adult supervision in a physically safe area
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome5_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+     ind <- ind |> 
+   mutate(outcome5_2= dplyr::case_when(
+     (COMM01==1 & COMM02 >=2 & COMM03==1 & COMM04==1) ~ 1,
+     (COMM01==0 | 
+       (COMM02 < 2 | COMM02==98) | 
+       (COMM03==0 | COMM03==98) |
+       (COMM04==0 | COMM04==98)) ~ 0, TRUE ~ NA_real_)
+   ) |> 
+   mutate(outcome5_2=labelled(outcome5_2,
+                              labels=c(
+                                'Yes'=1,
+                                "No"=0
+                              ),
+                              label="Proportion of children who participate in community-based child protection programmes"
+   ))
+}
+```
+  
+```{r example-outcome5_2}
+outcome5_2()
+```
+  
+```{r tests-outcome5_2}
+test_that("outcome5_2 works", {
+  expect_true(inherits(outcome5_2, "function")) 
+})
+```
+  
+
+ 
+## outcome8_2
+    
+```{r function-outcome8_2}
+#' outcome8_2
+#' 
+#' 
+#' **Proportion of Persons of Concern with primary reliance on clean (cooking) fuels and technology**
+#' 
+#' This indicator measures the proportion of population who use clean fuel and technology as primary source of cooking.
+#' Any type of cooking fuel and technology meeting the WHO set standards on indoor air emissions, as their main cooking solution.
+#' This is also linked to SGD indicator [7.1.2](https://sdg-tracker.org/energy) .
+#' 
+#' The standard questions are similar to MICS and the calculation of indicators are based on [UNICEF MICS](https://mics.unicef.org/files?job=W1siZiIsIjIwMTcvMDIvMDMvMTYvMjcvMjUvNTk5L1BpY3RvcmlhbHNfV0hPX0hvdXNlaG9sZF9FbmVyZ3lfVXNlX0NhdGFsb2d1ZV9TZXB0ZW1iZXJfMjAxNl8ucGRmIl1d&sha=57b4a452fcc0ac88) and [WHO](https://www.who.int/data/gho/indicator-metadata-registry/imr-details/5662) guidance on the calculation of the same SGD indicator.
+#' 
+#' | Standard Questions |
+#' |:------------------:|
+#' |   COOK01- COOK03   |
+#' 
+#' **Numerator**: Percentage of population with primary reliance on clean fuels and technologies for cooking
+#' 
+#' **Denominator**: Total population
+#' 
+#' **Formula**: COOK01=1 (there is a cooking device) & (COOK02=1,2,3,4,5) \| (COOK02=6 & COOK03=1,2) / Total Population
+#' 
+#' This indicator comes from household level dataset
+#' Based on MICS calculation : TC4.1
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome8_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+     
+main <- main |> 
+   mutate(
+     outcome8_2 = dplyr::case_when(
+       (COOK01 == 1 & (COOK02 %in% c("1", "2", "3", "4", "5")) | (COOK02 %in% c("6") & COOK03 %in% c("1", "3"))
+        ) ~ 1, 
+       (COOK01 == 1 & (COOK02 %in% c("7", "8", "9", "10", "96")) | ((COOK02 %in% c("6") & !(COOK03 %in% c("1", "3")
+                                                                                    )))) ~ 0 ,
+       TRUE ~ NA_real_
+     )
+   ) |> 
+   mutate(
+     outcome8_2 = labelled(outcome8_2,
+                            labels = c(
+                              "No" = 0,
+                              "Yes" = 1
+                            ),
+                            label = "Proportion of Persons of Concern with primary reliance on clean (cooking) fuels and technology"
+     )
+   )
+}
+```
+  
+```{r example-outcome8_2}
+outcome8_2()
+```
+  
+```{r tests-outcome8_2}
+test_that("outcome8_2 works", {
+  expect_true(inherits(outcome8_2, "function")) 
+})
+```
+  
+
+
+ 
+ 
+
+ 
+## outcome9_1
+    
+```{r function-outcome9_1}
+#' outcome9_1
+#' 
+#' **Proportion of Persons of Concern living in habitable and affordable housing**
+#' 
+#' This indicator measures the proportion of persons of concern living in habitable and affordable housing.
+#' This indicator focuses only on habitability and affordability.
+#' It is limited in its reflection on other key aspects of adequate housing including security of tenure, availability of other basic services and infrastructure, accessibility, location of housing, and cultural appropriateness.
+#' It is also linked to SGD indicator [11.1.1](https://unstats.un.org/sdgs/metadata/files/Metadata-11-01-01.pdf).
+#' 
+#' The right to access adequate housing is protected by international law.
+#' The concept of "adequacy" means that housing is more than four walls and a roof as indicated in [The Sphere Handbook](https://spherestandards.org/wp-content/uploads/Sphere-Handbook-2018-EN.pdf).
+#' Habitable housing primarily refers to the fact that the housing should provide protection from cold, damp, heat, rain, wind, and other threats to health, structural hazards, and disease vectors and it should not be overcrowded.
+#' As shelter/housing is primarily a contextual element, there may be discrepancies from country to country on how this data is measured.Habitable shelter is measured based on having improved material for the dwelling as indicated in [DHS](https://dhsprogram.com/pubs/pdf/AS61/AS61.pdf) publication on housing conditions which is also used by [MICS6](https://mics.unicef.org/tools).
+#' Overcrowding is also used which occurs if there are more than three people per habitable room as defined by [UN-Habitat](https://www.ncbi.nlm.nih.gov/books/NBK535289/table/ch3.tab2/).
+#' 
+#' Affordable housing refers to the fact that the cost of housing and its related expenditures on maintenance and household items should be at such a level that it should not compromise the attainment and satisfaction of other basic needs
+#' 
+#' |    Standard Questions     |
+#' |:-------------------------:|
+#' | DWE01-DWE05 & DWE08-DWE09 |
+#' 
+#' **Numerator**: Total population living in habitable and affordable housing
+#' 
+#' **Denominator**: Total population
+#' 
+#' **Formula**: *DWE01* = 1,2 & *DWE02* = 3,4,5,6,7,8,9 & *DWE03* = 8,9,10,11,12,13 & *DWE04* = 10,11,12,13,14,15 & crowding (*HH01*/*DWE05*) \<= 3 & (DWE08=1 & DWE09=1,2) \| DWE08=0
+#'  
+#' 
+#' This indicator is calculated from the main dataset
+#' 
+#' classify as habitable when improved/adequate shelter
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome9_1 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+
+main <- main |> 
+  
+  mutate(dwe01_cat= dplyr::case_when( #Only apartment and house
+         (DWE01==1 | DWE01==2) ~ 1, TRUE ~ 0 )
+  ) |> 
+  mutate(dwe02_cat= dplyr::case_when( #unimproved floor when earth,sand,clay,mud, dung or other
+    (DWE02==1 | DWE02==2 | DWE02==96) ~ 0, TRUE ~ 1 )
+  ) |> 
+  mutate(dwe03_cat= dplyr::case_when( #unimproved roof all options except metal,wood,ceramic tiles, cement, roofing shingles/sheets
+    (DWE03==8 |DWE03==9 | DWE03==10 | DWE03==11 |
+       DWE03==12 | DWE03==13 ) ~ 1 , TRUE ~ 0)
+  ) |> 
+  mutate(dwe04_cat= dplyr::case_when( #improved wall: cement,stone,bricks,cement blocks, covered adobe, wood planks
+    (DWE04==10| DWE04==11| DWE04==12| DWE04==13| DWE04==14| DWE04==15) ~ 1,
+  TRUE ~ 0)
+  ) 
+
+
+####Calculate crowding index - overcrowded when more than 3 persons
+
+main <- main |> 
+  
+  mutate(crowding=HH01/DWE05
+  ) |> 
+  mutate(dwe05_cat= dplyr::case_when( ##if crowding <= 3, not overcrowded 
+    crowding <= 3 ~ 1, TRUE ~ 0)
+  )
+
+ 
+## Add DWE08 and DWE09 to calculations - if household is paying rent, they should be able to afford to pay rent without any financial distress
+
+main <- main |> 
+ mutate(dwe09_cat= dplyr::case_when( #affordable if HH pays rent and often and always without financial distress
+  (DWE08==1 & (DWE09==1 | DWE09==2)) ~ 1, 
+  (DWE08==1 & (DWE09==3 | DWE09==4)) ~ 0,  
+  DWE08==0 ~ 1)
+)
+
+      
+####Combine all shelter indicators 
+
+##dwe01_cat / dwe02_cat / dwe03_cat / dwe04_cat / dwe05_cat / dwe09_cat
+
+
+main <- main |> 
+  
+  mutate(outcome9_1= dplyr::case_when(
+    dwe01_cat==0 | dwe02_cat==0 | dwe03_cat==0 | dwe04_cat==0 | dwe05_cat==0 | dwe09_cat==0  ~ 0, 
+    dwe01_cat==1 & dwe02_cat==1 & dwe03_cat==1 & dwe04_cat==1 & dwe05_cat==1 & dwe09_cat==1 ~ 1)
+  ) |> 
+  mutate( outcome9_1 = labelled(outcome9_1,
+                             labels = c(
+                               "Yes" = 1,
+                               "No" = 0
+                             ),
+                             label = "Proportion of PoCs living in habitable and affordable housing"))
+
+
+}
+```
+  
+```{r example-outcome9_1}
+outcome9_1()
+```
+  
+```{r tests-outcome9_1}
+test_that("outcome9_1 works", {
+  expect_true(inherits(outcome9_1, "function")) 
+})
+```
+  
+
+
+
+ 
+
+ 
+## outcome9_2
+    
+```{r function-outcome9_2}
+#' outcome9_2
+#' 
+#' 
+#' **Proportion of Persons of Concern that have energy to ensure lighting**
+#' 
+#' This indicator measures the percentage of Persons of Concern who have access to clean and sustainable source of lighting at household level.
+#' Safe and sustainable access to clean energy is increasingly recognized as human right and is an integral part of the Sustainable Development Goals.
+#' 
+#' The indicator for lighting is constructed from the essential questions *LIGHT01* and *LIGHT02* which captures the most used light source.
+#' [LSMS Guidebook](https://documents1.worldbank.org/curated/en/557341633679857128/pdf/Measuring-Energy-Access-A-Guide-to-Collecting-Data-Using-the-Core-Questions-on-Household-Energy-Use.pdf) is the main source for measuring energy access as defined for SGD 7.1.12.
+#' 
+#' | Standard Questions |
+#' |:------------------:|
+#' | LIGHT01 - LIGHT03  |
+#' 
+#' : $\frac{Population with reliance on clean fuels and technologies for lighting}{Total population}$
+#' 
+#' **Numerator**: Population living in households with primary reliance on clean fuels and technologies for lighting
+#' 
+#' **Denominator**: Total population
+#' 
+#' **Formula**: *LIGHT01* = 1 & *LIGHT02* = 1, 3, 4, 5, 6, 7, 8 / Total Population
+#' 
+#' This comes from the main dataset
+#' 
+#'  The below Calculates percentage of PoC having access to clean fuel for lighting and / or basic connectivity (9.1 Outcome Indicator)
+#'  
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome9_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+    
+main <- main |>  
+  mutate(outcome9_2=
+           dplyr::case_when(LIGHT01==1 & (LIGHT02==1 |LIGHT02==3 | LIGHT02==4 | LIGHT02==5 | LIGHT02==6 | LIGHT02==7 |LIGHT02==8) 
+                      ~ 1, TRUE ~ 0)
+  ) |> 
+  mutate( outcome9_2 = labelled(outcome9_2,
+                                labels = c(
+                                  "Yes" = 1,
+                                  "No" = 0
+                                ),
+                    label = "Proportion of PoC that have energy to ensure lighting"))
+
+}
+```
+  
+```{r example-outcome9_2}
+outcome9_2()
+```
+  
+```{r tests-outcome9_2}
+test_that("outcome9_2 works", {
+  expect_true(inherits(outcome9_2, "function")) 
+})
+```
+  
+ 
+
+ 
+## outcome10_1
+    
+```{r function-outcome10_1}
+#' outcome10_1
+#' 
+#' 
+#' **Proportion of children aged 9 months to five years who have received measles vaccination**
+#' 
+#' Coverage of measles vaccination in children in the target age group of 9 months to 5 years of age.
+#' Measles vaccination is an essential preventive primary care intervention to protect children from measles infection.
+#' 
+#' Standard module is from [UNICEF MICS6](https://mics.unicef.org/tools#survey-design) Children under 5 module.
+#' The calculation of this module is also aligned with UNICEF MICS6.
+#' 
+#' | Standard Questions |
+#' |:------------------:|
+#' |    MMR01-MMR04     |
+#' 
+#' **Numerator**: Total number of children 9 months to 5 years who have received a measles containing vaccine (measles or MMR- Measles Mumps and Rubella)
+#' 
+#' **Denominator**: Total number of children 9 months to 5 years
+#' 
+#' **Formula**: *MMR03=*1 / Total number of children 9 months to 5 years
+#' 
+#' This comes from the main dataset
+#' 
+#' MICS TC.1.1 UNICEF calculates on the first dose received##
+#' Children who had et least one dose of measles vaccination
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome10_1 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+  
+    ind <- ind |> 
+  mutate(outcome10_1= dplyr::case_when(
+    MMR03==1 ~ 1, MMR03==0  | MMR03==98 ~ 0)
+  ) |> 
+  mutate( outcome10_1 = labelled(outcome10_1,
+                                labels = c(
+                                  "Yes" = 1,
+                                  "No" = 0
+                                ),
+                                label = "Proportion of children aged 9 months to five years who have received measles vaccination"))
+}
+```
+  
+```{r example-outcome10_1}
+outcome10_1()
+```
+  
+```{r tests-outcome10_1}
+test_that("outcome10_1 works", {
+  expect_true(inherits(outcome10_1, "function")) 
+})
+```
+  
+ 
+
+## outcome10_2
+    
+```{r function-outcome10_2}
+#' outcome10_2
+#' 
+#' **Proportion of births attended by skilled health personnel**
+#' 
+#' This indicator measures the percentage of births attended by personnel trained to give the necessary supervision, care, and advice to women during pregnancy, labor, and the postpartum period; to conduct deliveries on their own; and to care for newborns.
+#' This indicator is linked to SGD [3.1.2](https://unstats.un.org/sdgs/metadata/files/Metadata-03-01-02.pdf).
+#' 
+#' National-level household surveys are the main data sources used to collect data for skilled health personnel providing childbirth care.
+#' These surveys include Demographic and Health Surveys (DHS), Multiple Indicator Cluster Surveys (MICS), Reproductive Health Surveys (RHS) and other national surveys based on similar methodologies.
+#' Standard module is from [UNICEF MICS6](https://mics.unicef.org/tools#survey-design) individual questionnaire for woman.
+#' The calculation of this module is also aligned with UNICEF MICS6.
+#' 
+#' The national categories of skilled health personnel are verified, and the estimates for some countries may include additional categories of trained personnel beyond doctor, nurse, and midwife.
+#' 
+#' | Standard Questions |
+#' |:------------------:|
+#' |    BIR01-BIR04     |
+#' 
+#' **Numerator**: Total number of births attended by skilled health personnel)
+#' 
+#' **Denominator**: Total number of live births
+#' 
+#' **Formula**: (BIR01=1 | BIR02=1) & (BIR03=1,2,3) / Total number of live births
+#' This comes from the main dataset
+#' MICS TM.5.a UNICEF MICS calculation if there was a trained health personnel ##
+#' If there are live births in the last 2 years 
+#'  Traditional birth attendant and community health worker can be included if they are trained
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome10_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+    
+main <- main |> 
+  mutate(outcome10_2= dplyr::case_when( 
+    (BIR01==1 | BIR02==1) & (BIR03==1 |BIR03==2 | BIR03==3 ) 
+    ~ 1,
+    (BIR01==1 | BIR02==1) & (BIR03==4 |BIR03==5 | BIR03==6 
+                                     | BIR03==96| BIR03==98) 
+    ~ 0, 
+    TRUE ~ NA_real_)
+  ) |> 
+  mutate( outcome10_2 = labelled(outcome10_2,
+                                 labels = c(
+                                   "Yes" = 1,
+                                   "No" = 0
+                                 ),
+                                 label = "Proportion of births attended by skilled health personnel"))
+}
+```
+  
+```{r example-outcome10_2}
+outcome10_2()
+```
+  
+```{r tests-outcome10_2}
+test_that("outcome10_2 works", {
+  expect_true(inherits(outcome10_2, "function")) 
+})
+```
+  
+
+ 
+ 
+## outcome12_1
+    
+```{r function-outcome12_1}
+#' outcome12_1
+#' 
+#' **Proportion of Persons of Concern using at least basic drinking water services**
+#' 
+#' This indicator is defined as the percentage of PoCs using at least basic water services.
+#' Access to clean drinking water is essential for a person's survival and well being and a precursor for achieving protection outcomes related to health, education and economic developed.
+#' The calculation for access drinking water is linked to SGD Indicator [6.1.1](https://unstats.un.org/sdgs/metadata/files/Metadata-06-01-01.pdf).
+#' The questionnaire module and the analysis guidance is taken from [UNICEF MICS6](https://mics.unicef.org/tools#analysis).
+#' 
+#' 
+#' 
+#' | Standard Questions |
+#' |:------------------:|
+#' |    DWA01-DWA04     |
+#' 
+#' **Numerator**: Population using improved sources of drinking water either in their dwelling/yard/plot or within 30 minutes round trip collection time
+#' 
+#' **Denominator**: Total population
+#' 
+#' **Formula**: 
+#'   *DWA03* \< 30 (under 30 minutes), &
+#'  *DWA01* !=7,9,13,96,98 &
+#'   *DWA02* !=3
+#' 
+#' This comes from the main dataset
+#' There are two conditions as below improved source, in dwelling/yard/plot or reachable under 30 minutes 
+#' 
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome12_1 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+  
+    main <- main |> 
+  mutate(time_DWA= dplyr::case_when(
+    DWA03a==1~1, DWA03a==2~60) #convert hour into minutes
+  ) |> 
+  mutate(time_tot=time_DWA*DWA03b
+  ) |>  
+  mutate(reachableU30= dplyr::case_when( time_tot > 30 ~ "0", 
+                              TRUE ~ "1") # reachable under 30 minutes
+  ) |>  
+  mutate(dwa_cond1= dplyr::case_when(DWA01!="7" |DWA01 !="9" |DWA01 != "13" | DWA01 != "96" |DWA01 !="98" ~ "1",
+                             TRUE ~ "0") # improved source
+  ) |> 
+  mutate(dwa_cond2= dplyr::case_when( reachableU30=="1" & DWA02 == "3" ~ "1", #UNDER30 MIN
+                             reachableU30=="0" & DWA02 == "3" ~ "0", # NOT UNDER30 MIN
+                             DWA02=="1" | DWA02=="2" ~ "1", # in the dwelling/yard/plot
+                             TRUE ~ NA_character_ ) 
+  ) |> 
+  mutate(outcome12_1= dplyr::case_when(
+    (dwa_cond1=="1" & dwa_cond2=="1" ) ~ "1", TRUE ~ "0")
+  ) |>  
+  mutate(outcome12_1 = labelled(drinkingwater,
+                                 labels = c(
+                                   "Yes" = 1,
+                                   "No" = 0
+                                 ),
+                            label = "Proportion of PoC using at least basic drinking water services"))
+}
+```
+  
+```{r example-outcome12_1}
+outcome12_1()
+```
+  
+```{r tests-outcome12_1}
+test_that("outcome12_1 works", {
+  expect_true(inherits(outcome12_1, "function")) 
+})
+```
+   
+
+## outcome12_2
+    
+```{r function-outcome12_2}
+#' outcome12_2
+#' 
+#' **Proportion of Persons of Concern with access to a safe household toilet**
+#' 
+#' This indicator measures the proportion of persons of concerns with access to at least basic sanitation services -- toilets -- that are not shared with other households.
+#' A toilet is defined as a basic sanitation facility.
+#' This indicator is linked to SGD indicator [6.2.1](https://sdg-tracker.org/water-and-sanitation#:~:text=Definition%3A%20Indicator%206.2.,at%20least%20basic%20handwashing%20facilities.).
+#' The standard module is taken from [UNICEF MICS6](https://mics.unicef.org/tools#analysis) main household questionnaire.
+#' Calculation of the indicator is based on [MICS6 analysis tools](https://mics.unicef.org/tools#analysis).
+#' 
+#' | Standard Questions |
+#' |:------------------:|
+#' |    TOI01-TOI05     |
+#' 
+#' **Numerator**: Total population with access to sanitation facility at their household
+#' 
+#' **Denominator**: Total population
+#' 
+#' **Formula**: *TOI01*=1,2,3,4,5,6,7,9 & (*TOI02* =1 & *TOI03*=1,2,3,4) & *TOI05*=1
+#' This comes from the main dataset
+#' MICS calculation WS3.1/WS3.4
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome12_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+    
+main <- main |> 
+  mutate(toi_cond1= dplyr::case_when(TOI01==1 |TOI01==2 | TOI01==3 | TOI01==4 |TOI01==5 |TOI01==6 | TOI01==7 | TOI01==9 ~ 1,
+                             TOI01==8 | TOI01==10 | TOI01==11 | TOI01==12 | TOI01==96 ~ 0,
+                             TRUE ~ NA_real_)
+  ) |> 
+  mutate(toi_cond2= dplyr::case_when(
+    TOI02==1 & (TOI03==5 |TOI03==96 | TOI03==98) ~ 0, #Unsafe disposal
+    TOI02==1 & (TOI03==1 |TOI03==2 |TOI03==3 |TOI03==4 ) ~ 1, #safe
+    TOI02==2 ~ 0, TOI02==98 ~ 0, TRUE ~ NA_real_)
+  ) |> 
+  mutate(toi_cond3= dplyr::case_when(
+    TOI05==1 ~ 0, TOI05==0 ~ 1) # toilet not shared with other households
+  ) |> 
+
+  ###Combine all three conditions below
+### improved sanitation facility / Safe disposal in situ of excreta from on-site sanitation facilities / not shared with other HHs
+
+  mutate(outcome12_2= dplyr::case_when(
+    toi_cond1==1| toi_cond2==1 |toi_cond3==1 ~ 1,
+    TRUE ~ 0)
+  ) |> 
+  mutate(outcome12_2 = labelled(outcome12_2,
+                                labels = c(
+                                  "Yes" = 1,
+                                  "No" = 0
+                                ),
+                                label = "Proportion of Persons of Concern with acess to a safe household toilet"))
+}
+```
+  
+```{r example-outcome12_2}
+outcome12_2()
+```
+  
+```{r tests-outcome12_2}
+test_that("outcome12_2 works", {
+  expect_true(inherits(outcome12_2, "function")) 
+})
+```
+
+## outcome13_1 - Financial Inclusion
+    
+```{r function-outcome13_1}
+#' outcome13_1
+#' 
+#' **Proportion of Persons of Concern with an account at a bank or other financial institution or with a mobile-money-service provider**
+#' 
+#' This indicator measures the percentage of persons of concern (ages 15+) who report having an account (by themselves or together with someone else) at a bank or another type of financial institution or personally using a mobile money service in the past 12 months in the country of asylum or habitual residence (for returnees, countries of origin are included).
+#' 
+#' The methodology is taken from [The Global Findex Database](https://www.worldbank.org/en/publication/globalfindex) which is developed by the World Bank.
+#' This indicator is also linked to SGD Indicator [8.10.2](https://unstats.un.org/sdgs/metadata/files/Metadata-08-10-02.pdf).
+#' 
+#' | Standard Questions |
+#' |:------------------:|
+#' |   BANK01-BANK05    |
+#' 
+#' **Numerator**: Total population having a personal mobile or bank account
+#' 
+#' **Denominator**: Total population
+#' 
+#' **Formula**: *BANK01*=1 \| *BANK02*=1 \| *BANK03*=1 \|*BANK05*=1
+#' This indicator comes from main dataset based on the respondent randomly selected for individual level
+#' include if the respondent has an account on their own/with someone else, ATM card, personal bank card
+#' or personally used phone to send money (proxy)
+#' 
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome13_1 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+  ## So first we check that we have what we need in the data set
+  #varname1 <- names(.data)
+  #varname3 <- purrr::map(data , names) |>         purrr::list_flatten(name_spec = "{inner}")
+
+  
+  hierar <- "main"
+  varname <- names(data[[hierar]])
+  #varname
+  #varname <- purrr::map_df(data , names)
+ 
+  ### Perform some  check..
+  var_BANK01 <- varname[grepl(pattern = "BANK01" , x = varname)]
+  if(length(var_BANK01) == 0){
+    cli::cli_alert_info("BANK01 not found in dataset")
+    return(.data)
+  }
+  if(!all("no" %in% .data[[hierar]][[var_BANK01]] | "yes" %in% .data[[hierar]][[var_BANK01]])){
+    cli::cli_alert_info("The data does not include the expected values for var_BANK01")
+    return(.data)
+  }
+  
+  var_BANK02 <- varname[grepl(pattern = "BANK02" , x = varname)]
+  if(length(var_BANK02) == 0){
+    cli::cli_alert_info("BANK02 not found in dataset")
+    return(.data)
+  }
+  if(!all(0 %in% .data[[hierar]][[var_BANK02]] | 1 %in% .data[[hierar]][[var_BANK02]])){
+    cli::cli_alert_info("The data does not include the expected values for var_BANK02")
+    return(.data)
+  }
+    
+  var_BANK03 <- varname[grepl(pattern = "BANK03" , x = varname)]
+  if(length(var_BANK03) == 0){
+    cli::cli_alert_info("BANK03 not found in dataset")
+    return(.data)
+  }
+  if(!all(0 %in% .data[[hierar]][[var_BANK03]] | 1 %in% .data[[hierar]][[var_BANK03]])){
+    cli::cli_alert_info("The data does not include the expected values for var_BANK03")
+    return(.data)
+  }
+      
+  var_BANK05 <- varname[grepl(pattern = "BANK05" , x = varname)]
+  if(length(var_BANK05) == 0){
+    cli::cli_alert_info("BANK05 not found in dataset")
+    return(.data)
+  }
+  if(!all(0 %in% .data[[hierar]][[var_BANK05]] | 1 %in% .data[[hierar]][[var_BANK05]])){
+    cli::cli_alert_info("The data does not include the expected values for var_BANK05")
+    return(.data)
+  }
+  
+ 
+  
+  ## now pull the calculation...
+  .data |>
+  
+  main <- main |> 
+  mutate(
+    outcome13_1 = dplyr::case_when(
+      BANK01==1 | BANK02== 1 | BANK03==1 |BANK05==1 ~ 1,
+      BANK01==0 & BANK02==0 & BANK03==0 & BANK05==0 ~ 0,
+      TRUE ~ 0)
+  ) |> 
+  mutate(outcome13_1 = labelled(outcome13_1,
+                                labels = c(
+                                  "Yes" = 1,
+                                  "No" = 0
+                                ),
+                label = "PoC with an account at a bank or other financial institution or with a mobile-money service provider"))
+
+    
+}
+```
+  
+```{r example-outcome13_1}
+
+data <- kobocruncher::kobo_data( here::here("data-raw", "data2.xlsx"))
+
+outcome13_1 <- outcome13_1(data)
+table(outcome13_1)
+```
+  
+```{r tests-outcome13_1}
+test_that("outcome13_1 works", {
+  expect_true(inherits(outcome13_1, "function")) 
+})
+```
+  
+
+
+## outcome13_2
+    
+```{r function-outcome13_2}
+#' outcome13_2
+#' 
+#' **Proportion of Persons of Concern who self-report positive changes in their income compared to previous year**
+#' 
+#' This indicator measures the proportion of PoC who self-report positive changes in their income compared to previous year.
+#' 
+#' | Standard Questions |
+#' |:------------------:|
+#' |       INC01        |
+#' 
+#' **Numerator**: Population 18 and above who self-report increased income compared to last year
+#' 
+#' **Denominator**: Total population 18 and above
+#' 
+#' **Formula**: *INC01*=1
+#'
+#' This indicator comes from main dataset based on the respondent randomly selected for individual level
+#'  Only calculate as positive if they responded 'more' 
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome13_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+   main <- main |> 
+  mutate(outcome13_2= dplyr::case_when(
+    INC01==1 ~ 1,
+    INC01==2 |INC01==3 |INC01==98 ~ 0 ) 
+  ) |> 
+  mutate(outcome13_2 = labelled(outcome13_2,
+                                labels = c(
+                                  "Yes" = 1,
+                                  "No" = 0
+                                ),
+                                label = "Proportion of PoC who self-report positive changes in their income compared to previous year")) 
+}
+```
+  
+```{r example-outcome13_2}
+outcome13_2()
+```
+  
+```{r tests-outcome13_2}
+test_that("outcome13_2 works", {
+  expect_true(inherits(outcome13_2, "function")) 
+})
+```
+  
+ 
+
+## outcome13_3
+    
+```{r function-outcome13_3}
+#' outcome13_3#' 
+#' 
+#' **Proportion of Persons of Concern (working age) who are unemployed**
+#' The unemployment rate is a standard indicator to measure the efficiency and effectiveness of an economy.
+#' For Persons of Concern, access to employment is central for self-reliance, socio-economic inclusion and dignity and often restricted through laws, policies or practical barriers.
+#' This indicator is also linked to SGD [8.5.2](https://unstats.un.org/sdgs/metadata/files/Metadata-08-05-02.pdf).
+#' The standard questionnaire module is from [Standardized Employment Module](https://www.unhcr.org/5ea81b954) of UNHCR.
+#' The calculations are also done based on the same guidance.
+#' | Standard Questions |
+#' |:------------------:|
+#' |   UNEM01-UNEM10    |
+#' 
+#' **Numerator**: Unemployed working age population within a country
+#' 
+#' **Denominator**: Total working age population who are employed and unemployed within a country (often referred to as labour force)
+#' 
+#' **Formula**: *UNEM01*=1 \| (*UNEM02*=1 & *UNEM07*=3) \| *UNEM04*=1 \| (*UNEM02*=1 & *UNEM07*=1 &( *UNEM08*=1,2)) \|(*UNEM05*=1 & *UNEM06*=3) \| ( *UNEM05*=1 & ( *UNEM06*=1,2 \| *UNEM08*=1,2)
+#' This indicator comes from main dataset based on the respondent randomly selected for individual level
+#' 
+#' 
+#' #Numerator: Those of working age who were not in employment, looked for employment in the past 30 days and were available to take up employment
+####Denominator: Those of working age in labour force
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome13_3 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+
+main <- main |> 
+  mutate(employed= dplyr::case_when(
+    UNEM01==1 ~ 1,
+    UNEM02==1 & UNEM07==3 ~ 1,
+    UNEM04==1 ~ 1,
+    UNEM02==1 & UNEM07==1 & (UNEM08==1 | UNEM08==2) ~ 1,
+    UNEM05==1 & UNEM06==3 ~ 1,
+    UNEM05==1 & (UNEM06==1 | UNEM06==2) & (UNEM08==1 | UNEM08==2) ~ 1,
+    TRUE ~ 0)
+  ) |> 
+  mutate(unemployed= dplyr::case_when(
+    employed==0 & UNEM09==1 & UNEM10==1 ~ 1,
+    TRUE ~ 0)
+  ) |> 
+  mutate(labour_force= dplyr::case_when(
+    employed==1 | unemployed==1 ~ 1)
+  ) |> 
+  mutate(outcome13_3=unemployed/labour_force)
+    
+}
+```
+  
+```{r example-outcome13_3}
+outcome13_3()
+```
+  
+```{r tests-outcome13_3}
+test_that("outcome13_3 works", {
+  expect_true(inherits(outcome13_3, "function")) 
+})
+```
+  
+
+
+
+     
+
+
+## outcome14_1
+    
+```{r function-outcome14_1}
+#' outcome14_1
+#' 
+#' **Proportion of returnees with legally recognized identity documents or credentials**
+#' 
+#' This indicator measures the proportion of returned refugees who possess legally recognized and valid identity documents or credentials to support their return .
+#' 
+#' Commonly in the context of return, returnees require civil documentation or credentials and inclusion in or updating of civil registries , as well as access to services.
+#' 
+#' ***Definitions***
+#' 
+#' • Identity document or credential is any document or credential which may be used as proof of identity, which may also include reference to the individuals' legal status and associated rights vis-à-vis the host State and/or UNHCR.
+#' 
+#' |          Standard Questions           |
+#' |:-------------------------------------:|
+#' | REG01 - REG02 - REG03 / REG05 - REG06 |
+#' 
+#' **Numerator**: Total number of returnees with with legally recognized identity documents or credentials
+#' 
+#' **Denominator**: Total number of returnees
+#' 
+#' **Formula**: *REG01*=1 \| *REG02*=1 \| *REG03*=1 \| *REG05*=1 \| *REG06*=1
+#' 
+#'This indicator comes from the individual dataset
+#' Calculate valid identity documents for under 5 with REG05 and REG06 variables
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome14_1 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+     
+  
+  #ind$REG05a - passport
+  #ind$REG05b - civil/government issued ID
+  #ind$REG05c - residency permit
+  #ind$REG05d - statelessness documentation
+  #ind$REG05e - household card of address/family book
+  #ind$REG05f - social security card
+  #ind$REG06 - any other document establishes identity
+  #add birth certificate as additional document from REG03
+
+  ind <- ind |> 
+    mutate(document_under5= dplyr::case_when(
+      REG05a==1 | REG05b==1 | REG05c==1 | REG05d==1 | REG05e==1 | REG05f==1 |REG06==1 | REG03==1 ~ 1, 
+      REG05a==0 & REG05b==0 & REG05c==0 & REG05d==0 & REG05e==0 & REG05f==0 & REG06==0 & REG03==0 ~ 0, TRUE ~ NA_real_
+    ))
+  
+  ###Calculate  valid identity documents for above 5 with REG01 and REG02 variables
+  
+  
+  #ind$REG01a # passport
+  #ind$REG01b # birth certificate
+  #ind$REG01c # civil/ government issued ID
+  #ind$REG01d # residency permit
+  #ind$REG01e # statelessness documentation
+  #ind$REG01f # household card of address/family book
+  #ind$REG01g # social security card
+  #ind$REG02 # any other document establishes identity
+  
+
+  ind <- ind |> 
+    mutate(document_above5= dplyr::case_when(
+      REG01a==1 | REG01b==1 | REG01c==1 | REG01d==1 | REG01e==1 | REG01f==1 | REG01g==1 |REG02==1 ~ 1,
+      REG01a==0 & REG01b==0 & REG01c==0 & REG01d==0 & REG01e==0 & REG01f==0 & REG01g==0 & REG02==0 ~ 0, TRUE ~ NA_real_)
+      
+  ##Combine both age groups
+    ) |> 
+    mutate(outcome14_1= dplyr::case_when(
+     (document_above5==1 | document_under5==1) ~ 1,  
+     (document_above5==0 | document_under5==0) ~ 0)
+    ) |> 
+    mutate(outcome14_1=labelled(outcome14_1,
+                               labels=c(
+                                 'Yes'=1,
+                                 'No'=0
+                               ),
+                               label="Proportion of returnees with legally recognized identity documents or credentials")) 
+}
+```
+  
+```{r example-outcome14_1}
+outcome14_1()
+```
+  
+```{r tests-outcome14_1}
+test_that("outcome14_1 works", {
+  expect_true(inherits(outcome14_1, "function")) 
+})
+```
+
+
+
+
+## outcome16_1
+    
+```{r function-outcome16_1}
+#' outcome16_1
+#' 
+#'  **Proportion of Persons of Concern with secure tenure rights and/or property rights to housing and/or land**
+#'  
+#'  This indicator measures the proportion of persons of concern that have secure tenure rights to housing and/or land.
+#' Security of tenure means that persons of concern can live in their homes without fear of forced eviction, whether in communal settlement situations, informal settlements, host communities or after return.
+#' 
+#' This indicator is linked to SGD Indicator [1.4.2](https://unstats.un.org/sdgs/metadata/files/Metadata-01-04-02.pdf). The further guidance can be found [here](https://gltn.net/download/measuring-individuals-rights-to-land-an-integrated-approach-to-data-collection-for-sdg-indicators-1-4-2-and-5-a-1-english/?wpdmdl=16316&refresh=5efb342458df61593521188)
+#' 
+#'  *Concept*
+#' 
+#' -   Secure tenure rights: comprised of two sub-components: (i) legally recognized documentation and (ii) perception of the security of tenure, which are both necessary to provide a full measurement of tenure security.
+#' 
+#' -   Legally recognized documentation: Legal documentation of rights refers to the recording and publication of information on the nature and location of land, rights and right holders in a form that is recognized by government, and is therefore official.
+#' 
+#' -   Perceived security of tenure: Perception of tenure security refers to an individual's perception of the likelihood of involuntary loss of land, such as disagreement of the ownership rights over land or ability to use it, regardless of the formal status and can be more optimistic or pessimistic.
+#' 
+#' |    Standard Questions     |
+#' |:-------------------------:|
+#' | DWE06-DWE07 & DWE10-DWE11 |
+#' 
+#' **Numerator**: Total population with secure tenure rights to housing and/or land
+#' 
+#' **Denominator**: Total population
+#' **Formula**: *DWE011* = 1,2 & *DWE10* = 1,2,3,4,5,6 & *DWE06* != 9, 96,98,99 & *DWE07* = 9, 96,98,99 
+#' This indicator is calculated from the main dataset
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome16_1 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+  
+  
+  
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+main <- main |> 
+  mutate(housing_cond1= dplyr::case_when(
+         (DWE11==1 | DWE11==2 ) ~ 1, # likelihood of losing right for housing is unlikely
+         TRUE ~ 0)
+  ) |> 
+  mutate(housing_cond2= dplyr::case_when(
+    DWE10==96 ~ 0, # have official documents to proof residency
+    DWE10==1 | DWE10==2 |  DWE10==3 | DWE10==4 | DWE10==5 | DWE10==6 ~ 1)
+  ) |> 
+  mutate(housing_cond3= dplyr::case_when(
+    DWE06==9 | DWE06==96 | DWE06==98 | DWE06==99 | DWE07==9 | DWE07==96 | DWE07==98 | DWE07==99 ~ 0, # not un-owned or not squatting
+    TRUE ~ 1)
+  ) |> 
+  mutate(outcome16_1= dplyr::case_when(
+    housing_cond1==1 & housing_cond2==1 & housing_cond3==1 ~ 1,
+    housing_cond1==0 | housing_cond2==0 | housing_cond3==0 ~ 0)
+  ) |> 
+  mutate(outcome16_1=labelled(outcome16_1,
+                             labels=c(
+                               'Yes'=1,
+                               'No'=0
+                             ),
+                             label="Proportion of PoC with secure tenure rights and/or property rights to housing and/or land"))
+    
+}
+```
+  
+```{r example-outcome16_1}
+outcome16_1()
+```
+  
+```{r tests-outcome16_1}
+test_that("outcome16_1 works", {
+  expect_true(inherits(outcome16_1, "function")) 
+})
+```
+
+
+## outcome16_2
+    
+```{r function-outcome16_2}
+#' outcome16_2
+#' 
+#'  **Proportion of Persons of Concern covered by social protection floors/systems**
+#'  This indicator measures the proportion of persons of concern who receive government social protection benefits.
+#'  Social protection is a set of policies and programmes aimed at preventing or 
+#'  protecting all people against poverty, vulnerability and social exclusion 
+#'  throughout their life-course, with particular emphasis on vulnerable groups.
+#'   For persons of concern, being part of a social protection system is a measure
+#'    of integration and stability. This indicator is linked to SGD indicator
+#'     [1.3.1](https://unstats.un.org/sdgs/metadata/files/Metadata-01-03-01a.pdf).
+#'  
+#'  This indicator focuses on the social benefits received from the government in which UNHCR might be supporting UNHCR.
+#'  
+#'  |    Standard Questions     | 
+#'  |:-------------------------:|
+#'  | SPF01                     |
+#'  
+#'  **Numerator**: Total population covered by social protection floors/systems
+#'  **Denominator**: Total population
+#'  **Formula**: *SPF01*=1 
+#'  
+#' This indicator is calculated from the main dataset
+#' If PoC has covered by at least one of the social protection floors/systems
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#'                       
+#' @param chain Boolean TRUE/FALSE to tell whether the function should return
+#'               the dataset expanded with the variable or a single factor
+#' 
+#' @importFrom dplyr mutate case_when
+#' @importFrom labelled labelled
+#' 
+#' @return new calculated variable - appended or not...
+#' 
+#' @export
+outcome16_2 <- function(datalist, 
+         mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98"))) ,
+          chain = TRUE){
+
+  ## So first we check that we have what we need in the data set based on the mapper
+  check_map <- fct_check_map(datalist = datalist,
+                             mapper = mapper)
+  if (check_map == FALSE) {
+    datalist <- fct_check_map(datalist = datalist,
+                              mapper = mapper)
+  }
+  
+    main <- main |> 
+  mutate(outcome16_2= dplyr::case_when(
+    SPF01a==1 |SPF01b==1 |SPF01c==1 |SPF01d==1 | 
+      SPF01e==1 | SPF01f==1 | SPF01g==1 | SPF01h==1 ~ 1, 
+    TRUE ~ 0)
+  ) |> 
+  mutate(outcome16_2=labelled(outcome16_2,
+                              labels=c(
+                                'Yes'=1,
+                                'No'=0
+                              ),
+                              label="Proportion of Persons of Concern covered by social protection floors/systems")) 
+}
+```
+  
+```{r example-outcome16_2}
+outcome16_2()
+```
+  
+```{r tests-outcome16_2}
+test_that("outcome16_2 works", {
+  expect_true(inherits(outcome16_2, "function")) 
+})
+```
+  
+
+ 
+ 
+ 
+
+```{r development-inflate, eval=FALSE}
+# Keep eval=FALSE to avoid infinite loop in case you hit the knit button
+# Execute in the console directly
+fusen::inflate(flat_file = "dev/indicators.Rmd", vignette_name = "Indicators calculation functions")
+```
+
+ 

@@ -1,0 +1,21 @@
+indicators.Rmd:
+  path: dev/indicators.Rmd
+  state: active
+  R:
+  - R/electricity.R
+  - R/fct_check_map.R
+  - R/fct_get_all_variable_names.R
+  - R/fct_re_map.R
+  tests:
+  - tests/testthat/test-fct_check_map.R
+  - tests/testthat/test-fct_get_all_variable_names.R
+  - tests/testthat/test-fct_re_map.R
+  - tests/testthat/test-electricity.R
+  vignettes: vignettes/indicators-calculation-functions.Rmd
+  inflate:
+    flat_file: dev/indicators.Rmd
+    vignette_name: Indicators calculation functions
+    open_vignette: true
+    check: true
+    document: true
+    overwrite: ask

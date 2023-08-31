@@ -1,22 +1,36 @@
 Package: IndicatorCalc
+Title: Calculate Standard Survey Indicators for Forcibly Displaced
+    Population
 Version: 0.0.0.9000
-Title: Calculate Standard Survey Indicators for Forcibly Displaced Population
-Description: Use functions to implement standard survey indicator calculation.
-Authors@R: c(person(given = "Ilgi",
-         family = "Bozdag",
-         role = c("aut", "cre"),
-         email = "bozdag@unhcr.org"),
-         person(given = "Ahmadou",
-                    family = "Dicko",
-		    email = "dickoa@unhcr.org",
-		    role = c("aut", "cre"),
-  person(given = "Edouard",
-         family = "Legoupil",
-         role = c("aut", "cre"),
-         email = "legoupil@unhcr.org"))
+Authors@R: 
+    person("Edouard", "Legoupil", , "legoupil@unhcr.org", role = c("aut", "cre"))
+Maintainer: Edouard Legoupil <legoupil@unhcr.org>
+Description: Use functions to implement standard survey indicator
+    calculation.
 License: MIT + file LICENSE
+URL: https://github.com/unhcr-americas/IndicatorCalc
+Imports: 
+    cli,
+    config,
+    dplyr,
+    golem,
+    labelled,
+    plyr,
+    purrr,
+    shiny,
+    shinydashboard,
+    tibble,
+    tidyr,
+    unhcrshiny
+Suggests: 
+    here,
+    knitr,
+    kobocruncher,
+    rmarkdown,
+    testthat
+VignetteBuilder: 
+    knitr
+Config/fusen/version: 0.5.2
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3.9000
-Maintainer: Edouard Legoupil <legoupil@unhcr.org>
-URL: https://github.com/unhcr-americas/IndicatorCalc
