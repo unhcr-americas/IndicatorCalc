@@ -64,6 +64,4 @@ data <- list(main = data.frame(
                 LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
              )
 fct_check_map(datalist = data, mapper = mapper )
-
-
 }

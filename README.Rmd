@@ -20,9 +20,9 @@ knitr::opts_chunk$set(
 
 The goal of {IndicatorCalc} is to ease the implementation of standard calculation for survey indicators related to Forcibly Displaced Population.
 
-The package is designed to work based on dataset standard backup format exported from [kobotoolbox](http://http://kobo.unhcr.org) within [UNHCR internal data repository](http://ridl.unhcr.org).
+The package is designed to work based on dataset standard backup format exported from [kobotoolbox](http://http://kobo.unhcr.org) within [UNHCR internal data repository](http://ridl.unhcr.org). It is adapted from the initial [RMS indicator script](https://github.com/bozdagilgi/UNHCR-RMS-Indicators) 
 
-Each calculation is implemented as a function with in-built check to identify whether the expected variables and modalities are within the dataset. You can check each function reference to see in details all documented calculations
+Each calculation is implemented as a function with in-built check to identify whether the expected variables and modalities are within the dataset and a `mapper` to transform the data in the expected format if needs be. You can check each [function reference](/reference/index.html) to see in details all documented calculations
 
 The package also includes:
 

@@ -2,8 +2,11 @@ Package: IndicatorCalc
 Title: Calculate Standard Survey Indicators for Forcibly Displaced
     Population
 Version: 0.0.0.9000
-Authors@R: 
-    person("Edouard", "Legoupil", , "legoupil@unhcr.org", role = c("aut", "cre"))
+Authors@R: c(
+    person("Edouard", "Legoupil", , "legoupil@unhcr.org", role = c("aut", "cre")),
+    person("Ilgi", "Bozdag", , "bozdag@unhcr.org", role = "ctb"),
+    person("UNHCR", role = "cph")
+  )
 Maintainer: Edouard Legoupil <legoupil@unhcr.org>
 Description: Use functions to implement standard survey indicator
     calculation.
@@ -13,17 +16,25 @@ Imports:
     cli,
     config,
     dplyr,
+    ggforce,
+    ggplot2,
+    ggtext,
     golem,
     labelled,
     plyr,
     purrr,
     shiny,
     shinydashboard,
+    showtext,
+    sjlabelled,
+    sjmisc,
+    sysfonts,
+    systemfonts,
     tibble,
     tidyr,
-    unhcrshiny
+    unhcrshiny,
+    unhcrthemes
 Suggests: 
-    here,
     knitr,
     kobocruncher,
     rmarkdown,

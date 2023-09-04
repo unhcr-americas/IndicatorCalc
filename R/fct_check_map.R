@@ -59,8 +59,6 @@
 #'                 LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
 #'              )
 #' fct_check_map(datalist = data, mapper = mapper )
-#'
-#'
 fct_check_map <- function(datalist, mapper){
 
    ## Loop around the variables within mapper

@@ -2,19 +2,29 @@ indicators.Rmd:
   path: dev/indicators.Rmd
   state: active
   R:
-  - R/electricity.R
   - R/fct_check_map.R
   - R/fct_get_all_variable_names.R
+  - R/fct_plot_indic_donut.R
   - R/fct_re_map.R
+  - R/impact_2_2.R
+  - R/inter_drinkingwater.R
+  - R/inter_electricity.R
+  - R/inter_healthcare.R
+  - R/inter_shelter.R
   tests:
   - tests/testthat/test-fct_check_map.R
   - tests/testthat/test-fct_get_all_variable_names.R
   - tests/testthat/test-fct_re_map.R
-  - tests/testthat/test-electricity.R
-  vignettes: vignettes/indicators-calculation-functions.Rmd
+  - tests/testthat/test-fct_plot_indic_donut.R
+  - tests/testthat/test-inter_electricity.R
+  - tests/testthat/test-inter_healthcare.R
+  - tests/testthat/test-inter_drinkingwater.R
+  - tests/testthat/test-inter_shelter.R
+  - tests/testthat/test-impact_2_2.R
+  vignettes: vignettes/development.Rmd
   inflate:
     flat_file: dev/indicators.Rmd
-    vignette_name: Indicators calculation functions
+    vignette_name: Development
     open_vignette: true
     check: true
     document: true

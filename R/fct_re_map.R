@@ -57,7 +57,7 @@ fct_re_map <- function(datalist, mapper){
    varname <-   fct_get_all_variable_names(datalist)
    ## Loop around the variables within mapper
    for ( i in 1:nrow(mapper[["variablemap"]]) ) {
-     # i <- 2 
+     # i <- 4 
      thisvar <-  mapper[["variablemap"]][["variable"]][[i]]
      thismappattern <-  mapper[["variablemap"]][["mappattern"]][[i]]
      
@@ -75,7 +75,7 @@ fct_re_map <- function(datalist, mapper){
        }
      
      ## If matches push!
-    if ( nrow(thismatch) ==0) { 
+    if ( nrow(thismatch) == 0 ) { 
       cli::cli_alert_info(paste0( thisvar ,
            " variable pattern was not found in the dataset.\n"))
       }  else {

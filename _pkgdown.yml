@@ -2,3 +2,24 @@ template:
   package: unhcrtemplate
   bootstrap: 5
 
+reference:
+- title: Impact
+  desc: Calculation for Impact Indicators
+- contents:
+  - starts_with("impact_")
+- title: Outcome
+  desc: Calculation for Outcome Indicators
+  contents:
+  - starts_with("outcome_")
+- title: Auxilliary
+  desc: Calculation for Intermediate Variables
+  contents:
+  - starts_with("inter_")
+- title: Utilities
+  desc: Utilities functions to map a dataset to the expected format
+  contents:
+  - starts_with("fct_")
+- title: App
+  desc: Graphical User Interface for the package
+  contents:
+  - starts_with("run_")

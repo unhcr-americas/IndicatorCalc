@@ -19,7 +19,8 @@ Generate a map of all variables within the datalist obtained from RIDL -
 standard Kobo extract in Excel
 }
 \examples{
-data <- kobocruncher::kobo_data( here::here("data-raw", "data2.xlsx"))
+data <- kobocruncher::kobo_data( system.file("test.xlsx",
+                                             package = "IndicatorCalc"))
 varname <-   fct_get_all_variable_names(datalist = data)
 head(varname, 10)
 }
