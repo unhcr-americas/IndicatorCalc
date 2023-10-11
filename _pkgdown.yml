@@ -11,7 +11,7 @@ reference:
   desc: Calculation for Outcome Indicators
   contents:
   - starts_with("outcome_")
-- title: Auxilliary
+- title: Intermediate
   desc: Calculation for Intermediate Variables
   contents:
   - starts_with("inter_")

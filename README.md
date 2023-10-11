@@ -22,14 +22,6 @@ dataset and a `mapper` to transform the data in the expected format if
 needs be. You can check each [function reference](/reference/index.html)
 to see in details all documented calculations
 
-The package also includes:
-
-- a wrapper to chain all single calculations
-- a report template to output a quick exploration of all indicators
-  results
-- a shiny app to provide access to the package online with Rstudio
-  connect (versus offline rstudio)
-
 ## Usage
 
 The easiest way to use the package is through the [shiny
@@ -45,3 +37,11 @@ You can install the development version of {IndicatorCalc} from
 # install.packages("devtools")
 devtools::install_github("unhcr-americas/IndicatorCalc")
 ```
+
+The package development roadmap includes:
+
+- a wrapper to chain all single calculations
+- a report template to output a quick exploration of all indicators
+  results
+- a shiny app to provide access to the package online with Rstudio
+  connect (versus offline rstudio)
