@@ -17,6 +17,21 @@ library(testthat)
 pkgload::load_all(export_all = FALSE)
 ```
 
+Indicator functions are designed to work based on data stored as a list - which is
+ the default structure for a complex hierarchical survey dataset with nested tables
+ 
+ The default export format from kobotoolbox includes variables names generated as a concatenation of groups and names.
+ 
+ The indicators calculation are based  on specific patterns to be identified within
+ the variable names. This allow to handle cases where variables and questions would 
+ have been shifted within the sequence of the questionnaire and through different 
+ questions groups.
+ 
+ The indicator functions also check that the data content is the one expected. 
+ A check log is written to keep track of all issues
+ 
+
+
 # Data Wrangling
 
 Each indicator calculation is based on predefined frame, variable name and variable value.
@@ -1478,22 +1493,23 @@ datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
 
 ## mpper
 mapper <-  list(
-            hierarchy = "main",
+            hierarchy = "ind",
             variablemap = data.frame(
               label = c(
-  "In general, when anyone in your household is sick, 
-   where do they go to seek care?",
-  "How long does it take to go there when you use the mode of transport 
-  that you mentioned above?"),
-              variable = c("HEA01", 
-                           "HEA03"),
-              mappattern = c("HEA01", 
-                           "HEA03") ),
+                "In the past 3 months, did ${name_individual} need to see a health professional for any reason?",
+                "In the past 3 months, did you receive medical care when needed for the reason above?",
+                "Why have you been unable to access a medical care in the past 3 months?"),
+              variable = c("HACC01", 
+                           "HACC03", 
+                           "HACC04"),
+              mappattern = c("HACC01", 
+                           "HACC03", 
+                           "HACC04") ),
             modalitymap = data.frame(
-              variable = c( "HEA01", "HEA01" ),
-              label = c(  "Other, specify", "Don't know"),
-              standard = c("96", "98" ),
-              map = c("96", "98" )))
+              variable = c( "HACC01", "HACC03" ),
+              label = c( "yes", "yes"),
+              standard = c( "1","1" ),
+              map = c("1","1" ))) 
 
 ## Apply indicator function on datalist
 datalist <- impact2_3(datalist, mapper )
