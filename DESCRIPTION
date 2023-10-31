@@ -22,14 +22,12 @@ Imports:
     ggtext,
     glue,
     golem,
-    here,
-    httr,
     janitor,
     kobocruncher,
     labelled,
-    openxlsx,
     plyr,
     purrr,
+    refugees,
     riddle,
     rmarkdown,
     SDGsR,
@@ -46,13 +44,14 @@ Imports:
     tibble,
     tidyr,
     tidyverse,
-    unhcrdatapackage,
     unhcrshiny,
     unhcrthemes,
     utils,
     withr
 Suggests: 
+    here,
     knitr,
+    openxlsx,
     testthat
 VignetteBuilder: 
     knitr

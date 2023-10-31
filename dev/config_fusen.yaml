@@ -34,10 +34,18 @@ utilities.Rmd:
   state: active
   R:
   - R/compass_table.R
+  - R/fct_check_map.R
+  - R/fct_get_all_variable_names.R
+  - R/fct_plot_indic_donut.R
+  - R/fct_re_map.R
   - R/kobo_dummy.R
   - R/plot_rbm_sdg.R
   - R/var_dummy.R
   tests:
+  - tests/testthat/test-fct_check_map.R
+  - tests/testthat/test-fct_get_all_variable_names.R
+  - tests/testthat/test-fct_re_map.R
+  - tests/testthat/test-fct_plot_indic_donut.R
   - tests/testthat/test-var_dummy.R
   - tests/testthat/test-kobo_dummy.R
   - tests/testthat/test-plot_rbm_sdg.R

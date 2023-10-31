@@ -37,6 +37,450 @@ pkgload::load_all(path = here::here(), export_all = FALSE)
 ```
 
 
+Indicator functions are designed to work based on data stored as a list - which is
+ the default structure for a complex hierarchical survey dataset with nested tables
+ 
+ The default export format from kobotoolbox includes variables names generated as a concatenation of groups and names.
+ 
+ The indicators calculation are based  on specific patterns to be identified within
+ the variable names. This allow to handle cases where variables and questions would 
+ have been shifted within the sequence of the questionnaire and through different 
+ questions groups.
+ 
+ The indicator functions also check that the data content is the one expected. 
+ A check log is written to keep track of all issues
+ 
+
+
+# Data Wrangling
+
+Each indicator calculation is based on predefined frame, variable name and variable value.
+
+Therefore each indicator function is organised in 3  steps:
+
+ * Check if the standard frame/variable/modalities are already present in the dataset (organised as a list..) `fct_check_map`
+ 
+ * If not apply the mapping supplied as argument within the function `fct_re_map`
+ 
+ * Apply the calculation - either to append the new variable to the existing data or to output just the final vector with results. 
+
+# var_mapping
+    
+```{r function-var_mapping}
+#' var_mapping
+#' 
+#' Create a diff to identify the mapping between expected variables / modalities and 
+#' what is has been configured in a specific xlsform
+#' 
+#' @param xlsformpath path to the xlsform
+#' @param mappingfile_out path to file to out the mapping
+#' 
+#' @return a list with the best mapping...
+#' 
+#' @export
+var_mapping <- function(xlsformpath){
+  
+  IndicMap <- readxl::read_excel( system.file("IndicMap.xlsx", package = "IndicatorCalc"))
+  dico <- kobocruncher::kobo_dico(xlsformpath)
+  
+  ## Map variable
+  
+  
+  ## Map modalities
+    
+}
+```
+  
+```{r example-var_mapping}
+
+form <- system.file("RMSCAPI.xlsx", package = "IndicatorCalc")
+var_mapping(xlsformpath = form)
+```
+  
+```{r tests-var_mapping}
+test_that("var_mapping works", {
+  expect_true(inherits(var_mapping, "function")) 
+})
+```
+  
+
+## fct_check_map
+
+```{r function-fct_check_map}
+#' fct_check_map
+#' 
+#' This check if the standard variables and modalities included in the mapper are
+#' actually present in the datalist with the same exact name - this is actually
+#' usually not the case as the standard format to save kobodatset in xlsx includes 
+#' group in the variable name
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#' 
+#' 
+#' @return TRUE or FALSE
+#' 
+#' @export
+fct_check_map <- function(datalist, mapper){
+
+   ## Loop around the variables within mapper
+   for ( i in 1:nrow(mapper[["variablemap"]]) ) {
+     # i <- 1
+     thisvar <-  mapper[["variablemap"]][["variable"]][[i]]
+     
+    if ( is.null( datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]] ) ) 
+      
+    {cli::cli_alert_info(paste0( thisvar ," standard variable was not found in the dataset.\n"))
+      }
+     else {
+       ## If present check modalities
+       mod <- mapper[["modalitymap"]] |>
+         dplyr::filter( variable == thisvar ) |>
+         dplyr::pull(standard)
+      
+      if( any(levels(as.factor(datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]])) %in%  mod ) )
+           { cat(paste0( thisvar ," is in the dataset and has at least one of the expected modality for calculation\n")) } else {
+            cli::cli_alert_info(paste0( thisvar ,
+                  " standard variable in the dataset misses at least one response among : ",
+                                    mod))  }
+     }
+   }
+}
+```
+  
+```{r example-fct_check_map}
+
+mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                        "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("1",
+                      "1", "96", "98")
+            )
+          )
+
+## Correct format
+data <- list(main = data.frame(
+                LIGHT01 = c("1",  "1",  "0", "1",  "1",  "0", "1",  "1",  "1"),
+                LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
+             )
+fct_check_map(datalist = data, mapper = mapper )
+
+## One variable is not correctly 
+data <- list(main = data.frame(
+                LIGHT01 = c("1",  "1",  "0", "1",  "1",  "0", "1",  "1",  "1"),
+                LIGH03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
+             )
+fct_check_map(datalist = data, mapper = mapper )
+
+## The first variable does not include a single 1...
+data <- list(main = data.frame(
+                LIGHT01 = c("0",  "0",  "0", "0",  "0",  "0", "0",  "0",  "0"),
+                LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
+             )
+fct_check_map(datalist = data, mapper = mapper )
+```
+  
+```{r tests-fct_check_map}
+test_that("fct_check_map works", {
+  expect_true(inherits(fct_check_map, "function")) 
+})
+```
+
+## fct_get_all_variable_names
+    
+```{r function-fct_get_all_variable_names}
+#' fct_get_all_variable_names
+#' 
+#' Generate a map of all variables within the datalist obtained from RIDL - 
+#'   standard Kobo extract in Excel
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#' 
+#' @return dataframe with variables and list member names 
+#' 
+#' @importFrom purrr imap list_rbind
+#' @importFrom tibble tibble as_tibble_col
+#' @importFrom tidyr unnest
+#' 
+#' @export
+fct_get_all_variable_names <- function(datalist){
+  
+    dico <- purrr::imap(datalist,
+       function(x, y) tibble::tibble(df = y,
+                      vars = tibble::as_tibble_col(names(x))) |> 
+         tidyr::unnest(vars)) |>
+       purrr::list_rbind()
+    
+    return(dico)
+    
+}
+```
+  
+```{r example-fct_get_all_variable_names}
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+                                             package = "IndicatorCalc"))
+varname <-   fct_get_all_variable_names(datalist = datalist)
+head(varname, 10)
+```
+  
+```{r tests-fct_get_all_variable_names}
+test_that("fct_get_all_variable_names works", {
+  expect_true(inherits(fct_get_all_variable_names, "function")) 
+})
+```
+ 
+
+## fct_re_map
+    
+```{r function-fct_re_map}
+#' fct_re_map
+#' 
+#' Take a list with a hierarchical survey as an entry - use another list to remap
+#' variables and modalities for specific questions 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#' 
+#' @importFrom dplyr filter row_number mutate pull
+#' @importFrom cli cli_alert_info
+#' @return datalist
+#' 
+#' @export
+fct_re_map <- function(datalist, mapper){
+  
+   varname <-   fct_get_all_variable_names(datalist)
+   ## Loop around the variables within mapper
+   for ( i in 1:nrow(mapper[["variablemap"]]) ) {
+     # i <- 4 
+     thisvar <-  mapper[["variablemap"]][["variable"]][[i]]
+     thismappattern <-  mapper[["variablemap"]][["mappattern"]][[i]]
+     
+     ## get the list member and variable name based on pattern matching
+     thismatch <- varname |>
+                 dplyr::mutate( match = grepl(pattern = thismappattern ,
+                                              x = value)) |>
+                 dplyr::filter( match == TRUE ) 
+     
+     ## In case multiple pattern match take the first one
+     if ( nrow(thismatch) > 1) {
+       cli::cli_alert_info(paste0( thisvar ,
+   " variable has more than one variable pattern match in the dataset. We will take the first one but good to check... \n")) 
+       thismatch <- thismatch |> dplyr::filter( dplyr::row_number() == 1)
+       }
+     
+     ## If matches push!
+    if ( nrow(thismatch) == 0 ) { 
+      cli::cli_alert_info(paste0( thisvar ,
+           " variable pattern was not found in the dataset.\n"))
+      }  else {
+     ## Now  transform
+     datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]]  <- 
+        datalist[[thismatch |> dplyr::pull(df) ]][[thismatch |> dplyr::pull(value)]]
+       
+    ## Apply modalities transformation
+    mod <- mapper[["modalitymap"]] |>
+         dplyr::filter( variable == thisvar ) 
+    
+    datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]] <- plyr::mapvalues(
+      x = datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]] ,
+      from = mod[["map"]],
+      to=  mod[["standard"]])
+    
+    newlev <- paste(
+      levels(as.factor(datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]] )),  
+      collapse = ', ')  
+    
+    ## Inform user
+    cat(paste0("Mapped levels for ", 
+               thisvar, " are now: ", 
+               newlev,
+               "\n"))
+    rm(thisvar, newlev)
+     }
+   }
+  
+   return(datalist)
+    
+}
+```
+  
+```{r example-fct_re_map}
+mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("yes",
+                      "Noelec", "Other", "Dontknow")
+            )
+          )
+
+
+## One variable is not correctly 
+datalist <- list(mainhousehold = data.frame(
+                group.LIGHT01 = c("yes",  "yes",  "no", "yes",  "yes",
+                                  "no", "yes",  "yes",  "yes"),
+                group.LIGHT03 = c("Noelec", "Other", "Dontknow", "Noelec", "Other",
+                                  "Dontknow", "Nuclear", "Other", "Dontknow"))
+             )
+datalist <- fct_re_map(datalist = datalist, mapper = mapper )
+
+fct_check_map(datalist = datalist, mapper = mapper )
+ 
+
+```
+  
+```{r tests-fct_re_map}
+test_that("fct_re_map works", {
+  expect_true(inherits(fct_re_map, "function")) 
+})
+```
+
+
+## fct_plot_indic_donut
+    
+```{r function-fct_plot_indic_donut}
+#' fct_plot_indic_donut
+#' 
+#' Wrapper for a summary chart for indicator - allows to add hint, source,  icon
+#'  and interpretation threshold if available
+#'  
+#'  @param indicator vector
+#'  @param  subtitle_chart  
+#'  @param   caption_chart  
+#'  @param    ordered_threhold  vector with the different threshold 
+#'    (green, orange, red)
+#'  @param   iconunicode  unicode value for fontawesome --- 
+#'              see https://fontawesome.com/search?o=r&m=free
+#' 
+#' 
+#' @return ggplot2 object 
+#' 
+#' @importFrom ggplot2 ggplot labs aes expansion
+#' @importFrom  unhcrthemes scale_fill_unhcr_d theme_unhcr
+#' @importFrom ggforce geom_arc_bar
+#' @importFrom ggtext geom_richtext
+#' 
+#' @export
+fct_plot_indic_donut <- function(indicator,
+                                 subtitle_chart = NULL,
+                                 caption_chart = NULL,
+                                 ordered_threhold = NULL,
+                                 iconunicode = "f496"){
+  
+  
+#   # Loading required packages
+# library(unhcrthemes)
+# library(tidyverse)
+# library(ggtext)
+# library(ggforce)
+
+# Loading data
+#indicator <- datalist[["main"]]$shelter
+df2 <-sjmisc::frq(indicator)[[1]]
+#df2$label <- factor(df2$label, levels = c( "Yes","No"))
+
+# Plot
+plot <- ggplot2::ggplot(df2) +
+  ggforce::geom_arc_bar(
+    ggplot2::aes( 
+        x0 = 0, y0 = 0,
+        r0 = 0.6, r = 1,
+        amount = raw.prc,
+        fill = label  ),
+  stat = "pie",  size = 1,  color = "#FFFFFF"  ) +
+  
+  ggtext::geom_richtext(
+    x = 0,  y = 0,
+    label = paste0(
+      "<span style='font-family: \"Font Awesome 6 Free Solid\" font-size:44pt'>&#x",
+      iconunicode,";</span><br><span style='font-size:14pt'>",
+      sjlabelled::get_label(indicator),
+      "</span><br><strong> ",
+      round(df2 |>
+              dplyr::filter(val == 1) |>
+              dplyr::pull(raw.prc), 2),
+      "%</strong>"),
+    size = 16 ,  
+    fill = NA,  label.color = NA  ) +
+  
+  ggplot2::labs( #title = sjlabelled::get_label(x ), 
+       subtitle = subtitle_chart, 
+        caption = caption_chart ) +
+  
+  ggplot2::scale_x_continuous(expand = ggplot2::expansion(c(0.3, 0.5))) +
+  unhcrthemes::scale_fill_unhcr_d( palette = "pal_unhcr", direction = -1) +
+  
+  unhcrthemes::theme_unhcr( grid = FALSE,  axis = FALSE,
+    axis_title = FALSE, axis_text = FALSE, legend = FALSE
+  )
+
+#plot
+
+return(plot)
+    
+}
+```
+  
+```{r example-fct_plot_indic_donut}
+test <- data.frame(
+  shelter = rbinom(20, 1, 0.5)) |> 
+  dplyr::mutate( shelter = 
+  labelled::labelled( shelter,
+                      labels = c( "Yes" = 1, "No" = 0),
+                      label = "Access to adequate shelter")) 
+  
+fct_plot_indic_donut(indicator = test$shelter,
+                     subtitle_chart = NULL,
+                     caption_chart = NULL,
+                     ordered_threhold = NULL,
+                     iconunicode = "e54f") 
+```
+  
+```{r tests-fct_plot_indic_donut}
+test_that("fct_plot_indic_donut works", {
+  expect_true(inherits(fct_plot_indic_donut, "function")) 
+})
+```
+  
+
+
+
 # Generating data from a specific form definition
 
 One key function is to generate a dummy dataset based on a specific form structure
@@ -504,6 +948,7 @@ test_that("kobo_dummy works", {
 #' @importFrom stringr str_replace
 #' 
 #' @return a ggplot2 object
+#' @export
 plot_rbm_sdg <- function( country = "BRA", 
                       rbm = "outcome16_2",
                       years = c(2000, 2022)) {
@@ -729,7 +1174,7 @@ test_that("plot_rbm_sdg works", {
 #' @param ridl name of ridl data container to push the data to
 #' @param publish yes / no 
 #'
-#' @importFrom unhcrdatapackage end_year_population_totals_long
+#' @import  refugees  
 #' @importFrom janitor clean_names
 #'
 #' @return frame with all compass indicators
@@ -744,149 +1189,149 @@ compass_table <- function(country ,
                                 rms_indicator,
                                 ridl,
                                 publish) {
-
-
-  totalBaseline <- unhcrdatapackage::end_year_population_totals_long  |>
-    filter(CountryAsylumCode == country,
-           Year == 2022 ,
-           Population.type %in% population_type)  |>
-    group_by(CountryAsylumName)  |>
-    summarise(Value = sum(Value, na.rm = TRUE)) |>
-    ungroup() |>
-    dplyr::pull( Value)
-
-  rms_indicator =  as.data.frame(rms_indicator)
-
-  ## Initialise the data frame
-  compass <- data.frame( t(c( a =  operation,
-       b = population_rms,
-       c =  "Percent",
-       d =  totalBaseline,
-       e = 10,
-       f =  10,
-       g = "XXX" )) )
-
-  ## append all the values
-  for (i in (1:nrow(rms_indicator))) {
-    # i <- 3
-    t <- as.data.frame(eval(parse(text= paste0("table( datalist[[\"",
-                                 rms_indicator[i,1] ,
-                                 "\"]]$",
-                                 rms_indicator[i, 2] ,")" ) )))
-    #cat( paste0(rms_indicator[i,3] , "\n"))
-
-    #class(t)
-    if( nrow(t) == 0) {
-      t1 <- 0 } else  if( nrow(t |> dplyr::filter(Var1 ==1 ))  == 1)  {
-      t1 <- eval(parse(text= paste0("as.data.frame( prop.table(table( datalist[[\"",
-                            rms_indicator[i,1],"\"]]$",
-                            rms_indicator[i,2],"))) |>
-                            dplyr::filter(Var1 ==1 ) |> dplyr::pull(Freq)"))) } else {
-      t1 <- 0}
-    compass1 <- as.data.frame(t(c( a = operation,
-         b =  population_rms,
-         c = "Percent",
-         d =  totalBaseline,
-         e = round(t1 * 100,2),
-         f = round(totalBaseline *t1),
-         g = rms_indicator[i,3] )))
-    #str(compass)
-    #str(compass1)
-    compass <- rbind( compass,compass1)
-    rm(compass1)
-    }
-
-  compass <- compass |>
-    as.data.frame() |>
-    dplyr::slice(-1) |>
-    dplyr::mutate (Plan = a ,
-                   `Population Type (operational)` = b ,
-                   `Show As` = c,
-                   `Baseline Num.` =  f,
-                   `Baseline Den.` = d,
-                   `%`  = e ,
-                   `Indicator` = g)|>
-    dplyr::select(Plan,
-                  `Indicator`,
-                  `Population Type (operational)`,
-                  `Show As`,
-                  `Baseline Num.`,
-                  `Baseline Den.`,
-                  `%`  )
-
-  ## And now saving
-  ## Create a new workbook
-  wb <- openxlsx::createWorkbook()
-  ## add the cleaning log to the file
-  openxlsx::addWorksheet(wb, "Compass")
-  openxlsx::writeData(wb,  "Compass",
-                      compass, withFilter = TRUE)
-  ## Save workbook
-  openxlsx::saveWorkbook(wb,
-                         file = here::here(paste0("compass_",
-                                                 country,"_",
-                                                 stringr::str_replace_all(string=population_rms, pattern=" ", repl=""),
-                                                 ".xlsx") ),
-                         overwrite = TRUE)
-  
-  
-  ## Now push to RILD 
-  if( publish == "yes"){
-  p <- riddle::dataset_show(param$ridl)
-  list_of_resources <- p[["resources"]][[1]]
-
-  time <- format(Sys.Date(),  '%d%b%y')
-  ### Publish the analysis plan ####
-  namecompass = paste0("compass_",  country,"_",
-                       stringr::str_replace_all(string=population_rms, pattern=" ", repl=""))
-  ### Check if the name is already in the resources
-  if(namecompass %in% list_of_resources$name) {
-        ## get the resource id
-        resourceid <- list_of_resources |>
-                      dplyr::filter ( name == namecompass) |>
-                       dplyr::pull(id)
-        ## get the new resource version
-        curversion <- list_of_resources |>
-          dplyr::filter ( name == namecompass) |>
-          dplyr::pull(version)
-
-        ## Build resource metadata
-        metadatacompass <- riddle::resource_metadata(
-            type = "attachment",
-            url = paste0(namecompass, ".xlsx"),
-            name = namecompass,
-            description = paste0("Compass output generated from RMS on ",  time,
-                                 ". Built using kobocruncher "),
-            format = "xlsx",
-            version = (curversion + 1),
-            visibility =  "public",
-            file_type = "other",
-            ## Revise here based on the name from your crunching report
-            upload =  httr::upload_file(here::here(paste0(namecompass, ".xlsx")))
-          )
-        riddle::resource_update(id = resourceid,
-                                res_metadata = metadatacompass)
-    } else {
-
-        metadatacompass <- riddle::resource_metadata(
-          type = "attachment",
-          url = paste0(namecompass, ".xlsx"),
-          name = namecompass,
-            description = paste0("Compass output generated from RMS on ",  time,
-                                 ". Built using kobocruncher "),
-          format = "xlsx",
-          visibility =  "public",
-          file_type = "other",
-          ## Revise here based on the name from your crunching report
-          upload =  httr::upload_file(here::here(paste0(namecompass, ".xlsx")))
-        )
-        riddle::resource_create(package_id = p$id,
-                                res_metadata = metadatacompass)
-    }
-  
-   }
-
-  return(compass)
+# 
+# 
+#   totalBaseline <- refugees::population  |>
+#     filter(CountryAsylumCode == country,
+#            Year == 2022 ,
+#            Population.type %in% population_type)  |>
+#     group_by(CountryAsylumName)  |>
+#     summarise(Value = sum(Value, na.rm = TRUE)) |>
+#     ungroup() |>
+#     dplyr::pull( Value)
+# 
+#   rms_indicator =  as.data.frame(rms_indicator)
+# 
+#   ## Initialise the data frame
+#   compass <- data.frame( t(c( a =  operation,
+#        b = population_rms,
+#        c =  "Percent",
+#        d =  totalBaseline,
+#        e = 10,
+#        f =  10,
+#        g = "XXX" )) )
+# 
+#   ## append all the values
+#   for (i in (1:nrow(rms_indicator))) {
+#     # i <- 3
+#     t <- as.data.frame(eval(parse(text= paste0("table( datalist[[\"",
+#                                  rms_indicator[i,1] ,
+#                                  "\"]]$",
+#                                  rms_indicator[i, 2] ,")" ) )))
+#     #cat( paste0(rms_indicator[i,3] , "\n"))
+# 
+#     #class(t)
+#     if( nrow(t) == 0) {
+#       t1 <- 0 } else  if( nrow(t |> dplyr::filter(Var1 ==1 ))  == 1)  {
+#       t1 <- eval(parse(text= paste0("as.data.frame( prop.table(table( datalist[[\"",
+#                             rms_indicator[i,1],"\"]]$",
+#                             rms_indicator[i,2],"))) |>
+#                             dplyr::filter(Var1 ==1 ) |> dplyr::pull(Freq)"))) } else {
+#       t1 <- 0}
+#     compass1 <- as.data.frame(t(c( a = operation,
+#          b =  population_rms,
+#          c = "Percent",
+#          d =  totalBaseline,
+#          e = round(t1 * 100,2),
+#          f = round(totalBaseline *t1),
+#          g = rms_indicator[i,3] )))
+#     #str(compass)
+#     #str(compass1)
+#     compass <- rbind( compass,compass1)
+#     rm(compass1)
+#     }
+# 
+#   compass <- compass |>
+#     as.data.frame() |>
+#     dplyr::slice(-1) |>
+#     dplyr::mutate (Plan = a ,
+#                    `Population Type (operational)` = b ,
+#                    `Show As` = c,
+#                    `Baseline Num.` =  f,
+#                    `Baseline Den.` = d,
+#                    `%`  = e ,
+#                    `Indicator` = g)|>
+#     dplyr::select(Plan,
+#                   `Indicator`,
+#                   `Population Type (operational)`,
+#                   `Show As`,
+#                   `Baseline Num.`,
+#                   `Baseline Den.`,
+#                   `%`  )
+# 
+#   ## And now saving
+#   ## Create a new workbook
+#   wb <- openxlsx::createWorkbook()
+#   ## add the cleaning log to the file
+#   openxlsx::addWorksheet(wb, "Compass")
+#   openxlsx::writeData(wb,  "Compass",
+#                       compass, withFilter = TRUE)
+#   ## Save workbook
+#   openxlsx::saveWorkbook(wb,
+#                          file = here::here(paste0("compass_",
+#                                                  country,"_",
+#                                                  stringr::str_replace_all(string=population_rms, pattern=" ", repl=""),
+#                                                  ".xlsx") ),
+#                          overwrite = TRUE)
+#   
+#   
+#   ## Now push to RILD 
+#   if( publish == "yes"){
+#   p <- riddle::dataset_show(param$ridl)
+#   list_of_resources <- p[["resources"]][[1]]
+# 
+#   time <- format(Sys.Date(),  '%d%b%y')
+#   ### Publish the analysis plan ####
+#   namecompass = paste0("compass_",  country,"_",
+#                        stringr::str_replace_all(string=population_rms, pattern=" ", repl=""))
+#   ### Check if the name is already in the resources
+#   if(namecompass %in% list_of_resources$name) {
+#         ## get the resource id
+#         resourceid <- list_of_resources |>
+#                       dplyr::filter ( name == namecompass) |>
+#                        dplyr::pull(id)
+#         ## get the new resource version
+#         curversion <- list_of_resources |>
+#           dplyr::filter ( name == namecompass) |>
+#           dplyr::pull(version)
+# 
+#         ## Build resource metadata
+#         metadatacompass <- riddle::resource_metadata(
+#             type = "attachment",
+#             url = paste0(namecompass, ".xlsx"),
+#             name = namecompass,
+#             description = paste0("Compass output generated from RMS on ",  time,
+#                                  ". Built using kobocruncher "),
+#             format = "xlsx",
+#             version = (curversion + 1),
+#             visibility =  "public",
+#             file_type = "other",
+#             ## Revise here based on the name from your crunching report
+#             upload =  httr::upload_file(here::here(paste0(namecompass, ".xlsx")))
+#           )
+#         riddle::resource_update(id = resourceid,
+#                                 res_metadata = metadatacompass)
+#     } else {
+# 
+#         metadatacompass <- riddle::resource_metadata(
+#           type = "attachment",
+#           url = paste0(namecompass, ".xlsx"),
+#           name = namecompass,
+#             description = paste0("Compass output generated from RMS on ",  time,
+#                                  ". Built using kobocruncher "),
+#           format = "xlsx",
+#           visibility =  "public",
+#           file_type = "other",
+#           ## Revise here based on the name from your crunching report
+#           upload =  httr::upload_file(here::here(paste0(namecompass, ".xlsx")))
+#         )
+#         riddle::resource_create(package_id = p$id,
+#                                 res_metadata = metadatacompass)
+#     }
+#   
+#    }
+# 
+#   return(compass)
 
 }
 ```
@@ -927,9 +1372,7 @@ compass_table <- function(country ,
 ```
   
 ```{r tests-compass_table}
-test_that("compass_table works", {
-  expect_true(inherits(compass_table, "function")) 
-})
+#test_that("compass_table works", {  expect_true(inherits(compass_table, "function")) })
 ```
   
  

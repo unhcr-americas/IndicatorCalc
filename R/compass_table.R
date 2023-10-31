@@ -17,7 +17,7 @@
 #' @param ridl name of ridl data container to push the data to
 #' @param publish yes / no 
 #'
-#' @importFrom unhcrdatapackage end_year_population_totals_long
+#' @import  refugees  
 #' @importFrom janitor clean_names
 #'
 #' @return frame with all compass indicators
@@ -65,148 +65,148 @@ compass_table <- function(country ,
                                 rms_indicator,
                                 ridl,
                                 publish) {
-
-
-  totalBaseline <- unhcrdatapackage::end_year_population_totals_long  |>
-    filter(CountryAsylumCode == country,
-           Year == 2022 ,
-           Population.type %in% population_type)  |>
-    group_by(CountryAsylumName)  |>
-    summarise(Value = sum(Value, na.rm = TRUE)) |>
-    ungroup() |>
-    dplyr::pull( Value)
-
-  rms_indicator =  as.data.frame(rms_indicator)
-
-  ## Initialise the data frame
-  compass <- data.frame( t(c( a =  operation,
-       b = population_rms,
-       c =  "Percent",
-       d =  totalBaseline,
-       e = 10,
-       f =  10,
-       g = "XXX" )) )
-
-  ## append all the values
-  for (i in (1:nrow(rms_indicator))) {
-    # i <- 3
-    t <- as.data.frame(eval(parse(text= paste0("table( datalist[[\"",
-                                 rms_indicator[i,1] ,
-                                 "\"]]$",
-                                 rms_indicator[i, 2] ,")" ) )))
-    #cat( paste0(rms_indicator[i,3] , "\n"))
-
-    #class(t)
-    if( nrow(t) == 0) {
-      t1 <- 0 } else  if( nrow(t |> dplyr::filter(Var1 ==1 ))  == 1)  {
-      t1 <- eval(parse(text= paste0("as.data.frame( prop.table(table( datalist[[\"",
-                            rms_indicator[i,1],"\"]]$",
-                            rms_indicator[i,2],"))) |>
-                            dplyr::filter(Var1 ==1 ) |> dplyr::pull(Freq)"))) } else {
-      t1 <- 0}
-    compass1 <- as.data.frame(t(c( a = operation,
-         b =  population_rms,
-         c = "Percent",
-         d =  totalBaseline,
-         e = round(t1 * 100,2),
-         f = round(totalBaseline *t1),
-         g = rms_indicator[i,3] )))
-    #str(compass)
-    #str(compass1)
-    compass <- rbind( compass,compass1)
-    rm(compass1)
-    }
-
-  compass <- compass |>
-    as.data.frame() |>
-    dplyr::slice(-1) |>
-    dplyr::mutate (Plan = a ,
-                   `Population Type (operational)` = b ,
-                   `Show As` = c,
-                   `Baseline Num.` =  f,
-                   `Baseline Den.` = d,
-                   `%`  = e ,
-                   `Indicator` = g)|>
-    dplyr::select(Plan,
-                  `Indicator`,
-                  `Population Type (operational)`,
-                  `Show As`,
-                  `Baseline Num.`,
-                  `Baseline Den.`,
-                  `%`  )
-
-  ## And now saving
-  ## Create a new workbook
-  wb <- openxlsx::createWorkbook()
-  ## add the cleaning log to the file
-  openxlsx::addWorksheet(wb, "Compass")
-  openxlsx::writeData(wb,  "Compass",
-                      compass, withFilter = TRUE)
-  ## Save workbook
-  openxlsx::saveWorkbook(wb,
-                         file = here::here(paste0("compass_",
-                                                 country,"_",
-                                                 stringr::str_replace_all(string=population_rms, pattern=" ", repl=""),
-                                                 ".xlsx") ),
-                         overwrite = TRUE)
-  
-  
-  ## Now push to RILD 
-  if( publish == "yes"){
-  p <- riddle::dataset_show(param$ridl)
-  list_of_resources <- p[["resources"]][[1]]
-
-  time <- format(Sys.Date(),  '%d%b%y')
-  ### Publish the analysis plan ####
-  namecompass = paste0("compass_",  country,"_",
-                       stringr::str_replace_all(string=population_rms, pattern=" ", repl=""))
-  ### Check if the name is already in the resources
-  if(namecompass %in% list_of_resources$name) {
-        ## get the resource id
-        resourceid <- list_of_resources |>
-                      dplyr::filter ( name == namecompass) |>
-                       dplyr::pull(id)
-        ## get the new resource version
-        curversion <- list_of_resources |>
-          dplyr::filter ( name == namecompass) |>
-          dplyr::pull(version)
-
-        ## Build resource metadata
-        metadatacompass <- riddle::resource_metadata(
-            type = "attachment",
-            url = paste0(namecompass, ".xlsx"),
-            name = namecompass,
-            description = paste0("Compass output generated from RMS on ",  time,
-                                 ". Built using kobocruncher "),
-            format = "xlsx",
-            version = (curversion + 1),
-            visibility =  "public",
-            file_type = "other",
-            ## Revise here based on the name from your crunching report
-            upload =  httr::upload_file(here::here(paste0(namecompass, ".xlsx")))
-          )
-        riddle::resource_update(id = resourceid,
-                                res_metadata = metadatacompass)
-    } else {
-
-        metadatacompass <- riddle::resource_metadata(
-          type = "attachment",
-          url = paste0(namecompass, ".xlsx"),
-          name = namecompass,
-            description = paste0("Compass output generated from RMS on ",  time,
-                                 ". Built using kobocruncher "),
-          format = "xlsx",
-          visibility =  "public",
-          file_type = "other",
-          ## Revise here based on the name from your crunching report
-          upload =  httr::upload_file(here::here(paste0(namecompass, ".xlsx")))
-        )
-        riddle::resource_create(package_id = p$id,
-                                res_metadata = metadatacompass)
-    }
-  
-   }
-
-  return(compass)
+# 
+# 
+#   totalBaseline <- refugees::population  |>
+#     filter(CountryAsylumCode == country,
+#            Year == 2022 ,
+#            Population.type %in% population_type)  |>
+#     group_by(CountryAsylumName)  |>
+#     summarise(Value = sum(Value, na.rm = TRUE)) |>
+#     ungroup() |>
+#     dplyr::pull( Value)
+# 
+#   rms_indicator =  as.data.frame(rms_indicator)
+# 
+#   ## Initialise the data frame
+#   compass <- data.frame( t(c( a =  operation,
+#        b = population_rms,
+#        c =  "Percent",
+#        d =  totalBaseline,
+#        e = 10,
+#        f =  10,
+#        g = "XXX" )) )
+# 
+#   ## append all the values
+#   for (i in (1:nrow(rms_indicator))) {
+#     # i <- 3
+#     t <- as.data.frame(eval(parse(text= paste0("table( datalist[[\"",
+#                                  rms_indicator[i,1] ,
+#                                  "\"]]$",
+#                                  rms_indicator[i, 2] ,")" ) )))
+#     #cat( paste0(rms_indicator[i,3] , "\n"))
+# 
+#     #class(t)
+#     if( nrow(t) == 0) {
+#       t1 <- 0 } else  if( nrow(t |> dplyr::filter(Var1 ==1 ))  == 1)  {
+#       t1 <- eval(parse(text= paste0("as.data.frame( prop.table(table( datalist[[\"",
+#                             rms_indicator[i,1],"\"]]$",
+#                             rms_indicator[i,2],"))) |>
+#                             dplyr::filter(Var1 ==1 ) |> dplyr::pull(Freq)"))) } else {
+#       t1 <- 0}
+#     compass1 <- as.data.frame(t(c( a = operation,
+#          b =  population_rms,
+#          c = "Percent",
+#          d =  totalBaseline,
+#          e = round(t1 * 100,2),
+#          f = round(totalBaseline *t1),
+#          g = rms_indicator[i,3] )))
+#     #str(compass)
+#     #str(compass1)
+#     compass <- rbind( compass,compass1)
+#     rm(compass1)
+#     }
+# 
+#   compass <- compass |>
+#     as.data.frame() |>
+#     dplyr::slice(-1) |>
+#     dplyr::mutate (Plan = a ,
+#                    `Population Type (operational)` = b ,
+#                    `Show As` = c,
+#                    `Baseline Num.` =  f,
+#                    `Baseline Den.` = d,
+#                    `%`  = e ,
+#                    `Indicator` = g)|>
+#     dplyr::select(Plan,
+#                   `Indicator`,
+#                   `Population Type (operational)`,
+#                   `Show As`,
+#                   `Baseline Num.`,
+#                   `Baseline Den.`,
+#                   `%`  )
+# 
+#   ## And now saving
+#   ## Create a new workbook
+#   wb <- openxlsx::createWorkbook()
+#   ## add the cleaning log to the file
+#   openxlsx::addWorksheet(wb, "Compass")
+#   openxlsx::writeData(wb,  "Compass",
+#                       compass, withFilter = TRUE)
+#   ## Save workbook
+#   openxlsx::saveWorkbook(wb,
+#                          file = here::here(paste0("compass_",
+#                                                  country,"_",
+#                                                  stringr::str_replace_all(string=population_rms, pattern=" ", repl=""),
+#                                                  ".xlsx") ),
+#                          overwrite = TRUE)
+#   
+#   
+#   ## Now push to RILD 
+#   if( publish == "yes"){
+#   p <- riddle::dataset_show(param$ridl)
+#   list_of_resources <- p[["resources"]][[1]]
+# 
+#   time <- format(Sys.Date(),  '%d%b%y')
+#   ### Publish the analysis plan ####
+#   namecompass = paste0("compass_",  country,"_",
+#                        stringr::str_replace_all(string=population_rms, pattern=" ", repl=""))
+#   ### Check if the name is already in the resources
+#   if(namecompass %in% list_of_resources$name) {
+#         ## get the resource id
+#         resourceid <- list_of_resources |>
+#                       dplyr::filter ( name == namecompass) |>
+#                        dplyr::pull(id)
+#         ## get the new resource version
+#         curversion <- list_of_resources |>
+#           dplyr::filter ( name == namecompass) |>
+#           dplyr::pull(version)
+# 
+#         ## Build resource metadata
+#         metadatacompass <- riddle::resource_metadata(
+#             type = "attachment",
+#             url = paste0(namecompass, ".xlsx"),
+#             name = namecompass,
+#             description = paste0("Compass output generated from RMS on ",  time,
+#                                  ". Built using kobocruncher "),
+#             format = "xlsx",
+#             version = (curversion + 1),
+#             visibility =  "public",
+#             file_type = "other",
+#             ## Revise here based on the name from your crunching report
+#             upload =  httr::upload_file(here::here(paste0(namecompass, ".xlsx")))
+#           )
+#         riddle::resource_update(id = resourceid,
+#                                 res_metadata = metadatacompass)
+#     } else {
+# 
+#         metadatacompass <- riddle::resource_metadata(
+#           type = "attachment",
+#           url = paste0(namecompass, ".xlsx"),
+#           name = namecompass,
+#             description = paste0("Compass output generated from RMS on ",  time,
+#                                  ". Built using kobocruncher "),
+#           format = "xlsx",
+#           visibility =  "public",
+#           file_type = "other",
+#           ## Revise here based on the name from your crunching report
+#           upload =  httr::upload_file(here::here(paste0(namecompass, ".xlsx")))
+#         )
+#         riddle::resource_create(package_id = p$id,
+#                                 res_metadata = metadatacompass)
+#     }
+#   
+#    }
+# 
+#   return(compass)
 
 }

@@ -19,7 +19,10 @@ between the the standard XlsForm and the contextualized dataset}
 TRUE or FALSE
 }
 \description{
-This check is the standard variable and modalities
+This check if the standard variables and modalities included in the mapper are
+actually present in the datalist with the same exact name - this is actually
+usually not the case as the standard format to save kobodatset in xlsx includes
+group in the variable name
 }
 \examples{
 

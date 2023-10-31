@@ -12,6 +12,19 @@ fct_plot_indic_donut(
   iconunicode = "f496"
 )
 }
+\arguments{
+\item{indicator}{vector}
+
+\item{subtitle_chart}{}
+
+\item{caption_chart}{}
+
+\item{ordered_threhold}{vector with the different threshold
+(green, orange, red)}
+
+\item{iconunicode}{unicode value for fontawesome ---
+see https://fontawesome.com/search?o=r&m=free}
+}
 \value{
 ggplot2 object
 }

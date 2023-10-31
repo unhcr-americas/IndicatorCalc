@@ -19,7 +19,7 @@
 #' @importFrom stringr str_replace
 #' 
 #' @return a ggplot2 object
-#' @noRd
+#' @export
 #' @examples
 #' plot_rbm_sdg( country = "BRA", 
 #'           rbm = "impact2_2",
