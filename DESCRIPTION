@@ -15,28 +15,34 @@ URL: https://github.com/unhcr-americas/IndicatorCalc
 Imports: 
     cli,
     config,
+    countrycode,
     dplyr,
     ggforce,
     ggplot2,
     ggtext,
     golem,
+    janitor,
+    kobocruncher,
     labelled,
     plyr,
     purrr,
+    SDGsR,
     shiny,
     shinydashboard,
     showtext,
     sjlabelled,
     sjmisc,
+    stats,
+    stringr,
     sysfonts,
     systemfonts,
     tibble,
     tidyr,
     unhcrshiny,
-    unhcrthemes
+    unhcrthemes,
+    withr
 Suggests: 
     knitr,
-    kobocruncher,
     rmarkdown,
     testthat
 VignetteBuilder: 

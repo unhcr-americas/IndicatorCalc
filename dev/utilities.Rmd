@@ -37,7 +37,7 @@ pkgload::load_all(path = here::here(), export_all = FALSE)
 ```
 
 
-# Generating data from form
+# Generating data from a specific form definition
 
 One key function is to generate a dummy dataset based on a specific form structure
 
@@ -261,8 +261,7 @@ test_that("var_dummy works", {
 #'    (Some advanced functionality such as "coalesce()" not covered)
 #' - respects "`constraint`" 
 #' - respects "`repeat`" adds ID column to link hierarchical data based on "`repeat_count`"
- 
-#' @reference the function is a rewriting of
+#'  This function is a rewriting of
 #'     https://unhcr.github.io/koboloadeR/docs/reference/kobo_dummy.html 
 #'   it also  build on  https://thinkr-open.github.io/fakir/ and
 #'     https://docs.ropensci.org/charlatan/
@@ -323,6 +322,7 @@ kobo_dummy <- function(form,
                           "-",
                           formatC(1:n, width = nchar(n) + 1, flag = "0")
                         ))
+  names(main)[1] <- "_index"
   
   ## then apply var_dummy interactively... 
   for(i in (1:nrow(conf)) ) {
@@ -421,6 +421,10 @@ kobo_dummy <- function(form,
                                     formatC(1:n, width = nchar(n) + 1, flag = "0")
                                   ))
             
+            names(repframe)[1] <- "_parent_index"
+            ## Apply now `_index`
+            ## TODO -- check if we have a `repeat_count` to apply limitation..
+            
             ## then apply var_dummy interactively... 
             for(i in (1:nrow(confrep)) ) {
              # i <- 6
@@ -448,7 +452,6 @@ kobo_dummy <- function(form,
                     constraint =  this.constraint )
             }
         
-        ## TODO -- check if we have a `repeat_count` to apply limitation..
         
         ## append to the repeat
         datalist[[rep]] <- repframe
@@ -466,6 +469,10 @@ form <- system.file("RMSCAPI.xlsx", package = "IndicatorCalc")
 datalist <- kobo_dummy(form,
                        n = 384,
                        file = NULL)
+
+## Save this to use it for testing the package...
+
+openxlsx::write.xlsx(datalist, here::here("inst", "demo_data.xlsx"))
 ```
   
 ```{r tests-kobo_dummy}
@@ -492,7 +499,7 @@ test_that("kobo_dummy works", {
 #' @param years  years to filter the chart - for instance c(2000,2022)
 #' 
 #' @importFrom SDGsR get_indicator
-#' @importFrom ForcedDisplacementStat reference
+#' @importFrom countrycode countrycode
 #' @importFrom janitor clean_names
 #' @importFrom stringr str_replace
 #' 
@@ -571,9 +578,9 @@ sdg_rbm <-  structure(list(
   class = c("tbl_df", "tbl", "data.frame"), row.names = c(NA, 
   -13L))
 
-  ctry <- ForcedDisplacementStat::reference |>
-           filter(iso_3 == country ) |> 
-           select(iso_3, ctryname, M49_code) 
+  # ctry <- ForcedDisplacementStat::reference |>
+  #          filter(iso_3 == country ) |> 
+  #          select(iso_3, ctryname, M49_code) 
   
   sdg_code_label <- sdg_rbm |>
            filter(RMS == rbm  )
@@ -584,7 +591,10 @@ sdg_rbm <-  structure(list(
   
   #cat(paste0("\n \n -------\n Pulling RMS Host country comparison data for ", ctry$ctryname,  "\n\n"))
   #cat(paste0("Retrieving now : ", sdg_code_label$SDG_indic , "\n"))
-  Ind1 <- SDGsR::get_indicator(Country= ctry$M49_code, indicator= sdg_code)
+  Ind1 <- SDGsR::get_indicator(Country = countrycode::countrycode(country, 
+                                                                  origin = 'iso3c', 
+                                                                  destination = 'un'), 
+                               indicator= sdg_code)
 
   ## Check if the API did return something
   if(nrow(Ind1) == 0) {
@@ -594,7 +604,10 @@ sdg_rbm <-  structure(list(
              label = stringr::str_wrap(paste0("\n ಠ_ಠ  \n No data could be retrieved from  UNStat API for: ", 
                           sdg_code_label$SDG_indic , " (related to UNHCR Indicator ", rbm ,
                           ") in country: ", 
-                          ctry$ctryname ,"."), 50 ) ) +   theme_void()
+                          countrycode::countrycode(country,  
+                                                   origin = 'iso3c',
+                                                   destination = 'country.name') ,
+                          "."), 50 ) ) +   theme_void()
     
     
        return(p)
@@ -655,7 +668,9 @@ sdg_rbm <-  structure(list(
               #panel.grid.major.x = element_blank(),
               legend.position="none",
               strip.text.x = element_text(size = 8)) +
-        labs(title = stringr::str_wrap(paste0( ctry$ctryname, ": ",sdg_code_label$description ), 80), 
+        labs(title = stringr::str_wrap(paste0(  countrycode::countrycode(country,  
+                                                   origin = 'iso3c',
+                                                   destination = 'country.name'), ": ",sdg_code_label$description ), 80), 
              subtitle = stringr::str_wrap( paste0(sdg_code_label$SDG_indic, " (related to UNHCR Indicator ", rbm, ")"), 100),
              x = " ", 
              y = paste0(unique(Ind1$attributes$Units)),
@@ -701,7 +716,7 @@ test_that("plot_rbm_sdg works", {
 ```{r development-inflate, eval=FALSE}
 # Keep eval=FALSE to avoid infinite loop in case you hit the knit button
 # Execute in the console directly
-fusen::inflate(flat_file = "dev/flat_full.Rmd", vignette_name = "Get started")
+fusen::inflate(flat_file = "dev/utilities.Rmd", vignette_name = "Utilities")
 ```
 
  

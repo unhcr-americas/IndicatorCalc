@@ -47,8 +47,9 @@ golem::run_dev()
 ## Now start adding modules from console
 # Modules are like the pipe between your back-office functions and your user
 # Name of the module - "my_first_module"
-# graveler::level_up(name = "my_first_module")
-
+# graveler::level_up(name = "variable_mapping")
+# graveler::level_up(name = "remap_code")
+# graveler::level_up(name = "apply_calculation")
 
 ### Deploy the app ----------
 

@@ -28,13 +28,17 @@ Each calculation is implemented as a function with in-built check to identify wh
 
 
 
-
-*Population* refers to survey population in this guidance for the calculation of indicators as shown by enumerator and denominator.
-*Denominators* that are representing the households will be obtained by weighting the number of households by the number of household members at the end of the analysis. If there are no weights used it will be used as 'weight' variable for household level indicators.
-
 ## Usage
 
 The easiest way to use the package is through the [shiny interface](http://rstudio.unhcr.org/IndicatorCalc)  and then follow the instruction from there.
+
+ The workflow is described below:
+ 
+  1. Run the function var_mapping( "path/to/myxlsform.xlsx") in order to create your __variable mapping__. The variable mapping is designed to check if the expected variables and modalities are present in your dataset. 
+  
+  2. Review manually the variable mapping and __recode data_ manually the variables where the automatic match could not be applied and upload it back
+  
+  3. Then either generate a dummy dataset or connect your project with [RIDL](https://ridl.unhcr.org) and __apply calculation__ to get you summary report and download your expanded XlsForm to include it within your [Kobocruncher automatic data exploration](https/rstudio.unhcr.org/kobcruncher)
 
 
 ## Developpers

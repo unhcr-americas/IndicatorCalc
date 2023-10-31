@@ -29,3 +29,22 @@ indicators.Rmd:
     check: true
     document: true
     overwrite: ask
+utilities.Rmd:
+  path: dev/utilities.Rmd
+  state: active
+  R:
+  - R/kobo_dummy.R
+  - R/plot_rbm_sdg.R
+  - R/var_dummy.R
+  tests:
+  - tests/testthat/test-var_dummy.R
+  - tests/testthat/test-kobo_dummy.R
+  - tests/testthat/test-plot_rbm_sdg.R
+  vignettes: vignettes/utilities.Rmd
+  inflate:
+    flat_file: dev/utilities.Rmd
+    vignette_name: Utilities
+    open_vignette: true
+    check: true
+    document: true
+    overwrite: ask

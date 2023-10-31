@@ -43,13 +43,18 @@ Therefore each indicator function is organised in 3  steps:
  * If not apply the mapping supplied as argument within the function `fct_re_map`
  
  * Apply the calculation - either to append the new variable to the existing data or to output just the final vector with results. 
- 
+
+
+
 ## fct_check_map
 
 ```{r function-fct_check_map}
 #' fct_check_map
 #' 
-#' This check is the standard variable and modalities
+#' This check if the standard variables and modalities included in the mapper are
+#' actually present in the datalist with the same exact name - this is actually
+#' usually not the case as the standard format to save kobodatset in xlsx includes 
+#' group in the variable name
 #' 
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
@@ -69,7 +74,9 @@ fct_check_map <- function(datalist, mapper){
    for ( i in 1:nrow(mapper[["variablemap"]]) ) {
      # i <- 1
      thisvar <-  mapper[["variablemap"]][["variable"]][[i]]
-    if ( is.null(datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]]) ) 
+     
+    if ( is.null( datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]] ) ) 
+      
     {cli::cli_alert_info(paste0( thisvar ," standard variable was not found in the dataset.\n"))
       }
      else {
@@ -172,9 +179,9 @@ fct_get_all_variable_names <- function(datalist){
 ```
   
 ```{r example-fct_get_all_variable_names}
-data <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                              package = "IndicatorCalc"))
-varname <-   fct_get_all_variable_names(datalist = data)
+varname <-   fct_get_all_variable_names(datalist = datalist)
 head(varname, 10)
 ```
   
@@ -183,6 +190,7 @@ test_that("fct_get_all_variable_names works", {
   expect_true(inherits(fct_get_all_variable_names, "function")) 
 })
 ```
+ 
 
 ## fct_re_map
     
@@ -314,12 +322,12 @@ test_that("fct_re_map works", {
 #' Wrapper for a summary chart for indicator - allows to add hint, source,  icon
 #'  and interpretation threshold if available
 #'  
-#'  @params indicator vector
-#'  @params  subtitle_chart  
-#'  @params   caption_chart  
-#'  @params    ordered_threhold  vector with the different threshold 
+#'  @param indicator vector
+#'  @param  subtitle_chart  
+#'  @param   caption_chart  
+#'  @param    ordered_threhold  vector with the different threshold 
 #'    (green, orange, red)
-#'  @params   iconunicode  unicode value for fontawesome --- 
+#'  @param   iconunicode  unicode value for fontawesome --- 
 #'              see https://fontawesome.com/search?o=r&m=free
 #' 
 #' 
@@ -495,7 +503,7 @@ inter_electricity <- function(datalist,
 ```
   
 ```{r example-inter_electricity}
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx", 
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 mapper <- list(
             hierarchy = "main",
@@ -1020,7 +1028,7 @@ return(datalist)
 ```
   
 ```{r example-inter_shelter}
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx", 
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 mapper <- list(
@@ -1178,7 +1186,8 @@ return(datalist)
 ```
   
 ```{r example-impact_2_2}
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file(#"demo_data.xlsx", 
+                                                 "test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 #Healthcare
@@ -1228,9 +1237,9 @@ datalist <- inter_electricity( datalist =datalist, mapper = mapper  )
 ## in the contextualised form - DWA03a has been skipped and all results are in min... 
 ## only manual transformation can adjust this before we use the mapper..
 
-datalist[["main"]]$DWA03a  <- "1" 
+datalist[["main"]]$DWA03a  <- "1"
 
-datalist[["main"]]$DWA03b <- 
+datalist[["main"]]$DWA03b <-
   datalist[["main"]]$VulnerabilityScoring.BasicNeeds.DWA03
 
 # now the mapper
@@ -1426,18 +1435,65 @@ impact2_3 <- function(datalist,
               label = c(
                 "In the past 3 months, did ${name_individual} need to see a health professional for any reason?",
                 "In the past 3 months, did you receive medical care when needed for the reason above?",
-                "Why have you been unable to access a medical care in the past 3 months?"),
+     "Why have you been unable to access a medical care in the past 3 months? - 1	Health facility too far",
+     "Why have you been unable to access a medical care in the past 3 months? - 2	Medicine or health facility too expensive",
+     "Why have you been unable to access a medical care in the past 3 months? - 3	No treatment exists/ Not necessary",
+     "Why have you been unable to access a medical care in the past 3 months? - 4	Don't know where to go",
+     "Why have you been unable to access a medical care in the past 3 months? - 5	No time
+6	Prefer other options",
+     "Why have you been unable to access a medical care in the past 3 months? - 7	Health facility does not accept new patients",
+     "Why have you been unable to access a medical care in the past 3 months? - 8	Don't trust modern medicine",
+     "Why have you been unable to access a medical care in the past 3 months? - 9	Don't trust doctors",
+     "Why have you been unable to access a medical care in the past 3 months? - 10	Administrative/documentation issues (certificates, service cards etc.)",
+     "Why have you been unable to access a medical care in the past 3 months? - 96	Other (Specify) "
+     
+     ),
               variable = c("HACC01", 
                            "HACC03", 
-                           "HACC04"),
+                           "HACC04_1", 
+                           "HACC04_2", 
+                           "HACC04_3", 
+                           "HACC04_4", 
+                           "HACC04_5", 
+                           "HACC04_6", 
+                           "HACC04_7", 
+                           "HACC04_8", 
+                           "HACC04_9", 
+                           "HACC04_10", 
+                           "HACC04_96"),
               mappattern = c("HACC01", 
-                           "HACC03", 
-                           "HACC04") ),
+                           "HACC03",
+                           "HACC04_1", 
+                           "HACC04_2", 
+                           "HACC04_3", 
+                           "HACC04_4", 
+                           "HACC04_5", 
+                           "HACC04_6", 
+                           "HACC04_7", 
+                           "HACC04_8", 
+                           "HACC04_9", 
+                           "HACC04_10", 
+                           "HACC04_96") ),
             modalitymap = data.frame(
-              variable = c( "HACC01", "HACC03" ),
-              label = c( "yes", "yes"),
-              standard = c( "1","1" ),
-              map = c("1","1" )))  ){
+              variable = c( "HACC01", "HACC03" ,
+                           "HACC04_1", 
+                           "HACC04_2", 
+                           "HACC04_3", 
+                           "HACC04_4", 
+                           "HACC04_5", 
+                           "HACC04_6", 
+                           "HACC04_7", 
+                           "HACC04_8", 
+                           "HACC04_9", 
+                           "HACC04_10", 
+                           "HACC04_96"),
+              label = c( "yes", "yes",
+                         "yes", "yes", "yes", "yes", "yes", "yes", "yes",
+                          "yes", "yes", "yes", "yes"),
+              standard = c( "1","1" ,
+                            "1","1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1","1"   ),
+              map = c("1","1" ,
+                      "1","1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1","1" )))  ){
   
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
@@ -1446,23 +1502,24 @@ impact2_3 <- function(datalist,
                               mapper = mapper)
  
  
-datalist[["ind"]]$health_NOacc<- dplyr::case_when(
-    datalist[["ind"]]$HACC03=="1" & 
-      (datalist[["ind"]]$HACC04_7=="1" | 
-       datalist[["ind"]]$HACC04_8=="1" | 
-       datalist[["ind"]]$HACC04_96=="1" ) ~ "0",
+datalist[["ind"]]$health_NOacc <- dplyr::case_when(
+    datalist[["ind"]]$HACC03 == "1" & 
+      (datalist[["ind"]]$HACC04_7 == "1" | 
+       datalist[["ind"]]$HACC04_8 == "1" | 
+       datalist[["ind"]]$HACC04_96 == "1" ) ~ "0",
     
-    datalist[["ind"]]$HACC03=="1" & 
-     (datalist[["ind"]]$HACC04_1=="1" | 
-      datalist[["ind"]]$HACC04_2=="1" | 
-      datalist[["ind"]]$HACC04_3=="1" | 
-      datalist[["ind"]]$HACC04_4=="1" |
-      datalist[["ind"]]$HACC04_5=="1" | 
-      datalist[["ind"]]$HACC04_6=="1" | 
-      datalist[["ind"]]$HACC04_9=="1" | 
-      datalist[["ind"]]$HACC04_10=="1") ~ "1", 
+    datalist[["ind"]]$HACC03 == "1" & 
+     (datalist[["ind"]]$HACC04_1 == "1" | 
+      datalist[["ind"]]$HACC04_2 == "1" | 
+      datalist[["ind"]]$HACC04_3 == "1" | 
+      datalist[["ind"]]$HACC04_4 == "1" |
+      datalist[["ind"]]$HACC04_5 == "1" | 
+      datalist[["ind"]]$HACC04_6 == "1" | 
+      datalist[["ind"]]$HACC04_9 == "1" | 
+      datalist[["ind"]]$HACC04_10 == "1") ~ "1", 
     
     TRUE ~ "0")
+# table(datalist[["ind"]]$health_NOacc, useNA = "ifany")
  
 datalist[["ind"]]$health_NOacc <- as.numeric(datalist[["ind"]]$health_NOacc)
 datalist[["ind"]]$HACC01 <- as.numeric(datalist[["ind"]]$HACC01)
@@ -1488,28 +1545,73 @@ datalist[["ind"]]$impact2_3  <- labelled::labelled( datalist[["ind"]]$impact2_3,
   
 ```{r example-impact2_3}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mpper
-mapper <-  list(
+mapper <-   list(
             hierarchy = "ind",
             variablemap = data.frame(
               label = c(
                 "In the past 3 months, did ${name_individual} need to see a health professional for any reason?",
                 "In the past 3 months, did you receive medical care when needed for the reason above?",
-                "Why have you been unable to access a medical care in the past 3 months?"),
+     "Why have you been unable to access a medical care in the past 3 months? - 1	Health facility too far",
+     "Why have you been unable to access a medical care in the past 3 months? - 2	Medicine or health facility too expensive",
+     "Why have you been unable to access a medical care in the past 3 months? - 3	No treatment exists/ Not necessary",
+     "Why have you been unable to access a medical care in the past 3 months? - 4	Don't know where to go",
+     "Why have you been unable to access a medical care in the past 3 months? - 5	No time
+6	Prefer other options",
+     "Why have you been unable to access a medical care in the past 3 months? - 7	Health facility does not accept new patients",
+     "Why have you been unable to access a medical care in the past 3 months? - 8	Don't trust modern medicine",
+     "Why have you been unable to access a medical care in the past 3 months? - 9	Don't trust doctors",
+     "Why have you been unable to access a medical care in the past 3 months? - 10	Administrative/documentation issues (certificates, service cards etc.)",
+     "Why have you been unable to access a medical care in the past 3 months? - 96	Other (Specify) " ),
               variable = c("HACC01", 
                            "HACC03", 
-                           "HACC04"),
+                           "HACC04_1", 
+                           "HACC04_2", 
+                           "HACC04_3", 
+                           "HACC04_4", 
+                           "HACC04_5", 
+                           "HACC04_6", 
+                           "HACC04_7", 
+                           "HACC04_8", 
+                           "HACC04_9", 
+                           "HACC04_10", 
+                           "HACC04_96"),
               mappattern = c("HACC01", 
-                           "HACC03", 
-                           "HACC04") ),
+                           "HACC03",
+                           "HACC04_1", 
+                           "HACC04_2", 
+                           "HACC04_3", 
+                           "HACC04_4", 
+                           "HACC04_5", 
+                           "HACC04_6", 
+                           "HACC04_7", 
+                           "HACC04_8", 
+                           "HACC04_9", 
+                           "HACC04_10", 
+                           "HACC04_96") ),
             modalitymap = data.frame(
-              variable = c( "HACC01", "HACC03" ),
-              label = c( "yes", "yes"),
-              standard = c( "1","1" ),
-              map = c("1","1" ))) 
+              variable = c( "HACC01", "HACC03" ,
+                           "HACC04_1", 
+                           "HACC04_2", 
+                           "HACC04_3", 
+                           "HACC04_4", 
+                           "HACC04_5", 
+                           "HACC04_6", 
+                           "HACC04_7", 
+                           "HACC04_8", 
+                           "HACC04_9", 
+                           "HACC04_10", 
+                           "HACC04_96"),
+              label = c( "yes", "yes",
+                         "yes", "yes", "yes", "yes", "yes", "yes", "yes",
+                          "yes", "yes", "yes", "yes"),
+              standard = c( "1","1" ,
+                            "1","1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1","1"   ),
+              map = c("1","1" ,
+                      "1","1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1","1" ))) 
 
 ## Apply indicator function on datalist
 datalist <- impact2_3(datalist, mapper )
@@ -1645,7 +1747,7 @@ datalist[["ind"]]$impact3_2a  <- labelled::labelled(datalist[["ind"]]$impact3_2a
   
 ```{r example-impact3_2a}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mpper
@@ -1786,7 +1888,7 @@ datalist[["ind"]]$impact3_2b  <- labelled::labelled(datalist[["ind"]]$impact3_2b
   
 ```{r example-impact3_2b}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 ## mpper
 mapper <-  list("")
@@ -1897,7 +1999,7 @@ datalist[["main"]]$impact3_3  <- labelled::labelled(datalist[["main"]]$impact3_3
   
 ```{r example-impact3_3}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mpper
@@ -2057,7 +2159,7 @@ datalist[["ind"]]$outcome1_2  <- labelled::labelled(datalist[["ind"]]$outcome1_2
   
 ```{r example-outcome1_2}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper
@@ -2238,7 +2340,7 @@ datalist[["ind"]]$outcome1_3  <- labelled::labelled(datalist[["ind"]]$outcome1_3
   
 ```{r example-outcome1_3}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper
@@ -2358,7 +2460,7 @@ datalist[["main"]]$outcome4_1  <- labelled::labelled(datalist[["main"]]$outcome4
   
 ```{r example-outcome4_1}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper
@@ -2497,7 +2599,7 @@ datalist[["main"]]$outcome4_2  <- labelled::labelled(datalist[["main"]]$outcome4
   
 ```{r example-outcome4_2}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper
@@ -2613,7 +2715,7 @@ datalist[["ind"]]$outcome5_2  <- labelled::labelled(datalist[["ind"]]$outcome5_2
   
 ```{r example-outcome5_2}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper
@@ -2729,7 +2831,7 @@ datalist[["main"]]$outcome8_2  <- labelled::labelled(datalist[["main"]]$outcome8
   
 ```{r example-outcome8_2}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper
@@ -2940,7 +3042,7 @@ datalist[["main"]]$outcome9_1  <- labelled::labelled(datalist[["main"]]$outcome9
   
 ```{r example-outcome9_1}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper
@@ -3057,7 +3159,7 @@ datalist[["main"]]$outcome9_2  <- labelled::labelled(datalist[["main"]]$outcome9
   
 ```{r example-outcome9_2}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper
@@ -3168,7 +3270,7 @@ datalist[["ind"]]$outcome10_1  <- labelled::labelled(datalist[["ind"]]$outcome10
   
 ```{r example-outcome10_1}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper
@@ -3292,7 +3394,7 @@ datalist[["main"]]$outcome10_2  <- labelled::labelled(datalist[["main"]]$outcome
   
 ```{r example-outcome10_2}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper
@@ -3456,7 +3558,7 @@ datalist[["main"]]$outcome12_1  <- labelled::labelled(outcome12_1 ,
   
 ```{r example-outcome12_1}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper
@@ -3611,7 +3713,7 @@ datalist[["main"]]$outcome12_2  <- labelled::labelled(datalist[["main"]]$outcome
 ```{r example-outcome12_2}
 
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper
@@ -3724,7 +3826,7 @@ datalist[["main"]]$outcome13_1  <- labelled::labelled(datalist[["main"]]$outcome
   
 ```{r example-outcome13_1}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper
@@ -3832,7 +3934,7 @@ datalist[["main"]]$outcome13_2  <- labelled::labelled(datalist[["main"]]$outcome
   
 ```{r example-outcome13_2}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper
@@ -3970,7 +4072,7 @@ datalist[["main"]]$outcome13_3 <-
   
 ```{r example-outcome13_3}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper
@@ -4072,13 +4174,13 @@ datalist[["ind"]]$document_under5 <- dplyr::case_when(
       datalist[["ind"]]$REG03  == 1   #add birth certificate as additional document from REG03
            ~ 1,
       datalist[["ind"]]$REG05a == 0 & 
-      datalist[["ind"]]$REG05b== 0 & 
-      datalist[["ind"]]$REG05c== 0 & 
-      datalist[["ind"]]$REG05d== 0 & 
-      datalist[["ind"]]$REG05e== 0 & 
-      datalist[["ind"]]$REG05f== 0 & 
-      datalist[["ind"]]$REG06== 0 & 
-      datalist[["ind"]]$REG03== 0 ~ 0, 
+      datalist[["ind"]]$REG05b == 0 & 
+      datalist[["ind"]]$REG05c == 0 & 
+      datalist[["ind"]]$REG05d == 0 & 
+      datalist[["ind"]]$REG05e == 0 & 
+      datalist[["ind"]]$REG05f == 0 & 
+      datalist[["ind"]]$REG06 == 0 & 
+      datalist[["ind"]]$REG03 == 0 ~ 0, 
       TRUE ~ NA_real_ )
   
   ###Calculate  valid identity documents for above 5 with REG01 and REG02 variables
@@ -4133,7 +4235,7 @@ datalist[["ind"]]$outcome14_1  <- labelled::labelled(datalist[["ind"]]$outcome14
   
 ```{r example-outcome14_1}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper
@@ -4274,7 +4376,7 @@ datalist[["main"]]$utcome16_1  <- labelled::labelled(datalist[["main"]]$outcome1
   
 ```{r example-outcome16_1}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper
@@ -4388,7 +4490,7 @@ datalist[["main"]]$outcome16_2  <- labelled::labelled(datalist[["main"]]$outcome
   
 ```{r example-outcome16_2}
 ## data
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## mapper

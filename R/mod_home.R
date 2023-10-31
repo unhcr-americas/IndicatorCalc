@@ -15,29 +15,32 @@ mod_home_ui <- function(id) {
 		  id = "splash_panel", top = 0, left = 0, right = 0, bottom = 0,
 		  ### Get the name for your tool
 		  p(
-		    tags$span("Dashboard ", style = "font-size: 60px"),
-		    tags$span("template", style = "font-size: 24px")
+		    tags$span("IndicatorCalc  ", style = "font-size: 60px"),
+		    tags$span("  Beta", style = "font-size: 24px")
 		  ),
 		  br(),
 		  ### Then a short explainer
-		  p(paste("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-		  eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
-		  minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
-		  ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate
-		  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
-		  cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."),
+		  p( "The calculation of Standard Indicators is a key step in the analysis of Household survey dataset.
+		     UNHCR Results Monitoring Survey is based on international statistical standards and definitions,
+		     comes with standardised calculation to apply and can appear complex
+		     as sometime a single indicator might imply to compile more than 15 different variables",
 		    style = "font-size: 20px"),
-		  br(),
-		  fluidRow(
-		      actionButton(NS(id, "go_to_firstmod"),
-		                   label = "Start Exploring",
-		                   width = "150px",
-		                   style='font-size: 16px; color: #18375F',
-		                   icon = icon("chevron-right")),
-		      style = "font-size: 18px; text-align: right;"
-		    ),
-		  br(),
-		  br(),
+		br(),
+		p( "This ",tags$span("companion app", style = "color:#00B398"), "  support the application of those calculations.
+		     It allows to ", strong("map the necessary variables")," based on the xlsform definition of the dataset you have or will collect.
+		     In case needs be, it eases ", strong("data recoding")," based on this mapping. Finally, it generates the indicators together with ", strong("standard report"),".
+		     Though token identification, all of this can also be recorded in RIDL for data auditing and quality asurance" ,
+		   style = "font-size: 18px; text-align: left;"),
+
+		br(),
+		p("This app is part of a ",tags$span("comprehensive app toolkit", style = "color:#00B398"),
+		  " to mainstream knowledge & enhance the process of survey implementation through Kobotoolbox. It includes: ",
+		  tags$a(href="https://rstudio.unhcr.org/rmsSampling/", "rmsSampling"), " to help designing sampling strategies, ",
+		  tags$a(href="https://rstudio.unhcr.org/Survey_Designer", "SurveyDesigner"), " to help integrating annual survey needs, ",
+		  tags$a(href="https://rstudio.unhcr.org/XlsFormUtil/", "XlsFormUtil"), " to help reviewing form contextualisation, ",
+		  tags$a(href="https://rstudio.unhcr.org/HighFrequencyChecks/", "HighFrequencyChecks"), " to monitor data collection quality, ",
+		  tags$a(href="https://rstudio.unhcr.org/kobocruncher/", "KoboCruncher"), " to perform rapid data exploration and compile indicators.",
+		  style = "font-size: 12px; text-align: left;"),
 		  p(tags$i( class = "fa fa-github"),
 		    "App built with ",
 		    tags$a(href="https://edouard-legoupil.github.io/graveler/",
