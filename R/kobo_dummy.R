@@ -37,6 +37,10 @@
 #' datalist <- kobo_dummy(form,
 #'                        n = 384,
 #'                        file = NULL)
+#'
+#' ## Save this to use it for testing the package...
+#'
+#' openxlsx::write.xlsx(datalist, here::here("inst", "demo_data.xlsx"))
 kobo_dummy <- function(form,
                        n = 384,
                        file){
@@ -81,6 +85,7 @@ kobo_dummy <- function(form,
                           "-",
                           formatC(1:n, width = nchar(n) + 1, flag = "0")
                         ))
+  names(main)[1] <- "_index"
   
   ## then apply var_dummy interactively... 
   for(i in (1:nrow(conf)) ) {
@@ -179,6 +184,10 @@ kobo_dummy <- function(form,
                                     formatC(1:n, width = nchar(n) + 1, flag = "0")
                                   ))
             
+            names(repframe)[1] <- "_parent_index"
+            ## Apply now `_index`
+            ## TODO -- check if we have a `repeat_count` to apply limitation..
+            
             ## then apply var_dummy interactively... 
             for(i in (1:nrow(confrep)) ) {
              # i <- 6
@@ -206,7 +215,6 @@ kobo_dummy <- function(form,
                     constraint =  this.constraint )
             }
         
-        ## TODO -- check if we have a `repeat_count` to apply limitation..
         
         ## append to the repeat
         datalist[[rep]] <- repframe

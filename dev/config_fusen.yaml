@@ -33,6 +33,7 @@ utilities.Rmd:
   path: dev/utilities.Rmd
   state: active
   R:
+  - R/compass_table.R
   - R/kobo_dummy.R
   - R/plot_rbm_sdg.R
   - R/var_dummy.R
@@ -40,6 +41,7 @@ utilities.Rmd:
   - tests/testthat/test-var_dummy.R
   - tests/testthat/test-kobo_dummy.R
   - tests/testthat/test-plot_rbm_sdg.R
+  - tests/testthat/test-compass_table.R
   vignettes: vignettes/utilities.Rmd
   inflate:
     flat_file: dev/utilities.Rmd

@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 
 There is broad consensus around the key indicators used to measure, inform and monitor progress towards global development objectives, as exemplified by the Sustainable Development Goals and related efforts of the MICS, DHS, IHSN, together with national governments. UNHCR's objectives are largely aligned with these frameworks. [UNHCR Results Monitoring Surveys (RMS)](https://intranet.unhcr.org/en/support-services/common-good-data-initiatives/household-surveys/Results-Monitoring-Surveys.html) are household-level surveys with standard questionnaires following context-appropriate methodological approaches. They can be implemented across UNHCR operations to monitor changes in the lives of all relevant groups of persons of concern (impacts) and in UNHCR's key areas of engagement (outcomes). RMS help us to calculate impact and outcome indicators in a standardized way to have a global understanding of the results. Both indicators and questionnaire is also largely aligned with MICS, DHS, IHSN, national household surveys and other UNHCR standardized surveys. 
 
-The goal of {IndicatorCalc} is to ease the implementation of standard calculations for survey indicators related to Forcibly Displaced Population.
+The goal of `{IndicatorCalc}` is to ease the implementation of standard calculations for survey indicators related to Forcibly Displaced Population. Among the objectives is also to avoid duplication of documentation efforts around the information to include in the technical report and the information that is already expected to be gathered and recorded within [UNHCR Internal Data Repository](http://ridl.unhcr.org) which is following [Data Documentation Initiative](https://ddialliance.org/) standards.
 
 The package is designed to work based on dataset standard backup format exported from [kobotoolbox](http://http://kobo.unhcr.org) within [UNHCR internal data repository](http://ridl.unhcr.org). It is adapted from the initial [indicator script](https://github.com/bozdagilgi/UNHCR-RMS-Indicators) version. 
 
@@ -30,32 +30,40 @@ Each calculation is implemented as a function with in-built check to identify wh
 
 ## Usage
 
-The easiest way to use the package is through the [shiny interface](http://rstudio.unhcr.org/IndicatorCalc)  and then follow the instruction from there.
+The easiest way to use the package is through its [shiny Companion App](http://rstudio.unhcr.org/IndicatorCalc)  and then follow the instruction from there.
 
  The workflow is described below:
  
   1. Run the function var_mapping( "path/to/myxlsform.xlsx") in order to create your __variable mapping__. The variable mapping is designed to check if the expected variables and modalities are present in your dataset. 
   
-  2. Review manually the variable mapping and __recode data_ manually the variables where the automatic match could not be applied and upload it back
+  2. Review manually the variable mapping and __recode data__ manually the variables where the automatic match could not be applied and upload it back
   
   3. Then either generate a dummy dataset or connect your project with [RIDL](https://ridl.unhcr.org) and __apply calculation__ to get you summary report and download your expanded XlsForm to include it within your [Kobocruncher automatic data exploration](https/rstudio.unhcr.org/kobcruncher)
 
 
-## Developpers
+## Console user / Developpers
 
 You can install the development version of {IndicatorCalc} from [GitHub](https://github.com/unhcr-americas/IndicatorCalc) with:
 
 ``` r
-# install.packages("devtools")
-devtools::install_github("unhcr-americas/IndicatorCalc")
+install.packages("pak")
+pak::pkg_install("unhcr-americas/IndicatorCalc")
 ```
 
 
-The package development roadmap includes:
+The `{riddle}` package is used to ensure integration with [UNHCR Data Repository](https://ridl.unhcr.org).
+It requires you to add your __API token__ and store it for further use. 
+The easiest way to do that is to store your API token in your `.Renviron` file which 
+is automatically read by R on startup.
 
- - a dummy data generator
- - an SDG comparison plot..
- - a report template to output a quick exploration of all indicators results
- - a shiny app to provide access to the package online with Rstudio connect (versus offline rstudio)
+You can retrieve your `API TOKEN` in your [user page](https://ridl.unhcr.org/user/).
+
+![api_token_img](https://raw.githubusercontent.com/Edouard-Legoupil/riddle/main/inst/token.png)
+
+To use the package, you’ll need to store your RIDL API token in the `RIDL_API_TOKEN` environment variable. 
+The easiest way to do that is by calling `usethis::edit_r_environ()` and adding the line
+`RIDL_API_TOKEN=xxxxx` to the file before saving and restarting your R session.
+
+
 
 

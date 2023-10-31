@@ -23,9 +23,14 @@ results. Both indicators and questionnaire is also largely aligned with
 MICS, DHS, IHSN, national household surveys and other UNHCR standardized
 surveys.
 
-The goal of {IndicatorCalc} is to ease the implementation of standard
+The goal of `{IndicatorCalc}` is to ease the implementation of standard
 calculations for survey indicators related to Forcibly Displaced
-Population.
+Population. Among the objectives is also to avoid duplication of
+documentation efforts around the information to include in the technical
+report and the information that is already expected to be gathered and
+recorded within [UNHCR Internal Data Repository](http://ridl.unhcr.org)
+which is following [Data Documentation
+Initiative](https://ddialliance.org/) standards.
 
 The package is designed to work based on dataset standard backup format
 exported from [kobotoolbox](http://http://kobo.unhcr.org) within [UNHCR
@@ -41,34 +46,57 @@ is expected. You can check each [function
 reference](/reference/index.html) to see in details all documented
 calculations
 
-*Population* refers to survey population in this guidance for the
-calculation of indicators as shown by enumerator and denominator.
-*Denominators* that are representing the households will be obtained by
-weighting the number of households by the number of household members at
-the end of the analysis. If there are no weights used it will be used as
-‘weight’ variable for household level indicators.
-
 ## Usage
 
-The easiest way to use the package is through the [shiny
-interface](http://rstudio.unhcr.org/IndicatorCalc) and then follow the
+The easiest way to use the package is through its [shiny Companion
+App](http://rstudio.unhcr.org/IndicatorCalc) and then follow the
 instruction from there.
 
-## Developpers
+The workflow is described below:
+
+1.  Run the function var_mapping( “path/to/myxlsform.xlsx”) in order to
+    create your **variable mapping**. The variable mapping is designed
+    to check if the expected variables and modalities are present in
+    your dataset.
+
+2.  Review manually the variable mapping and **recode data** manually
+    the variables where the automatic match could not be applied and
+    upload it back
+
+3.  Then either generate a dummy dataset or connect your project with
+    [RIDL](https://ridl.unhcr.org) and **apply calculation** to get you
+    summary report and download your expanded XlsForm to include it
+    within your [Kobocruncher automatic data
+    exploration](https/rstudio.unhcr.org/kobcruncher)
+
+## Console user / Developpers
 
 You can install the development version of {IndicatorCalc} from
 [GitHub](https://github.com/unhcr-americas/IndicatorCalc) with:
 
 ``` r
-# install.packages("devtools")
-devtools::install_github("unhcr-americas/IndicatorCalc")
+install.packages("pak")
+pak::pkg_install("unhcr-americas/IndicatorCalc")
 ```
 
-The package development roadmap includes:
+The `{riddle}` package is used to ensure integration with [UNHCR Data
+Repository](https://ridl.unhcr.org). It requires you to add your **API
+token** and store it for further use. The easiest way to do that is to
+store your API token in your `.Renviron` file which is automatically
+read by R on startup.
 
-- a dummy data generator
-- an SDG comparison plot..
-- a report template to output a quick exploration of all indicators
-  results
-- a shiny app to provide access to the package online with Rstudio
-  connect (versus offline rstudio)
+You can retrieve your `API TOKEN` in your [user
+page](https://ridl.unhcr.org/user/).
+
+<figure>
+<img
+src="https://raw.githubusercontent.com/Edouard-Legoupil/riddle/main/inst/token.png"
+alt="api_token_img" />
+<figcaption aria-hidden="true">api_token_img</figcaption>
+</figure>
+
+To use the package, you’ll need to store your RIDL API token in the
+`RIDL_API_TOKEN` environment variable. The easiest way to do that is by
+calling `usethis::edit_r_environ()` and adding the line
+`RIDL_API_TOKEN=xxxxx` to the file before saving and restarting your R
+session.

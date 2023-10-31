@@ -20,15 +20,22 @@ Imports:
     ggforce,
     ggplot2,
     ggtext,
+    glue,
     golem,
+    here,
+    httr,
     janitor,
     kobocruncher,
     labelled,
+    openxlsx,
     plyr,
     purrr,
+    riddle,
+    rmarkdown,
     SDGsR,
     shiny,
     shinydashboard,
+    shinyWidgets,
     showtext,
     sjlabelled,
     sjmisc,
@@ -38,12 +45,14 @@ Imports:
     systemfonts,
     tibble,
     tidyr,
+    tidyverse,
+    unhcrdatapackage,
     unhcrshiny,
     unhcrthemes,
+    utils,
     withr
 Suggests: 
     knitr,
-    rmarkdown,
     testthat
 VignetteBuilder: 
     knitr
