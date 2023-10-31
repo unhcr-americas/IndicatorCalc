@@ -31,13 +31,13 @@ mod_apply_calculation_ui <- function(id) {
 				  collapsible = TRUE,
 				  width = 12,
 				  "Content",
-				  downloadButton( inputId = ns("getdata"),
+				  downloadButton( outputId = ns("getdata"),
 				                label = " get Data ",
 				                width = "100%"  ),
-				  downloadButton( inputId = ns("getreport"),
+				  downloadButton( outputId = ns("getreport"),
 				                label = " get Report ",
 				                width = "100%"  ),
-				  downloadButton( inputId = ns("getanalysisplan"),
+				  downloadButton( outputId = ns("getanalysisplan"),
 				                label = " get Extended XlsFrom with Indicators calculation ",
 				                width = "100%"  )
 ## do not forget that all elements ID of the GUI needs to be called with ns("ID")....
