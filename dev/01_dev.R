@@ -19,6 +19,8 @@ rstudioapi::navigateToFile("README.Rmd")
 ## Now build it
 devtools::build_readme()
 
+usethis::use_logo("inst/hex-IndicatorCalc.png", geometry = "240x278", retina = TRUE)
+
 ### Back office ----------
 
 ## Go to function_documentation.Rmd to build your back office functions with Fusen

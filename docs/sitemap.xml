@@ -19,6 +19,9 @@
     <loc>/articles/index.html</loc>
   </url>
   <url>
+    <loc>/articles/utilities.html</loc>
+  </url>
+  <url>
     <loc>/authors.html</loc>
   </url>
   <url>
@@ -31,13 +34,25 @@
     <loc>/reference/fct_check_map.html</loc>
   </url>
   <url>
+    <loc>/reference/fct_compass_table.html</loc>
+  </url>
+  <url>
     <loc>/reference/fct_get_all_variable_names.html</loc>
+  </url>
+  <url>
+    <loc>/reference/fct_kobo_dummy.html</loc>
   </url>
   <url>
     <loc>/reference/fct_plot_indic_donut.html</loc>
   </url>
   <url>
+    <loc>/reference/fct_plot_rbm_sdg.html</loc>
+  </url>
+  <url>
     <loc>/reference/fct_re_map.html</loc>
+  </url>
+  <url>
+    <loc>/reference/fct_var_mapping.html</loc>
   </url>
   <url>
     <loc>/reference/impact_2_2.html</loc>
@@ -59,5 +74,8 @@
   </url>
   <url>
     <loc>/reference/run_app.html</loc>
+  </url>
+  <url>
+    <loc>/tutorial/index.html</loc>
   </url>
 </urlset>

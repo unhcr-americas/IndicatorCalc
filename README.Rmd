@@ -13,7 +13,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-# {IndicatorCalc}
+# {IndicatorCalc}  <img src="man/figures/logo.png" align="right" height="139" alt="" />
 
 <!-- badges: start -->
 [![:name status badge](https://unhcrverse.r-universe.dev/badges/:name)](https://unhcrverse.r-universe.dev/)
@@ -29,6 +29,7 @@ The package is designed to work based on dataset standard backup format exported
 Each calculation is implemented as a function with in-built check to identify whether the expected variables and modalities are within the dataset and a `mapper` to transform the data in the expected format in case of divergence of data structure between what was collected and what is expected. You can check each [function reference](/reference/index.html) to see in details all documented calculations
 
 
+Please check the [tutorial here](https://edouard-legoupil.github.io/IndicatorCalc/tutorial/index.html)
 
 ## Usage
 
@@ -68,4 +69,8 @@ The easiest way to do that is by calling `usethis::edit_r_environ()` and adding 
 
 
 
+## Contributing
 
+Contributions to the packages are welcome. Please, follow the [code of conduct](CODE_OF_CONDUCT.html).
+
+If you encounter a bug or have idea for a new feature or check, please fill a ticket on [github](https://github.com/edouard-legoupil/IndicatorCalc/issues/new/choose).

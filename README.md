@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# {IndicatorCalc}
+# {IndicatorCalc} <img src="man/figures/logo.png" align="right" height="139" alt="" />
 
 <!-- badges: start -->
 
@@ -50,6 +50,9 @@ case of divergence of data structure between what was collected and what
 is expected. You can check each [function
 reference](/reference/index.html) to see in details all documented
 calculations
+
+Please check the [tutorial
+here](https://edouard-legoupil.github.io/IndicatorCalc/tutorial/index.html)
 
 ## Usage
 
@@ -105,3 +108,12 @@ To use the package, you’ll need to store your RIDL API token in the
 calling `usethis::edit_r_environ()` and adding the line
 `RIDL_API_TOKEN=xxxxx` to the file before saving and restarting your R
 session.
+
+## Contributing
+
+Contributions to the packages are welcome. Please, follow the [code of
+conduct](CODE_OF_CONDUCT.html).
+
+If you encounter a bug or have idea for a new feature or check, please
+fill a ticket on
+[github](https://github.com/edouard-legoupil/IndicatorCalc/issues/new/choose).

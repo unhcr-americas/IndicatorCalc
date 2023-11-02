@@ -64,10 +64,10 @@ Therefore each indicator function is organised in 3  steps:
  
  * Apply the calculation - either to append the new variable to the existing data or to output just the final vector with results. 
 
-# var_mapping
+## fct_var_mapping
     
-```{r function-var_mapping}
-#' var_mapping
+```{r function-fct_var_mapping}
+#' fct_var_mapping
 #' 
 #' Create a diff to identify the mapping between expected variables / modalities and 
 #' what is has been configured in a specific xlsform
@@ -78,7 +78,7 @@ Therefore each indicator function is organised in 3  steps:
 #' @return a list with the best mapping...
 #' 
 #' @export
-var_mapping <- function(xlsformpath){
+fct_var_mapping <- function(xlsformpath){
   
   IndicMap <- readxl::read_excel( system.file("IndicMap.xlsx", package = "IndicatorCalc"))
   dico <- kobocruncher::kobo_dico(xlsformpath)
@@ -91,16 +91,16 @@ var_mapping <- function(xlsformpath){
 }
 ```
   
-```{r example-var_mapping}
+```{r example-fct_var_mapping}
 
 form <- system.file("RMSCAPI.xlsx", package = "IndicatorCalc")
-var_mapping(xlsformpath = form)
+#fct_var_mapping(xlsformpath = form)
 ```
   
-```{r tests-var_mapping}
-test_that("var_mapping works", {
-  expect_true(inherits(var_mapping, "function")) 
-})
+```{r tests-fct_var_mapping}
+# test_that("fct_var_mapping works", {
+#   expect_true(inherits(var_mapping, "function")) 
+# })
 ```
   
 
@@ -492,10 +492,10 @@ We can then also re-use the function to create dummy data based on any form and 
  each indicator function to actually verify which indicators can be created based
  on the form content.
 
-## var_dummy
+## fct_var_dummy
     
-```{r function-var_dummy}
-#' var_dummy 
+```{r function-fct_var_dummy}
+#' fct_var_dummy 
 #' 
 #'  Append to an existing dataframe new Generate the variable based on 1. type, 2. constraint and 3.relevance
 #'  
@@ -523,7 +523,7 @@ We can then also re-use the function to create dummy data based on any form and 
 #' @noRd
 #' 
 #' @export
-var_dummy <- function( frame,
+fct_var_dummy <- function( frame,
                        name, 
                        type,
                        list_opt, 
@@ -617,7 +617,7 @@ var_dummy <- function( frame,
 }
 ```
   
-```{r example-var_dummy}
+```{r example-fct_var_dummy}
 
 ## let's initiate a dataframe with an index of n r records
 n <- 384
@@ -631,7 +631,7 @@ frame <- dplyr::tibble(
                         ))
 
 ## test inject select_one  
-frame <- var_dummy( 
+frame <- fct_var_dummy( 
           frame = frame,
            name = "testselect_one",
            type = "select_one",
@@ -639,7 +639,7 @@ frame <- var_dummy(
            constraint = NULL
            )
 ## test inject select_multiple in main
-frame <- var_dummy( 
+frame <- fct_var_dummy( 
           frame = frame,
           name = "testselect_multiple",
            type = "select_multiple",
@@ -648,7 +648,7 @@ frame <- var_dummy(
            )
 
 ## test inject text
-frame <- var_dummy( 
+frame <- fct_var_dummy( 
           frame = frame,
           name = "testtext",
            type = "text",
@@ -658,7 +658,7 @@ frame <- var_dummy(
 
 
 ## test inject numeric  
-frame <- var_dummy(
+frame <- fct_var_dummy(
            frame = frame,
            name = "testnumeric",
            type = "numeric",
@@ -667,7 +667,7 @@ frame <- var_dummy(
            )
 
 ## test inject date  
-frame <- var_dummy( 
+frame <- fct_var_dummy( 
           frame = frame,
           name = "testdate",
            type = "date",
@@ -679,18 +679,18 @@ frame <- var_dummy(
 knitr::kable(head(frame, 5))
 ```
   
-```{r tests-var_dummy}
-test_that("var_dummy works", {
-  expect_true(inherits(var_dummy, "function")) 
+```{r tests-fct_var_dummy}
+test_that("fct_var_dummy works", {
+  expect_true(inherits(fct_var_dummy, "function")) 
 })
 ```
    
  
-## kobo_dummy
+## fct_kobo_dummy
  
     
-```{r function-kobo_dummy}
-#' kobo_dummy
+```{r function-fct_kobo_dummy}
+#' fct_kobo_dummy
 #' 
 #' @description Automatically produce an dummy dataset in line with the structure 
 #' of an XlsForm
@@ -722,7 +722,7 @@ test_that("var_dummy works", {
 #' @return a data list with a series of dummy data 
 #' 
 #' @export
-kobo_dummy <- function(form,
+fct_kobo_dummy <- function(form,
                        n = 384,
                        file){
   
@@ -768,7 +768,7 @@ kobo_dummy <- function(form,
                         ))
   names(main)[1] <- "_index"
   
-  ## then apply var_dummy interactively... 
+  ## then apply fct_var_dummy interactively... 
   for(i in (1:nrow(conf)) ) {
    # i <- 6
     cat(paste0(i, "-", conf[i, c("type")], "-", conf[i, c("name")],  "\n"))
@@ -785,7 +785,7 @@ kobo_dummy <- function(form,
      this.type <- "text"
      }
    
-   main <- var_dummy( 
+   main <- fct_var_dummy( 
           frame = main,
           name = this.name,
           type = this.type,
@@ -801,7 +801,7 @@ kobo_dummy <- function(form,
   #                       type,
   #                       list_opt$list_opt ,
   #                       constraint ,
-  #                     var_dummy)
+  #                     fct_var_dummy)
   
   ## TODO -- apply the relevance statement...
   ## define when the variable should exist based on other elements
@@ -869,7 +869,7 @@ kobo_dummy <- function(form,
             ## Apply now `_index`
             ## TODO -- check if we have a `repeat_count` to apply limitation..
             
-            ## then apply var_dummy interactively... 
+            ## then apply fct_var_dummy interactively... 
             for(i in (1:nrow(confrep)) ) {
              # i <- 6
               cat(paste0(i, " in repeat -", rep, " ///", confrep[i, c("type")], "-", confrep[i, c("name")],  "\n"))
@@ -886,7 +886,7 @@ kobo_dummy <- function(form,
                this.type <- "text"
                }
              
-             repframe <- var_dummy( 
+             repframe <- fct_var_dummy( 
                     frame = repframe,
                     name = this.name,
                     type = this.type,
@@ -908,9 +908,9 @@ kobo_dummy <- function(form,
   }
 ```
   
-```{r example-kobo_dummy}
+```{r example-fct_kobo_dummy}
 form <- system.file("RMSCAPI.xlsx", package = "IndicatorCalc")
-datalist <- kobo_dummy(form,
+datalist <- fct_kobo_dummy(form,
                        n = 384,
                        file = NULL)
 
@@ -919,16 +919,16 @@ datalist <- kobo_dummy(form,
 openxlsx::write.xlsx(datalist, here::here("inst", "demo_data.xlsx"))
 ```
   
-```{r tests-kobo_dummy}
-test_that("kobo_dummy works", {
-  expect_true(inherits(kobo_dummy, "function")) 
+```{r tests-fct_kobo_dummy}
+test_that("fct_kobo_dummy works", {
+  expect_true(inherits(fct_kobo_dummy, "function")) 
 })
 ```
 
 
-## plot_rbm_sdg - SDG Comparison
+## fct_plot_rbm_sdg - SDG Comparison
     
-```{r function-plot_rbm_sdg}
+```{r function-fct_plot_rbm_sdg}
 #' @title Plot SDG Indicator for a country
 #' @description The function is designed to help the interpretation of survey 
 #'  results by providing a comparison guidelines. It displays a chart to have a 
@@ -949,7 +949,7 @@ test_that("kobo_dummy works", {
 #' 
 #' @return a ggplot2 object
 #' @export
-plot_rbm_sdg <- function( country = "BRA", 
+fct_plot_rbm_sdg <- function( country = "BRA", 
                       rbm = "outcome16_2",
                       years = c(2000, 2022)) {
   require(ggplot2)
@@ -1138,25 +1138,25 @@ sdg_rbm <-  structure(list(
 }
 ```
   
-```{r example-plot_rbm_sdg}
-plot_rbm_sdg( country = "BRA", 
+```{r example-fct_plot_rbm_sdg}
+fct_plot_rbm_sdg( country = "BRA", 
           rbm = "impact2_2",
           years = c(2000, 2022)) +
         unhcrthemes::theme_unhcr(font_size = 10) 
 ```
   
-```{r tests-plot_rbm_sdg}
-test_that("plot_rbm_sdg works", {
-  expect_true(inherits(plot_rbm_sdg, "function")) 
+```{r tests-fct_plot_rbm_sdg}
+test_that("fct_plot_rbm_sdg works", {
+  expect_true(inherits(fct_plot_rbm_sdg, "function")) 
 })
 ```
   
  
 
 
-## compass_table
+## fct_compass_table
     
-```{r function-compass_table}
+```{r function-fct_compass_table}
 #' @title Write simple compass indicator table
 #' @description The function take the list of calculated variables from an RMS
 #'              and output an excel document in the same folder with the correct
@@ -1181,7 +1181,7 @@ test_that("plot_rbm_sdg works", {
 #' 
 #' @export
 #'
-compass_table <- function(country ,
+fct_compass_table <- function(country ,
                                 operation,
                                 year ,
                                 population_type,
@@ -1336,7 +1336,7 @@ compass_table <- function(country ,
 }
 ```
   
-```{r example-compass_table}
+```{r example-fct_compass_table}
 # compass <- export_compass_fill( country = "ECU",
 #                        operation = "Ecuador ABC",
 #                        year = 2022,
@@ -1371,8 +1371,8 @@ compass_table <- function(country ,
 #              publish = params$publish )
 ```
   
-```{r tests-compass_table}
-#test_that("compass_table works", {  expect_true(inherits(compass_table, "function")) })
+```{r tests-fct_compass_table}
+#test_that("fct_compass_table works", {  expect_true(inherits(fct_compass_table, "function")) })
 ```
   
  

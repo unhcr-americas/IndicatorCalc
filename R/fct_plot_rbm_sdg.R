@@ -21,11 +21,11 @@
 #' @return a ggplot2 object
 #' @export
 #' @examples
-#' plot_rbm_sdg( country = "BRA", 
+#' fct_plot_rbm_sdg( country = "BRA", 
 #'           rbm = "impact2_2",
 #'           years = c(2000, 2022)) +
 #'         unhcrthemes::theme_unhcr(font_size = 10) 
-plot_rbm_sdg <- function( country = "BRA", 
+fct_plot_rbm_sdg <- function( country = "BRA", 
                       rbm = "outcome16_2",
                       years = c(2000, 2022)) {
   require(ggplot2)

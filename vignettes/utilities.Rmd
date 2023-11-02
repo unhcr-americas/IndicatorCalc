@@ -62,6 +62,21 @@ Therefore each indicator function is organised in 3  steps:
  * Apply the calculation - either to append the new variable to the existing data or to output just the final vector with results. 
 
 
+## fct_var_mapping
+
+    
+
+  
+
+```{r example-fct_var_mapping}
+
+form <- system.file("RMSCAPI.xlsx", package = "IndicatorCalc")
+#fct_var_mapping(xlsformpath = form)
+```
+
+  
+
+  
 
 
 ## fct_check_map
@@ -218,13 +233,13 @@ We can then also re-use the function to create dummy data based on any form and 
  on the form content.
 
 
-## var_dummy
+## fct_var_dummy
 
     
 
   
 
-```{r example-var_dummy}
+```{r example-fct_var_dummy}
 
 ## let's initiate a dataframe with an index of n r records
 n <- 384
@@ -238,7 +253,7 @@ frame <- dplyr::tibble(
                         ))
 
 ## test inject select_one  
-frame <- var_dummy( 
+frame <- fct_var_dummy( 
           frame = frame,
            name = "testselect_one",
            type = "select_one",
@@ -246,7 +261,7 @@ frame <- var_dummy(
            constraint = NULL
            )
 ## test inject select_multiple in main
-frame <- var_dummy( 
+frame <- fct_var_dummy( 
           frame = frame,
           name = "testselect_multiple",
            type = "select_multiple",
@@ -255,7 +270,7 @@ frame <- var_dummy(
            )
 
 ## test inject text
-frame <- var_dummy( 
+frame <- fct_var_dummy( 
           frame = frame,
           name = "testtext",
            type = "text",
@@ -265,7 +280,7 @@ frame <- var_dummy(
 
 
 ## test inject numeric  
-frame <- var_dummy(
+frame <- fct_var_dummy(
            frame = frame,
            name = "testnumeric",
            type = "numeric",
@@ -274,7 +289,7 @@ frame <- var_dummy(
            )
 
 ## test inject date  
-frame <- var_dummy( 
+frame <- fct_var_dummy( 
           frame = frame,
           name = "testdate",
            type = "date",
@@ -291,16 +306,16 @@ knitr::kable(head(frame, 5))
    
  
 
-## kobo_dummy
+## fct_kobo_dummy
 
  
     
 
   
 
-```{r example-kobo_dummy}
+```{r example-fct_kobo_dummy}
 form <- system.file("RMSCAPI.xlsx", package = "IndicatorCalc")
-datalist <- kobo_dummy(form,
+datalist <- fct_kobo_dummy(form,
                        n = 384,
                        file = NULL)
 
@@ -311,14 +326,14 @@ openxlsx::write.xlsx(datalist, here::here("inst", "demo_data.xlsx"))
 
   
 
-## plot_rbm_sdg - SDG Comparison
+## fct_plot_rbm_sdg - SDG Comparison
 
     
 
   
 
-```{r example-plot_rbm_sdg}
-plot_rbm_sdg( country = "BRA", 
+```{r example-fct_plot_rbm_sdg}
+fct_plot_rbm_sdg( country = "BRA", 
           rbm = "impact2_2",
           years = c(2000, 2022)) +
         unhcrthemes::theme_unhcr(font_size = 10) 
@@ -331,13 +346,13 @@ plot_rbm_sdg( country = "BRA",
 
 
 
-## compass_table
+## fct_compass_table
 
     
 
   
 
-```{r example-compass_table}
+```{r example-fct_compass_table}
 # compass <- export_compass_fill( country = "ECU",
 #                        operation = "Ecuador ABC",
 #                        year = 2022,

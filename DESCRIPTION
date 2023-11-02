@@ -27,6 +27,7 @@ Imports:
     labelled,
     plyr,
     purrr,
+    readxl,
     refugees,
     riddle,
     rmarkdown,
@@ -53,14 +54,13 @@ Suggests:
     knitr,
     openxlsx,
     testthat
-Remotes: 
-    unhcr-dataviz/unhcrdown,
-    unhcr-dataviz/unhcrthemes,
-    edouard-legoupil/unhcrshiny,
-    edouard-legoupil/kobocruncher,
-    edouard-legoupil/riddle
 VignetteBuilder: 
     knitr
+Remotes: 
+    edouard-legoupil/kobocruncher,
+    edouard-legoupil/riddle,
+    edouard-legoupil/unhcrshiny,
+    unhcr-dataviz/unhcrthemes
 Config/fusen/version: 0.5.2
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

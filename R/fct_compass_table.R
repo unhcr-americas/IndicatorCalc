@@ -57,7 +57,7 @@
 #' #      ),
 #' #              ridl = params$ridl,
 #' #              publish = params$publish )
-compass_table <- function(country ,
+fct_compass_table <- function(country ,
                                 operation,
                                 year ,
                                 population_type,
