@@ -53,6 +53,12 @@ Suggests:
     knitr,
     openxlsx,
     testthat
+Remotes: 
+    unhcr-dataviz/unhcrdown,
+    unhcr-dataviz/unhcrthemes,
+    edouard-legoupil/unhcrshiny,
+    edouard-legoupil/kobocruncher,
+    edouard-legoupil/riddle
 VignetteBuilder: 
     knitr
 Config/fusen/version: 0.5.2

@@ -4,6 +4,11 @@
 # {IndicatorCalc}
 
 <!-- badges: start -->
+
+[![:name status
+badge](https://unhcrverse.r-universe.dev/badges/:name)](https://unhcrverse.r-universe.dev/)
+[![IndicatorCalc status
+badge](https://unhcrverse.r-universe.dev/badges/IndicatorCalc)](https://unhcrverse.r-universe.dev/IndicatorCalc)
 <!-- badges: end -->
 
 There is broad consensus around the key indicators used to measure,

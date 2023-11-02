@@ -1,0 +1,34 @@
+---
+title: "Indicator Calculation"
+subtitle: "{IndicatorCalc}  " 
+date: "Training Content as of `r format(Sys.Date(),  '%d %B %Y')`"
+output:
+  unhcrdown::html_slides:
+    self_contained: true
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: true
+      ratio: "16:9"
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(
+  warning = FALSE,
+  message = FALSE,
+  fig.showtext = TRUE
+)
+library(tidyverse)
+library(unhcrthemes)
+library(fontawesome)
+```
+
+---
+class: inverse, center, middle
+
+# Checks
+
+
+---
+ 
