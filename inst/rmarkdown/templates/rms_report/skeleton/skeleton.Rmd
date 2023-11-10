@@ -6,6 +6,7 @@ params:
   datafolder: "data-raw"
   data: "data.xlsx" ## Name of the data file
   form: "form.xlsx" ## name of the xlsform
+  mapper: "mapper.xlsx" ## name of variable mapping files
   datasource: "RMS" ## String used in caption for all your charts
   ridl: "rms_v4" ## Name of the ridl project where you data is documented and archived
   publish: "yes"

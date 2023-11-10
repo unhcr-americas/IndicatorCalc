@@ -20,11 +20,22 @@ pkgload::load_all(export_all = FALSE)
 
 
 # Impact Indicators
- 
-## inter_electricity
+
+## impact_2_2 
     
-```{r function-inter_electricity}
-#' inter_electricity
+```{r function-impact_2_2}
+#' impact_2_2
+#' 
+#' **Proportion of Persons of Concern residing in physically safe and secure 
+#' settlements with access to basic facilities**
+#' 
+#' Once electricity, healthcare, drinking water and adequate shelter are
+#'  calculated, check the values for each variable before, 
+#'  calculating 2.2 impact indicator. 
+#'  
+#'  
+#' ---------
+#' # inter_electricity
 #' 
 #'  Households lighting provides a sense of safety and security within and outside 
 #'  the households after sunset.
@@ -39,110 +50,9 @@ pkgload::load_all(export_all = FALSE)
 #'  **Denominator**: Total population
 #'  
 #'  **Formula**: *LIGHT01* = 1 & *LIGHT03* != 1, 96, 98
-#' 
-#' 
-#' @param datalist A list with all hierarchical data frame for a survey data set.
-#'    format is expected to match the Excel export synchronized from kobo to RILD
-#'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' 
-#' @importFrom dplyr mutate case_when
-#' @importFrom labelled labelled
-#' 
-#' @return new calculated variable - appended or not...
-#' 
-#' @export
-inter_electricity <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-       "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ) {
-  
-  ## So first we check that we have what we need in the data set based on the mapper
-   fct_check_map(datalist = datalist,
-                             mapper = mapper)
-  #if (check_map == FALSE) {
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
- # }
-  
-  ## now pull the calculation...
-  datalist[["main"]]$electricity <-  dplyr::case_when(datalist[["main"]]$LIGHT01=="1" & 
-                       (datalist[["main"]]$LIGHT03!="1" | 
-                        datalist[["main"]]$LIGHT03!="96" |
-                        datalist[["main"]]$LIGHT03!="98")  ~ "1", 
-                     TRUE ~ "0" )
-  ## Apply Label
-  datalist[["main"]]$electricity <- labelled::labelled(  
-                            datalist[["main"]]$electricity,
-                            labels = c('Yes' = "1", 'No' = "0" ),
-                                 label = "Access to electricity")
-  return(datalist)
-}
-```
-  
-```{r example-inter_electricity}
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
-                                                 package = "IndicatorCalc"))
-mapper <- list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-       "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("yes",
-                      "1", "96", "98"))) 
-
-datalist <- inter_electricity( datalist =datalist, mapper = mapper  )
-
-
-table(datalist[["main"]]$electricity)
-fct_plot_indic_donut(indicator = datalist[["main"]]$electricity,
-                     iconunicode = "f0e7") 
-
-```
-  
-```{r tests-inter_electricity}
-test_that("inter_electricity works", {
-  expect_true(inherits(inter_electricity, "function")) 
-})
-```
-
-
-  
-  
-## inter_healthcare
-    
-```{r function-inter_healthcare}
-#' inter_healthcare
+#'  
+#' ---------
+#' # inter_healthcare
 #' 
 #' Access to healthcare depends on availability of healthcare, including physical 
 #' reach, acceptability and affordability for all.
@@ -153,102 +63,10 @@ test_that("inter_electricity works", {
 #'  **Denominator**: Total population
 #'  **Formula**: *HEA01* != 96, 98 & *HEA03* <= 60 
 #'  (reachable within one hour/60 minutes)
-#' 
 #'  
-#' @param datalist A list with all hierarchical data frame for a survey data set.
-#'    format is expected to match the Excel export synchronized from kobo to RILD
-#'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#' 
-#' @importFrom dplyr mutate case_when
-#' @importFrom labelled labelled
-#' @importFrom cli cli_alert_info
-#' 
-#' @return new calculated variable - appended or not...
-#' 
-#' @export
-#' 
-inter_healthcare <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c(
-  "In general, when anyone in your household is sick,  where do they go to seek care?",
-  "How long does it take to go there when you use the mode of transport that you mentioned above?"),
-              variable = c("HEA01", 
-                           "HEA03"),
-              mappattern = c("HEA01", 
-                           "HEA03") ),
-            modalitymap = data.frame(
-              variable = c( "HEA01", "HEA01" ),
-              label = c(  "Other, specify", "Don't know"),
-              standard = c("96", "98" ),
-              map = c("96", "98" ))) ){
-  
-  ## So first we check that we have what we need in the data set based on the mapper
-  check_map <- fct_check_map(datalist = datalist,
-                             mapper = mapper)
-  #if (check_map == FALSE) {
-    datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
-  #}
-  
-
-datalist[["main"]]$healthcare <- 
-           dplyr::case_when((datalist[["main"]]$HEA01!="96" | 
-                               datalist[["main"]]$HEA01!="98") & 
-                              datalist[["main"]]$HEA03 <= 60 ~ "1",
-                     TRUE ~ "0")
-
-datalist[["main"]]$healthcare <- labelled::labelled(datalist[["main"]]$healthcare,
-                            labels = c('Yes' = "1", 'No' = "0" ),
-                                label = "Access to healthcare facility")
-
-return(datalist)
-}
-```
-  
-```{r example-inter_healthcare}
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
-                                                 package = "IndicatorCalc"))
-
-mapper <-  list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c(
-"In general, when anyone in your household is sick, where do they go to seek care?",
-"How long it takes to go there when you use the mode of transport mentioned above?"),
-              variable = c("HEA01", 
-                           "HEA03"),
-              mappattern = c("HEA01", 
-                           "HEA03") ),
-            modalitymap = data.frame(
-              variable = c( "HEA01", "HEA01" ),
-              label = c(  "Other, specify", "Don't know"),
-              standard = c("96", "98" ),
-              map = c("96", "98" )))
-
-datalist <- inter_healthcare(datalist, mapper )
-
-table(datalist[["main"]]$healthcare)
-fct_plot_indic_donut(indicator = datalist[["main"]]$healthcare,
-                     iconunicode = "f479") 
-
-```
-  
-```{r tests-inter_healthcare}
-test_that("healthcare works", {
-  expect_true(inherits(inter_healthcare, "function")) 
-})
-```
-
-## inter_drinkingwater
-    
-```{r function-inter_drinkingwater}
-#' inter_drinkingwater
+#'  
+#' ---------
+#' # inter_drinkingwater
 #' 
 #' Access to clean drinking water is essential for a person's survival and well 
 #' being and a precursor for achieving protection outcomes related to health, 
@@ -269,207 +87,10 @@ test_that("healthcare works", {
 #'  This basic service is calculated from the main dataset
 #'  There are three conditions as below  improved source, 
 #'  in dwelling/yard/plot and reachable under 30 minutes 
-#' 
-#' @param datalist A list with all hierarchical data frame for a survey data set.
-#'    format is expected to match the Excel export synchronized from kobo to RILD
-#'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#' 
-#' 
-#' @importFrom dplyr mutate case_when
-#' @importFrom labelled labelled
-#' 
-#' @return new calculated variable - appended or not...
-#' 
-#' @export
-inter_drinkingwater <- function(
-        datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c(
-                "What is the main source of drinking water for this household?",
-                "Where is this source located?",
-                "Unit used to measure time to access",
-                "How long does it take to go there, get water, and come back,
-                  including waiting time?"),
-              variable = c("DWA01", 
-                           "DWA02", 
-                           "DWA03a", 
-                           "DWA03b" ),
-              mappattern = c("DWA01", 
-                           "DWA02", 
-                           "DWA03a", 
-                           "DWA03b" ) ),
-             modalitymap = data.frame(
-             variable = c("DWA01", 
-                          "DWA01", 
-                          "DWA01", 
-                          "DWA01", 
-                          "DWA01", 
-                           "DWA02",
-                           "DWA02",
-                           "DWA02",
-                           "DWA03a",
-                           "DWA03a"),
-              label = c( 
-                ##DWA01
-                "Unprotected Dug Well", 
-                "Unprotected Spring",
-                "Surface Water (River, Stream, Pond, Dam, Canal)",
-                "Other, specify",
-                "Don't know",
-                ##DWA02
-                "In Own Dwelling", 
-                "In Own Yard/Plot",
-                "Elsewhere",
-                ## DWA03
-                "Minutes", "Hours" ),
-              standard = c( "7", "9", "13", "96", "98",
-                           "1", "2", "3",
-                           "1", "2"),
-              map = c( "7", "9", "13", "96", "98",
-                       "1", "2", "3",
-                        "1", "2"))) 
-         ){
-  
-    ## So first we check that we have what we need in the data set based on the mapper
-  check_map <- fct_check_map(datalist = datalist,
-                             mapper = mapper)
- # if (check_map == FALSE) {
-    datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
- # }
-  
-datalist[["main"]]$time_DWA <-  dplyr::case_when(
-    datalist[["main"]]$DWA03a=="1"~ 1, 
-    datalist[["main"]]$DWA03a=="2"~ 60) #convert hour into minutes
-# datalist[["main"]]$time_DWA <- as.numeric(datalist[["main"]]$time_DWA)
-
-datalist[["main"]]$time_tot <- datalist[["main"]]$time_DWA * 
-    as.numeric(datalist[["main"]]$DWA03b)
-
-datalist[["main"]]$reachableU30 <-  dplyr::case_when( 
-  datalist[["main"]]$time_tot > 30 ~ "0", 
-                              TRUE ~ "1") # reachable under 30 minutes
-
-datalist[["main"]]$dwa_cond1 <-  dplyr::case_when(
-  datalist[["main"]]$DWA01!="7" |
-  datalist[["main"]]$DWA01 !="9" |
-  datalist[["main"]]$DWA01 != "13" | 
-  datalist[["main"]]$DWA01 != "96" |
-  datalist[["main"]]$DWA01 !="98" ~ "1",
-                             TRUE ~ "0") # improved source
-
-datalist[["main"]]$dwa_cond2<- dplyr::case_when( 
-  
-  #UNDER30 MIN
-  datalist[["main"]]$reachableU30 == "1" & 
-  datalist[["main"]]$DWA02 == "3" ~ "1", 
-  
-  # NOT UNDER30 MIN
-  datalist[["main"]]$reachableU30 == "0" & 
-  datalist[["main"]]$DWA02 == "3" ~ "0", 
-  
-  # in the dwelling/yard/plot
-  datalist[["main"]]$DWA02 == "1" | 
-  datalist[["main"]]$DWA02 == "2" ~ "1", 
-    TRUE ~ NA_character_ ) 
-
-datalist[["main"]]$drinkingwater <- dplyr::case_when(
-    (datalist[["main"]]$dwa_cond1 == "1" & 
-      datalist[["main"]]$dwa_cond2 == "1" ) ~ "1", 
-    TRUE ~ "0")
-
-datalist[["main"]]$drinkingwater <- labelled::labelled(datalist[["main"]]$drinkingwater,
-                            labels = c('Yes' = "1", 'No' = "0" ),
-                                  label = "Access to drinking water")
-    return(datalist)
-}
-```
-  
-```{r example-inter_drinkingwater}
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
-                                                 package = "IndicatorCalc"))
-
-## in the contextualised form - DWA03a has been skipped and all results are in min... 
-## only manual transformation can adjust this before we use the mapper..
-
-datalist[["main"]]$DWA03a  <- "1" 
-
-datalist[["main"]]$DWA03b <- 
-  datalist[["main"]]$VulnerabilityScoring.BasicNeeds.DWA03
-
-# now the mapper
-mapper <-  list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c(
-   "What is the main source of drinking water for this household?",
-  "Where is this source located?",
-  "Unit used to measure time to access",
-  "How long does it take to go there, wait get water, and come back?"),
-              variable = c("DWA01", 
-                           "DWA02", 
-                           "DWA03a", 
-                           "DWA03b" ),
-              mappattern = c("DWA01", 
-                           "DWA02", 
-                           "DWA03a", 
-                           "DWA03b" ) ),
-            modalitymap = data.frame(
-             variable = c("DWA01",  "DWA01", "DWA01","DWA01",  "DWA01", 
-                   "DWA02","DWA02", "DWA02",
-                   "DWA03a","DWA03a"),
-             label = c( 
-                ##DWA01
-                "Unprotected Dug Well", 
-                "Unprotected Spring",
-                "Surface Water (River, Stream, Pond, Dam, Canal)",
-                "Other, specify",
-                "Don't know",
-                ##DWA02
-                "In Own Dwelling", 
-                "In Own Yard/Plot",
-                "Elsewhere",
-                ## DWA03a
-                "Minutes", 
-                "Hours"    ),
-             standard = c( "7", "9", "13", "96", "98",
-                           "1", "2", "3",
-                           "1", "2"),
-             map = c( "7", "9", "13", "96", "98",
-                       "1", "2", "3",
-                        "1", "2") ) 
-         )
-  
-datalist <- inter_drinkingwater(datalist, mapper )
-
-## Indicator summary
-table(datalist[["main"]]$drinkingwater, useNA = "ifany")
-fct_plot_indic_donut(indicator = datalist[["main"]]$drinkingwater,
-                     iconunicode = "e006") 
-
-## Check auxilliary
-table(datalist[["main"]]$dwa_cond1, useNA = "ifany")
-table(datalist[["main"]]$reachableU30, useNA = "ifany")
-table(datalist[["main"]]$DWA02, useNA = "ifany")
-table(datalist[["main"]]$dwa_cond2, useNA = "ifany")
-```
-  
-```{r tests-inter_drinkingwater}
-test_that("drinkingwater works", {
-  expect_true(inherits(inter_drinkingwater, "function")) 
-})
-```
-
-## inter_shelter
-    
-```{r function-inter_shelter}
-#' inter_shelter
+#'  
+#'  
+#' ---------
+#'  # inter_shelter
 #' 
 #' The right to access adequate housing is protected by international law.
 #' The concept of "adequacy" means that housing is more than four walls and a 
@@ -501,6 +122,18 @@ test_that("drinkingwater works", {
 #' Adequate shelter is calculated from the main dataset
 #' classify as habitable when improved/adequate shelter
 #' 
+#'  
+#'  
+#' ---------
+#' # Compile alll
+#'  Once all variables are correctly calculated, we can compute the final 
+#'  variable for impact 2.2 indicator.
+#'  **Numerator**: Population residing in physically safe and secure settlements with access to basic facilities
+#'  **Denominator**: Total population
+#'  **Formula**: *shelter*=1 & *electricity*=1 & *healthcare*=1 & *drinkingwater*=1
+#'  
+#'  Impact 2.2 is "1" if all services above are accessible
+#' 
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
@@ -508,6 +141,7 @@ test_that("drinkingwater works", {
 #' @param mapper a list providing the mapping of the variables used for the 
 #' calculation - this mapper is potentially to be adjusted in relation with deviation
 #' between the the standard XlsForm and the contextualized dataset
+#'                       
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -515,53 +149,126 @@ test_that("drinkingwater works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-inter_shelter <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c(
-                "What type of dwelling does the household live in?",
-"Main material of the dwelling floor",
-"Main material of the roof",
-"Main material of the exterior walls",
-"How many separate rooms do the members of your household occupy?",
-"What is the total number of persons in this household?"),
-              variable = c("DWE01","DWE02","DWE03","DWE04","DWE05", 
-                           "HH01"),
-              mappattern = c("DWE01","DWE02","DWE03","DWE04","DWE05", 
-                           "HH01") ),
-            modalitymap = data.frame(
-              variable = c( "DWE01","DWE01",
-                            "DWE02","DWE02","DWE02",
-                            "DWE03","DWE03","DWE03","DWE03","DWE03","DWE03",
-                            "DWE04","DWE04","DWE04","DWE04","DWE04","DWE04"),
-              label = c(  "Apartment", "House", # DWE01
-                         "Earth/sand", "Dung", "Other (Specify)", #DWE02
-                         
-                         "Metal/tin", "Wood", "Calamine/Cement fibre", 
-                         "Ceramic tiles", "Cement", "Roofing shingles",#DWE03
-                         
-                         "Cement", "Stone with lime/ cement", "Bricks", 
-                         "Cement blocks", "Covered adobe", "Wood planks/shingles" # DWE04
-                         ),
-              standard = c( "1","2",
-                           "1", "2","96",
-                           "8","9","10","11","12","13",
-                           "10","11","12","13","14","15"),
-              map = c("1","2",
-                           "1", "2","96",
-                           "8","9","10","11","12","13",
-                           "10","11","12","13","14","15")))  ){
+impact_2_2 <- function(datalist ){
+  
+  ## Mapper 
+  mapper = list(
+           hierarchy = "main",
+          variablemap = data.frame(
+            label = 
+c("1. In general, when anyone in your household is sick, where do they go to seek care?", 
+"2. How do you reach this facility if you need to seek care?", 
+"3. How long does it take to go there when you use the mode of transport that you mentioned above?", 
+"4. Does this household use anything for lighting?", "5. What does this household use most of the time as energy for lighting, or as a light source?", 
+"6. What source of electricity is used most of the time in this household?", 
+"1. What is the main source of drinking water for this household?", 
+"2. Where is this ${source} - ${source2} located?", "3. How long does it take to go there, get water, and come back, including waiting time?", 
+"4. In the last 30 days, has there been any time when your household did not have sufficient quantities of drinking water when needed?", 
+"1.What type of dwelling does the household live in?", "2. Please observe if the door is lockable ?", 
+"3. Please observe if windows are lockable ?", "4. Please observe if shelter collapsed or partially collapsed ?", 
+"5. Please observe if the roof is damaged?", "6. Please observe if windows/doors are sealed to natural elements ?", 
+"7. Please observe if there is a leakage /rottenness in the walls / floors?", 
+"8. In the last 12 months, has your neighbourhood experienced flooding for more than 7 consecutive days?        ", 
+"9. Are there any known landmines or unexploded ordnance reported in your neighbourhood's vicinity?            ", 
+"10. How many separate rooms do the members of your household occupy?"
+)
+              ,
+            variable =  
+c("HEA01", "HEA02", "HEA03", "LIGHT01", "LIGHT02", "LIGHT03", 
+"DWA01", "DWA02", "DWA03", "DWA04", "DWE01", "SHEL01", "SHEL02", 
+"SHEL03", "SHEL04", "SHEL05", "SHEL06", "RISK01", "RISK02", "DWE05"
+)
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("HEA01", "HEA01", "HEA01", "HEA01", "HEA01", "HEA01", "HEA01", 
+"HEA02", "HEA02", "HEA02", "HEA02", "HEA03", "LIGHT01", "LIGHT01", 
+"LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", 
+"LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", 
+"LIGHT02", "LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", 
+"LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", "DWA01", 
+"DWA01", "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", 
+"DWA01", "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", 
+"DWA01", "DWA01", "DWA01", "DWA02", "DWA02", "DWA02", "DWA03", 
+"DWA04", "DWA04", "DWE01", "DWE01", "DWE01", "DWE01", "DWE01", 
+"DWE01", "DWE01", "DWE01", "DWE01", "SHEL01", "SHEL01", "SHEL01", 
+"SHEL02", "SHEL02", "SHEL02", "SHEL03", "SHEL03", "SHEL03", "SHEL04", 
+"SHEL04", "SHEL04", "SHEL05", "SHEL05", "SHEL05", "SHEL06", "SHEL06", 
+"SHEL06", "RISK01", "RISK01", "RISK02", "RISK02", "RISK02", "DWE05"
+)
+               ,
+            label =  
+c("NGO facility (charity, faith-based organization)", "UNHCR Health Partner (Caritas, Save the Children)", 
+"Public Clinics / Hospitals", "Private Clinics / Hospitals", 
+"Pharmacy", "Other, specify", "Don't know", "By walk", "Private car", 
+"Public transport (bus, boat)", "Other, specify", NA, "Yes", 
+"No", "Electricity (including solar mini-grids, hybrid mini-grids and national grid)", 
+"Solar home system", "Solar-powered lantern or flashlight", "Rechargeable flashlight, mobile, torch or lantern", 
+"Battery powered flashlight, torch or lantern", "Biogas lamp", 
+"LPG lamp", "Gasoline lamp", "Kerosene or paraffin lamp", "Oil lamp", 
+"Candle", "Open fire", "Other, specify", "No electricity in household", 
+"National grid connection from [COMPANY]", "Local mini grid", 
+"Solar home system", "Solar lantern", "Electric generator", "Rechargeable battery", 
+"Dry cell battery / torch", "Other, specify", "Don't know", "Piped Into Dwelling", 
+"Piped Into Yard/Plot", "Piped To Neighbor", "Public Tap/Standpipe", 
+"Tube Well/Borehole", "Protected Dug Well", "Unprotected Dug Well", 
+"Protected Spring", "Unprotected Spring", "Rain Water Collection", 
+"Tanker Truck/Water Vendor", "Cart With Small Tank/Drum", "Surface Water (River, Stream, Pond, Dam, Canal)", 
+"Bottled Water", "Sachet Water", "Water Kiosk", "Other (Specify)", 
+"Don't Know", "In Own Dwelling", "In Own Yard/Plot", "Elsewhere", 
+NA, "Yes", "No", "House", "Tent", "Caravan", "Collective Center", 
+"Worksite/Unfinished Home/ Abandoned Building", "Farm Building", 
+"School, mosque, church or other religious building", "Garage, shop, workshop, or other structure not meant as residential space", 
+"Other (Specify)", "Yes", "No", "Not possible to observe", "Yes", 
+"No", "Not possible to observe", "Yes", "No", "Not possible to observe", 
+"Yes", "No", "Not possible to observe", "Yes", "No", "Not possible to observe", 
+"Yes", "No", "Not possible to observe", "Yes", "No", "Yes", "No", 
+"Don't know", NA)
+               ,
+            standard =  
+c("1", "2", "3", "4", "5", "96", "98", "1", "2", "3", "96", NA, 
+"1", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", 
+"11", "12", "96", "0", "1", "2", "3", "4", "5", "6", "7", "96", 
+"98", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", 
+"12", "13", "14", "15", "16", "96", "98", "1", "2", "3", NA, 
+"1", "0", "2", "3", "4", "5", "6", "7", "8", "9", "96", "1", 
+"0", "98", "1", "0", "98", "1", "0", "98", "1", "0", "98", "1", 
+"0", "98", "1", "0", "98", "1", "0", "1", "0", "98", NA)
+              ))
   
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
- # if (check_map == FALSE) {
-    datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
- # }
-    
- #Only apartment and house
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Impact 2.2")
+  } else {
+
+    ## now pull the calculation...
+  
+  ## Electricity ########
+  datalist[["main"]]$electricity <-  dplyr::case_when(datalist[["main"]]$LIGHT01=="1" & 
+                       (datalist[["main"]]$LIGHT03!="1" | 
+                        datalist[["main"]]$LIGHT03!="96" |
+                        datalist[["main"]]$LIGHT03!="98")  ~ "1", 
+                     TRUE ~ "0" )
+ 
+  datalist[["main"]]$electricity <- labelled::labelled(  
+                            datalist[["main"]]$electricity,
+                            labels = c('Yes' = "1", 'No' = "0" ),
+                                 label = "Access to electricity")
+  ## healthcare ########
+  datalist[["main"]]$healthcare <- 
+           dplyr::case_when((datalist[["main"]]$HEA01!="96" | 
+                               datalist[["main"]]$HEA01!="98") & 
+                              datalist[["main"]]$HEA03 <= 60 ~ "1",
+                     TRUE ~ "0")
+
+  datalist[["main"]]$healthcare <- labelled::labelled(datalist[["main"]]$healthcare,
+                            labels = c('Yes' = "1", 'No' = "0" ),
+                                label = "Access to healthcare facility")
+
+  ## shelter #########
+  #Only apartment and house
 datalist[["main"]]$dwe01_cat <- 
   dplyr::case_when(
     (datalist[["main"]]$DWE01=="1" | 
@@ -620,145 +327,8 @@ datalist[["main"]]$shelter<- dplyr::case_when(
 datalist[["main"]]$shelter <- labelled::labelled(  datalist[["main"]]$shelter,
                             labels = c('Yes' = "1", 'No' = "0" ),
                     label = "Access to adequate shelter") 
-return(datalist)
-}
-```
-  
-```{r example-inter_shelter}
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
-                                                 package = "IndicatorCalc"))
 
-mapper <- list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c(
-                "What type of dwelling does the household live in?",
-"Main material of the dwelling floor",
-"Main material of the roof",
-"Main material of the exterior walls",
-"How many separate rooms do the members of your household occupy?",
-"What is the total number of persons in this household?"),
-              variable = c("DWE01","DWE02","DWE03","DWE04","DWE05", 
-                           "HH01"),
-              mappattern = c("DWE01","DWE02","DWE03","DWE04","DWE05", 
-                           "progres_groupsize") ),
-            modalitymap = data.frame(
-              variable = c( "DWE01","DWE01",
-                            "DWE02","DWE02","DWE02",
-                            "DWE03","DWE03","DWE03","DWE03","DWE03","DWE03",
-                            "DWE04","DWE04","DWE04","DWE04","DWE04","DWE04"),
-              label = c(  "Apartment", "House", # DWE01
-                         "Earth/sand", "Dung", "Other (Specify)", #DWE02
-                         
-                         "Metal/tin", "Wood", "Calamine/Cement fibre", 
-                         "Ceramic tiles", "Cement", "Roofing shingles",#DWE03
-                         
-                         "Cement", "Stone with lime/ cement", "Bricks", 
-                         "Cement blocks", "Covered adobe", "Wood planks/shingles" # DWE04
-                         ),
-              standard = c( "1","2",
-                           "1", "2","96",
-                           "8","9","10","11","12","13",
-                           "10","11","12","13","14","15"),
-              map = c("1","2",
-                           "1", "2","96",
-                           "8","9","10","11","12","13",
-                           "10","11","12","13","14","15"))) 
-## Calculate
-datalist <-  inter_shelter(datalist, mapper)
-# Tabulate
-table(datalist[["main"]]$dwe01_cat)
-table(datalist[["main"]]$dwe02_cat)
-table(datalist[["main"]]$dwe03_cat)
-table(datalist[["main"]]$dwe04_cat)
-table(datalist[["main"]]$dwe05_cat)
-table(datalist[["main"]]$shelter)
-#plot
-fct_plot_indic_donut(datalist[["main"]]$shelter,
-                     iconunicode = "e54f") 
-```
-  
-```{r tests-inter_shelter}
-test_that("shelter works", {
-  expect_true(inherits(inter_shelter, "function")) 
-})
-```
-  
-
-## impact_2_2 
-    
-```{r function-impact_2_2}
-#' impact_2_2
-#' 
-#' **Proportion of Persons of Concern residing in physically safe and secure 
-#' settlements with access to basic facilities**
-#' 
-#' Once electricity, healthcare, drinking water and adequate shelter are
-#'  calculated, check the values for each variable before, 
-#'  calculating 2.2 impact indicator. 
-#'  
-#'  Once all variables are correctly calculated, we can compute the final 
-#'  variable for impact 2.2 indicator.
-#'  **Numerator**: Population residing in physically safe and secure settlements with access to basic facilities
-#'  **Denominator**: Total population
-#'  **Formula**: *shelter*=1 & *electricity*=1 & *healthcare*=1 & *drinkingwater*=1
-#'  
-#'  Impact 2.2 is "1" if all services above are accessible
-#' 
-#' @param datalist A list with all hierarchical data frame for a survey data set.
-#'    format is expected to match the Excel export synchronized from kobo to RILD
-#'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' 
-#' @importFrom dplyr mutate case_when
-#' @importFrom labelled labelled
-#' 
-#' @return new calculated variable - appended or not...
-#' 
-#' @export
-impact_2_2 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Access to shelter", 
-                        "Access to electricity", 
-                         "Access to drinking water", 
-                         "Access to  healthcare"),
-              variable = c("shelter", 
-                           "electricity", 
-                           "drinkingwater", 
-                           "healthcare"),
-              mappattern = c("shelter", 
-                           "electricity", 
-                           "drinkingwater", 
-                           "healthcare") ),
-            modalitymap = data.frame(
-              variable = c( "shelter", "shelter",
-                           "electricity",  "electricity", 
-                           "drinkingwater", "drinkingwater", 
-                           "healthcare","healthcare"),
-              label = c( "Yes","No",
-                       "Yes","No",
-                       "Yes","No",
-                       "Yes","No"),
-              standard = c( "1","0",
-                           "1","0",
-                           "1","0",
-                           "1","0"),
-              map = c("1","0",
-                           "1","0",
-                           "1","0",
-                           "1","0")))  ){
-  
-  ## So first we check that we have what we need in the data set based on the mapper
-  check_map <- fct_check_map(datalist = datalist,
-                             mapper = mapper)
-
-  
+  ## Compile alll ####
 datalist[["main"]]$impact2_2 <- dplyr::case_when(
     datalist[["main"]]$shelter=="0" | 
     datalist[["main"]]$electricity=="0" | 
@@ -778,7 +348,8 @@ datalist[["main"]]$impact2_2 <- labelled::labelled(
                             ),
     label = "Proportion of PoCs residing in physically safe and secure settlements with access to basic facilities") 
 
-return(datalist)
+  }
+  return(datalist)
 }
 ```
   
@@ -786,184 +357,44 @@ return(datalist)
 datalist <- kobocruncher::kobo_data( system.file(#"demo_data.xlsx", 
                                                  "test.xlsx", 
                                                  package = "IndicatorCalc"))
-
-#Healthcare
-mapper <-  list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c(
-  "In general, when anyone in your household is sick, 
-   where do they go to seek care?",
-  "How long does it take to go there when you use the mode of transport 
-  that you mentioned above?"),
-              variable = c("HEA01", 
-                           "HEA03"),
-              mappattern = c("HEA01", 
-                           "HEA03") ),
-            modalitymap = data.frame(
-              variable = c( "HEA01", "HEA01" ),
-              label = c(  "Other, specify", "Don't know"),
-              standard = c("96", "98" ),
-              map = c("96", "98" )))
-
-datalist <- inter_healthcare(datalist, mapper )
-
-## Electricity
-mapper <- list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-       "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("yes",
-                      "1", "96", "98"))) 
-
-datalist <- inter_electricity( datalist =datalist, mapper = mapper  )
-
-## Drinking Water
-## in the contextualised form - DWA03a has been skipped and all results are in min... 
-## only manual transformation can adjust this before we use the mapper..
-
-datalist[["main"]]$DWA03a  <- "1"
-
-datalist[["main"]]$DWA03b <-
-  datalist[["main"]]$VulnerabilityScoring.BasicNeeds.DWA03
-
-# now the mapper
-mapper <-  list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c(
-               "What is the main source of drinking water for this household?",
-               "Where is this source located?",
-               "Unit used to measure time to access",
-               "How long does it take to go there, get water, and come back,
-                including waiting time?"),
-              variable = c("DWA01", 
-                           "DWA02", 
-                           "DWA03a", 
-                           "DWA03b" ),
-              mappattern = c("DWA01", 
-                           "DWA02", 
-                           "DWA03a", 
-                           "DWA03b" ) ),
-            modalitymap = data.frame(
-             variable = c("DWA01",  "DWA01", "DWA01","DWA01",  "DWA01", 
-                   "DWA02","DWA02", "DWA02",
-                   "DWA03a","DWA03a"),
-             label = c( 
-                ##DWA01
-                "Unprotected Dug Well", 
-                "Unprotected Spring",
-                "Surface Water (River, Stream, Pond, Dam, Canal)",
-                "Other, specify",
-                "Don't know",
-                ##DWA02
-                "In Own Dwelling", 
-                "In Own Yard/Plot",
-                "Elsewhere",
-                ## DWA03a
-                "Minutes", 
-                "Hours"    ),
-             standard = c( "7", "9", "13", "96", "98",
-                           "1", "2", "3",
-                           "1", "2"),
-             map = c( "7", "9", "13", "96", "98",
-                       "1", "2", "3",
-                        "1", "2") ) 
-         )
-  
-datalist <- inter_drinkingwater(datalist, mapper )
-
-##Shelter
-mapper <- list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c(
-                "What type of dwelling does the household live in?",
-"Main material of the dwelling floor",
-"Main material of the roof",
-"Main material of the exterior walls",
-"How many separate rooms do the members of your household occupy?",
-"What is the total number of persons in this household?"),
-              variable = c("DWE01","DWE02","DWE03","DWE04","DWE05", 
-                           "HH01"),
-              mappattern = c("DWE01","DWE02","DWE03","DWE04","DWE05", 
-                           "progres_groupsize") ),
-            modalitymap = data.frame(
-              variable = c( "DWE01","DWE01",
-                            "DWE02","DWE02","DWE02",
-                            "DWE03","DWE03","DWE03","DWE03","DWE03","DWE03",
-                            "DWE04","DWE04","DWE04","DWE04","DWE04","DWE04"),
-              label = c(  "Apartment", "House", # DWE01
-                         "Earth/sand", "Dung", "Other (Specify)", #DWE02
-                         
-                         "Metal/tin", "Wood", "Calamine/Cement fibre", 
-                         "Ceramic tiles", "Cement", "Roofing shingles",#DWE03
-                         
-                         "Cement", "Stone with lime/ cement", "Bricks", 
-                         "Cement blocks", "Covered adobe", "Wood planks/shingles" # DWE04
-                         ),
-              standard = c( "1","2",
-                           "1", "2","96",
-                           "8","9","10","11","12","13",
-                           "10","11","12","13","14","15"),
-              map = c("1","2",
-                           "1", "2","96",
-                           "8","9","10","11","12","13",
-                           "10","11","12","13","14","15"))) 
-## Calculate
-datalist <-  inter_shelter(datalist, mapper)
-
-## and now impact
-
-mapper <-   list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Access to shelter", 
-                        "Access to electricity", 
-                         "Access to drinking water", 
-                         "Access to  healthcare"),
-              variable = c("shelter", 
-                           "electricity", 
-                           "drinkingwater", 
-                           "healthcare"),
-              mappattern = c("shelter", 
-                           "electricity", 
-                           "drinkingwater", 
-                           "healthcare") ),
-            modalitymap = data.frame(
-              variable = c( "shelter", "shelter",
-                           "electricity",  "electricity", 
-                           "drinkingwater", "drinkingwater", 
-                           "healthcare","healthcare"),
-              label = c( "Yes","No",
-                       "Yes","No",
-                       "Yes","No",
-                       "Yes","No"),
-              standard = c( "1","0",
-                           "1","0",
-                           "1","0",
-                           "1","0"),
-              map = c("1","0",
-                           "1","0",
-                           "1","0",
-                           "1","0")))
- 
 datalist <-  impact_2_2(datalist, mapper)
 
 fct_plot_indic_donut(indicator = datalist[["main"]]$impact2_2,
                      iconunicode = "f140") 
+
+
+## Can get the details as well
+
+table(datalist[["main"]]$electricity, useNA = "ifany")
+fct_plot_indic_donut(indicator = datalist[["main"]]$electricity,
+                     iconunicode = "f0e7") 
+
+table(datalist[["main"]]$healthcare, useNA = "ifany")
+fct_plot_indic_donut(indicator = datalist[["main"]]$healthcare,
+                     iconunicode = "f479") 
+
+ 
+table(datalist[["main"]]$drinkingwater, useNA = "ifany")
+fct_plot_indic_donut(indicator = datalist[["main"]]$drinkingwater,
+                     iconunicode = "e006") 
+
+## Check intermediary variables
+table(datalist[["main"]]$dwa_cond1, useNA = "ifany")
+table(datalist[["main"]]$reachableU30, useNA = "ifany")
+table(datalist[["main"]]$DWA02, useNA = "ifany")
+table(datalist[["main"]]$dwa_cond2, useNA = "ifany")
+
+# Tabulate
+table(datalist[["main"]]$dwe01_cat, useNA = "ifany")
+table(datalist[["main"]]$dwe02_cat, useNA = "ifany")
+table(datalist[["main"]]$dwe03_cat, useNA = "ifany")
+table(datalist[["main"]]$dwe04_cat, useNA = "ifany")
+table(datalist[["main"]]$dwe05_cat, useNA = "ifany")
+table(datalist[["main"]]$shelter, useNA = "ifany")
+#plot
+fct_plot_indic_donut(datalist[["main"]]$shelter,
+                     iconunicode = "e54f") 
+
 ```
   
 ```{r tests-impact_2_2}
@@ -1025,8 +456,10 @@ test_that("impact2_2 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-impact2_3 <- function(datalist, 
-         mapper = list(
+impact2_3 <- function(datalist ){
+  
+  # Mapper , 
+    mapper = list(
             hierarchy = "ind",
             variablemap = data.frame(
               label = c(
@@ -1057,19 +490,6 @@ impact2_3 <- function(datalist,
                            "HACC04_8", 
                            "HACC04_9", 
                            "HACC04_10", 
-                           "HACC04_96"),
-              mappattern = c("HACC01", 
-                           "HACC03",
-                           "HACC04_1", 
-                           "HACC04_2", 
-                           "HACC04_3", 
-                           "HACC04_4", 
-                           "HACC04_5", 
-                           "HACC04_6", 
-                           "HACC04_7", 
-                           "HACC04_8", 
-                           "HACC04_9", 
-                           "HACC04_10", 
                            "HACC04_96") ),
             modalitymap = data.frame(
               variable = c( "HACC01", "HACC03" ,
@@ -1088,15 +508,14 @@ impact2_3 <- function(datalist,
                          "yes", "yes", "yes", "yes", "yes", "yes", "yes",
                           "yes", "yes", "yes", "yes"),
               standard = c( "1","1" ,
-                            "1","1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1","1"   ),
-              map = c("1","1" ,
-                      "1","1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1","1" )))  ){
+                            "1","1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1","1"   ))) 
   
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Impact 2.3")
+  } else {
  
  
 datalist[["ind"]]$health_NOacc <- dplyr::case_when(
@@ -1136,6 +555,7 @@ datalist[["ind"]]$impact2_3 <- dplyr::case_when(
 datalist[["ind"]]$impact2_3  <- labelled::labelled( datalist[["ind"]]$impact2_3,
                             labels =c( "Yes"=1,   "No"=0 ),
                             label = "Proportion of PoC with access to health services")
+   }
    return(datalist)
 }
 ```
@@ -1144,74 +564,8 @@ datalist[["ind"]]$impact2_3  <- labelled::labelled( datalist[["ind"]]$impact2_3,
 ## data
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
-
-## mpper
-mapper <-   list(
-            hierarchy = "ind",
-            variablemap = data.frame(
-              label = c(
-                "In the past 3 months, did ${name_individual} need to see a health professional for any reason?",
-                "In the past 3 months, did you receive medical care when needed for the reason above?",
-     "Why have you been unable to access a medical care in the past 3 months? - 1	Health facility too far",
-     "Why have you been unable to access a medical care in the past 3 months? - 2	Medicine or health facility too expensive",
-     "Why have you been unable to access a medical care in the past 3 months? - 3	No treatment exists/ Not necessary",
-     "Why have you been unable to access a medical care in the past 3 months? - 4	Don't know where to go",
-     "Why have you been unable to access a medical care in the past 3 months? - 5	No time
-6	Prefer other options",
-     "Why have you been unable to access a medical care in the past 3 months? - 7	Health facility does not accept new patients",
-     "Why have you been unable to access a medical care in the past 3 months? - 8	Don't trust modern medicine",
-     "Why have you been unable to access a medical care in the past 3 months? - 9	Don't trust doctors",
-     "Why have you been unable to access a medical care in the past 3 months? - 10	Administrative/documentation issues (certificates, service cards etc.)",
-     "Why have you been unable to access a medical care in the past 3 months? - 96	Other (Specify) " ),
-              variable = c("HACC01", 
-                           "HACC03", 
-                           "HACC04_1", 
-                           "HACC04_2", 
-                           "HACC04_3", 
-                           "HACC04_4", 
-                           "HACC04_5", 
-                           "HACC04_6", 
-                           "HACC04_7", 
-                           "HACC04_8", 
-                           "HACC04_9", 
-                           "HACC04_10", 
-                           "HACC04_96"),
-              mappattern = c("HACC01", 
-                           "HACC03",
-                           "HACC04_1", 
-                           "HACC04_2", 
-                           "HACC04_3", 
-                           "HACC04_4", 
-                           "HACC04_5", 
-                           "HACC04_6", 
-                           "HACC04_7", 
-                           "HACC04_8", 
-                           "HACC04_9", 
-                           "HACC04_10", 
-                           "HACC04_96") ),
-            modalitymap = data.frame(
-              variable = c( "HACC01", "HACC03" ,
-                           "HACC04_1", 
-                           "HACC04_2", 
-                           "HACC04_3", 
-                           "HACC04_4", 
-                           "HACC04_5", 
-                           "HACC04_6", 
-                           "HACC04_7", 
-                           "HACC04_8", 
-                           "HACC04_9", 
-                           "HACC04_10", 
-                           "HACC04_96"),
-              label = c( "yes", "yes",
-                         "yes", "yes", "yes", "yes", "yes", "yes", "yes",
-                          "yes", "yes", "yes", "yes"),
-              standard = c( "1","1" ,
-                            "1","1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1","1"   ),
-              map = c("1","1" ,
-                      "1","1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1","1" ))) 
-
 ## Apply indicator function on datalist
-datalist <- impact2_3(datalist, mapper )
+datalist <- impact2_3(datalist )
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["ind"]]$impact2_3,
@@ -1286,33 +640,45 @@ test_that("impact2_3 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-impact3_2a <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
+impact3_2a <- function(datalist ){
 
-
+  ## Mapper 
+  
+mapper = list(
+           hierarchy = "ind",
+          variablemap = data.frame(
+            label = 
+c("1. Has ${name_individual} ever attended school?", "2. Did ${name_individual} attend school or pre-school at any time during current school year?", 
+"3. During this/that school year , what level is (was) ${name_individual} attending?", 
+"4. What type of school?")
+              ,
+            variable =  
+c("EDU01", "EDU02", "EDU03", "EDU04")
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("EDU01", "EDU01", "EDU02", "EDU02", "EDU03", "EDU03", "EDU03", 
+"EDU03", "EDU03", "EDU03", "EDU03", "EDU04", "EDU04", "EDU04", 
+"EDU04", "EDU04", "EDU04", "EDU04")
+               ,
+            label =  
+c("Yes", "No", "Yes", "No", "Early Childhood Education or Pre-primary", 
+"Primary", "Secondary", "Secondary - Technical and Vocational Education and Training (TVET)", 
+"Post-secondary - Technical and Vocational Education and Training (TVET)", 
+"Tertiary", "Don’t know", "Government or public", "UN or NGO (non-governmental organization)", 
+"Religious or faith-based organization", "Community", "Private", 
+"Other (specify)", "Don’t know")
+               ,
+            standard =  
+c("1", "0", "1", "0", "1", "2", "3", "4", "5", "6", "98", "1", 
+"2", "3", "4", "5", "96", "98")
+              ))
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
-  
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Impact 3.2.a")
+  } else {
 
 datalist[["ind"]]$edu_primary<- dplyr::case_when(
     datalist[["ind"]]$EDU01 == 1 & 
@@ -1338,6 +704,7 @@ datalist[["ind"]]$impact3_2a  <- labelled::labelled(datalist[["ind"]]$impact3_2a
                       label = "Proportion of persons of concern enrolled 
                       in primary education")
 
+   }
    return(datalist)
 }
 ```
@@ -1347,11 +714,8 @@ datalist[["ind"]]$impact3_2a  <- labelled::labelled(datalist[["ind"]]$impact3_2a
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
-## mpper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- impact3_2a(datalist, mapper )
+datalist <- impact3_2a(datalist  )
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["ind"]]$impact3_2a,
@@ -1426,32 +790,44 @@ test_that("impact3_2a works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-impact3_2b <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
-
+impact3_2b <- function(datalist ){
+  # mapper , 
+mapper = list(
+           hierarchy = "ind",
+          variablemap = data.frame(
+            label = 
+c("1. Has ${name_individual} ever attended school?", "2. Did ${name_individual} attend school or pre-school at any time during current school year?", 
+"3. During this/that school year , what level is (was) ${name_individual} attending?", 
+"4. What type of school?")
+              ,
+            variable =  
+c("EDU01", "EDU02", "EDU03", "EDU04")
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("EDU01", "EDU01", "EDU02", "EDU02", "EDU03", "EDU03", "EDU03", 
+"EDU03", "EDU03", "EDU03", "EDU03", "EDU04", "EDU04", "EDU04", 
+"EDU04", "EDU04", "EDU04", "EDU04")
+               ,
+            label =  
+c("Yes", "No", "Yes", "No", "Early Childhood Education or Pre-primary", 
+"Primary", "Secondary", "Secondary - Technical and Vocational Education and Training (TVET)", 
+"Post-secondary - Technical and Vocational Education and Training (TVET)", 
+"Tertiary", "Don’t know", "Government or public", "UN or NGO (non-governmental organization)", 
+"Religious or faith-based organization", "Community", "Private", 
+"Other (specify)", "Don’t know")
+               ,
+            standard =  
+c("1", "0", "1", "0", "1", "2", "3", "4", "5", "6", "98", "1", 
+"2", "3", "4", "5", "96", "98")
+              ))
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Impact 3.2.b")
+  } else {
   
 datalist[["ind"]]$edu_secondary<- dplyr::case_when(
     datalist[["ind"]]$EDU01 == 1 & 
@@ -1479,6 +855,7 @@ datalist[["ind"]]$impact3_2b  <- labelled::labelled(datalist[["ind"]]$impact3_2b
                             labels = c('Yes' = 1, 'No' = 0 ),
   label = "Proportion of persons of concern enrolled in secondary education")
 
+   }
    return(datalist)
 }
 ```
@@ -1487,11 +864,9 @@ datalist[["ind"]]$impact3_2b  <- labelled::labelled(datalist[["ind"]]$impact3_2b
 ## data
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
-## mpper
-mapper <-  list("")
 
 ## Apply indicator function on datalist
-datalist <- impact3_2b(datalist, mapper )
+datalist <- impact3_2b(datalist )
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["ind"]]$impact3_2b,
@@ -1554,31 +929,36 @@ test_that("impact3_2b works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-impact3_3 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
+impact3_3 <- function(datalist ){
+  
+  # Mapper 
+  mapper = list(
+           hierarchy = "main",
+          variablemap = data.frame(
+            label = 
+"1. How safe do you feel walking alone in your neighbourhood after dark?"
+              ,
+            variable =  
+"SAF01"
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("SAF01", "SAF01", "SAF01", "SAF01", "SAF01", "SAF01")
+               ,
+            label =  
+c("Very safe", "Safe", "Unsafe", "Very unsafe", "Don’t know", 
+"Prefer not to respond")
+               ,
+            standard =  
+c("1", "2", "3", "4", "98", "99")
+              ))
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
-                             mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+                             mapper = mapper) 
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Impact 3.3")
+  } else {
   
 datalist[["main"]]$impact3_3 <- dplyr::case_when(
      datalist[["main"]]$SAF01 == 1 | datalist[["main"]]$SAF01 == 2 ~ 1,
@@ -1590,6 +970,7 @@ datalist[["main"]]$impact3_3  <- labelled::labelled(datalist[["main"]]$impact3_3
                      label = "Proportion of population that feel safe walking 
                      alone in their neighbourhood") 
 
+   }
    return(datalist)
 }
 ```
@@ -1597,13 +978,10 @@ datalist[["main"]]$impact3_3  <- labelled::labelled(datalist[["main"]]$impact3_3
 ```{r example-impact3_3}
 ## data
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
-                                                 package = "IndicatorCalc"))
-
-## mpper
-mapper <-  list("")
+                                                 package = "IndicatorCalc")) 
 
 ## Apply indicator function on datalist
-datalist <- impact3_3(datalist, mapper )
+datalist <- impact3_3(datalist)
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["ind"]]$impact3_3,
@@ -1684,40 +1062,77 @@ test_that("impact3_3 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome1_2 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
-  
+outcome1_2 <- function(datalist){
+  ## mapper
+  mapper = list(
+                         hierarchy = "ind",
+                         variablemap = data.frame(
+                           label =
+                             c(
+                               "3. Does ${name_individual} have a birth certificate?",
+                               "4. Has ${name_individual}'s birth been registered with civil authorities?",
+                               "5. Does ${name_individual} have the documents below?",
+                               "6. Does ${name_individual} have any other document that establishes your legal identity?"
+                             )
+                           ,
+                           variable =
+                             c("REG03", "REG04", "REG05", "REG06")
+                         ),
+                         modalitymap = data.frame(
+                           variable =
+                             c(
+                               "REG03",
+                               "REG03",
+                               "REG03",
+                               "REG04",
+                               "REG04",
+                               "REG04",
+                               "REG04",
+                               "REG05",
+                               "REG05",
+                               "REG05",
+                               "REG06",
+                               "REG06",
+                               "REG06"
+                             )
+                           ,
+                           label =
+                             c(
+                               "Yes",
+                               "No",
+                               "Don't know",
+                               "Yes",
+                               "No",
+                               "Don't know",
+                               "Prefer not to say",
+                               "Yes",
+                               "No",
+                               "Prefer not to respond",
+                               "Yes",
+                               "No",
+                               "Prefer not to respond"
+                             )
+                           ,
+                           standard =
+                             c("1", "0", "98", "1", "0", "98", "99", "1", "0", "99", "1",
+                               "0", "99")
+                         )
+                       )
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
-                             mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+                             mapper = mapper) 
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 1.2")
+  } else {
   
   ##Calculate children who has a birth certificate
-datalist[["ind"]]$birthCertificate<- dplyr::case_when(
+  datalist[["ind"]]$birthCertificate<- dplyr::case_when(
       datalist[["ind"]]$REG03== 0 | 
       datalist[["ind"]]$REG03 == 98 ~ 0, 
       
       datalist[["ind"]]$REG03 == 1 ~ 1)
 
-datalist[["ind"]]$birthCertificate  <- labelled::labelled(datalist[["ind"]]$birthCertificate,
+  datalist[["ind"]]$birthCertificate  <- labelled::labelled(datalist[["ind"]]$birthCertificate,
                       labels = c('Yes' = 1, 'No' = 0 ),
                       label = "Children under 5 with a birth 
                             certificate")
@@ -1750,6 +1165,7 @@ datalist[["ind"]]$outcome1_2  <- labelled::labelled(datalist[["ind"]]$outcome1_2
                      label = "Proportion of children under 5 years of age whose
                      births have been registered with a civil authority")
 
+  }
    return(datalist) 
 }
 ```
@@ -1758,12 +1174,8 @@ datalist[["ind"]]$outcome1_2  <- labelled::labelled(datalist[["ind"]]$outcome1_2
 ## data
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
-
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome1_2(datalist, mapper )
+datalist <- outcome1_2(datalist)
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome1_2,
@@ -1836,32 +1248,45 @@ test_that("outcome1_2 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome1_3 <- function(datalist, 
+outcome1_3 <- function(datalist){
+  ## Mapper
          mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
-    
+  hierarchy = "main",
+  variablemap = data.frame(
+    label =
+      c(
+        "1. Does ${name_individual} have the documents below?",
+        "2. Does ${name_individual} have any other document that establishes his/her legal identity?"
+      )
+    ,
+    variable =
+      c("REG01", "REG02")
+  ),
+  modalitymap = data.frame(
+    variable =
+      c("REG01", "REG01", "REG01", "REG02", "REG02", "REG02")
+    ,
+    label =
+      c(
+        "Yes",
+        "No",
+        "Prefer not to respond",
+        "Yes",
+        "No",
+        "Prefer not to respond"
+      )
+    ,
+    standard =
+      c("1", "0", "99", "1", "0", "99")
+  )
+) 
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
-                             mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+                             mapper = mapper) 
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 1.3")
+  } else {
   
   
 datalist[["ind"]]$document_under5<- dplyr::case_when(
@@ -1931,6 +1356,7 @@ datalist[["ind"]]$outcome1_3  <- labelled::labelled(datalist[["ind"]]$outcome1_3
                       label = "Proportion of Persons of Concern with legally
                       recognized identity documents or credentials")
   
+  }
    return(datalist)
 }
 ```
@@ -2012,32 +1438,36 @@ test_that("outcome1_3 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome4_1 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
+outcome4_1 <- function(datalist){
   
+  # mapper , 
+                       mapper = list(
+           hierarchy = "main",
+          variablemap = data.frame(
+            label = 
+c("2. If someone in your community is subject to gender-based violence and asks for your help, would you be able to tell this person about the following services in this area?", 
+"Health services", "Psycho-social services and Case management services", 
+"Safety and security services? (police, safe shelters)", "Legal assistance")  ,
+            variable =  
+c("GBV01_note", "GBV01a", "GBV01b", "GBV01c", "GBV01d")          ),
+          modalitymap = data.frame(
+            variable =  
+c("GBV01_note", "GBV01a", "GBV01a", "GBV01a", "GBV01b", "GBV01b", 
+"GBV01b", "GBV01c", "GBV01c", "GBV01c", "GBV01d", "GBV01d", "GBV01d") ,
+            label =  
+c(NA, "Yes", "No", "Don't know", "Yes", "No", "Don't know", "Yes", 
+"No", "Don't know", "Yes", "No", "Don't know") ,
+            standard =  
+c(NA, "1", "0", "98", "1", "0", "98", "1", "0", "98", "1", "0", 
+"98")
+              ))     
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
-                             mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+                             mapper = mapper) 
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 4.1")
+  } else {
   
 datalist[["main"]]$outcome4_1 <- dplyr::case_when(
       datalist[["main"]]$GBV01a== 1 |  
@@ -2050,7 +1480,7 @@ datalist[["main"]]$outcome4_1  <- labelled::labelled(datalist[["main"]]$outcome4
                             labels = c('Yes' = 1, 'No' = 0 ),
                                label = "Proportion of PoC who know where to 
                             access available GBV services")
-
+  }
    return(datalist)
 }
 ```
@@ -2060,11 +1490,8 @@ datalist[["main"]]$outcome4_1  <- labelled::labelled(datalist[["main"]]$outcome4
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome1_4(datalist, mapper )
+datalist <- outcome1_4(datalist )
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome1_4,
@@ -2144,32 +1571,43 @@ test_that("outcome4_1 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome4_2 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
-  
+outcome4_2 <- function(datalist ){
+  # Mapper , 
+ mapper = list(
+           hierarchy = "main",
+          variablemap = data.frame(
+            label = 
+c("In your opinion, is a husband justified in hitting or beating his wife in the following situations:", 
+"If she goes out without telling him?", "If she neglects the children?", 
+"If she argues with him?", "If she refuses to have sex with him?", 
+"If she burns the food?")
+              ,
+            variable =  
+c("VAW01_note", "VAW01a", "VAW01b", "VAW01c", "VAW01d", "VAW01e"
+)
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("VAW01_note", "VAW01a", "VAW01a", "VAW01a", "VAW01b", "VAW01b", 
+"VAW01b", "VAW01c", "VAW01c", "VAW01c", "VAW01d", "VAW01d", "VAW01d", 
+"VAW01e", "VAW01e", "VAW01e")
+               ,
+            label =  
+c(NA, "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Prefer not to respond")
+               ,
+            standard =  
+c(NA, "1", "0", "99", "1", "0", "99", "1", "0", "99", "1", "0", 
+"99", "1", "0", "99")
+              )) 
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 4.2")
+  } else {
 
 datalist[["main"]]$outcome4_2<- dplyr::case_when(
      datalist[["main"]]$VAW01a== 1 | 
@@ -2190,6 +1628,7 @@ datalist[["main"]]$outcome4_2  <- labelled::labelled(datalist[["main"]]$outcome4
                             labels = c('Yes' = 1, 'No' = 0 ),
                           label = "Proportion of PoC who do not accept 
                           violence against women" )  
+  }
    return(datalist) 
 }
 ```
@@ -2199,11 +1638,8 @@ datalist[["main"]]$outcome4_2  <- labelled::labelled(datalist[["main"]]$outcome4
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome4_2(datalist, mapper )
+datalist <- outcome4_2(datalist)
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome4_2,
@@ -2259,32 +1695,39 @@ test_that("outcome4_2 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome5_2 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
-  
+outcome5_2 <- function(datalist){
+  ## Mapper , 
+   mapper = list(
+           hierarchy = "ind",
+          variablemap = data.frame(
+            label = 
+c("1. Has ${name_individual} participated in sports, arts, cultural activities or other after-school programmes for children outside the home in the last month?", 
+"2. In the past month, how many times did ${name_individual} participate in these activities?", 
+"3. Were they in a physically safe area while participating in the activity?", 
+"4. Were there adults supervising the activities?")
+              ,
+            variable =  
+c("COMM01", "COMM02", "COMM03", "COMM04")
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("COMM01", "COMM01", "COMM02", "COMM03", "COMM03", "COMM03", 
+"COMM04", "COMM04", "COMM04")
+               ,
+            label =  
+c("Yes", "No", NA, "Yes", "No", "Don't know", "Yes", "No", "Don't know"
+)
+               ,
+            standard =  
+c("1", "0", NA, "1", "0", "98", "1", "0", "98")
+              )) 
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
-                             mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+                             mapper = mapper) 
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 5.2")
+  } else {
   
 datalist[["ind"]]$outcome5_2<- dplyr::case_when(
      ( datalist[["ind"]]$COMM01 == 1 & 
@@ -2306,6 +1749,7 @@ datalist[["ind"]]$outcome5_2  <- labelled::labelled(datalist[["ind"]]$outcome5_2
                             labels = c('Yes' = 1, 'No' = 0 ),
                               label = "Proportion of children who participate 
                             in community-based child protection programmes")
+  }
    return(datalist)
 }
 ```
@@ -2314,12 +1758,8 @@ datalist[["ind"]]$outcome5_2  <- labelled::labelled(datalist[["ind"]]$outcome5_2
 ## data
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
-
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome5_2(datalist, mapper )
+datalist <- outcome5_2(datalist  )
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome5_2,
@@ -2378,32 +1818,53 @@ test_that("outcome5_2 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome8_2 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
-  
+outcome8_2 <- function(datalist){
+  # Mapper , 
+    mapper = list(
+           hierarchy = "main",
+          variablemap = data.frame(
+            label = 
+c("1. Is any food or drink consumed by household members cooked or prepared at the household dwelling using a cookstove, fire or other cooking device?", 
+"2. What does this household use for cooking most of the time, including cooking food, making tea/coffee, boiling drinking water?", 
+"3. What type of fuel or energy source does this household use most of the time in this cookstove or device for cooking food, making tea/coffee and boiling drinking water?"
+)
+              ,
+            variable =  
+c("COOK01", "COOK02", "COOK03")
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("COOK01", "COOK01", "COOK02", "COOK02", "COOK02", "COOK02", 
+"COOK02", "COOK02", "COOK02", "COOK02", "COOK02", "COOK02", "COOK02", 
+"COOK03", "COOK03", "COOK03", "COOK03", "COOK03", "COOK03", "COOK03", 
+"COOK03", "COOK03", "COOK03", "COOK03", "COOK03", "COOK03", "COOK03", 
+"COOK03")
+               ,
+            label =  
+c("Yes", "No", "Solar cooker (thermal energy from the sun, not solar panels)", 
+"Electric stove", "Piped natural gas stove", "Biogas stove", 
+"Liquefied petroleum gas (LPG)/ cooking gas stove", "Manufactured solid fuel stove", 
+"Traditional solid fuel stove (non-manufactured)", "Moveable firepan", 
+"Three stone stove/open fire", "Liquid fuel stove", "Other, specify", 
+"Alcohol/ethanol", "Gasoline/diesel (not in generator)", "Kerosene/paraffin", 
+"Coal/lignite unprocessed", "Coal/lignite briquettes/pellets", 
+"Charcoal unprocessed", "Charcoal briquettes/pellets", "Wood", 
+"Agricultural or crop residue/grass/ straw/ shrubs/ corn cobs", 
+"Animal waste/dung", "Processed biomass pellets/briquettes", 
+"Woodchips", "Garbage/plastic", "Sawdust", "Other, specify")
+               ,
+            standard =  
+c("1", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", 
+"96", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", 
+"12", "13", "14", "96")
+              ))  
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 8.2")
+  } else {
      
 datalist[["main"]]$outcome8_2 <- dplyr::case_when(
        ( datalist[["main"]]$COOK01 == 1 & 
@@ -2421,6 +1882,7 @@ datalist[["main"]]$outcome8_2  <- labelled::labelled(datalist[["main"]]$outcome8
                             labels = c('Yes' = "1", 'No' = "0" ),
                     label = "Proportion of Persons of Concern with
                     primary reliance on clean (cooking) fuels and technology")
+  }
 
    return(datalist)
 }
@@ -2431,11 +1893,8 @@ datalist[["main"]]$outcome8_2  <- labelled::labelled(datalist[["main"]]$outcome8
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome8_2(datalist, mapper )
+datalist <- outcome8_2(datalist )
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome8_2,
@@ -2501,32 +1960,54 @@ test_that("outcome8_2 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome9_1 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
-
+outcome9_1 <- function(datalist){
+  # Mapper , 
+    mapper = list(
+           hierarchy = "main",
+          variablemap = data.frame(
+            label = 
+c("1.What type of dwelling does the household live in?", "2. Please observe if the door is lockable ?", 
+"3. Please observe if windows are lockable ?", "4. Please observe if shelter collapsed or partially collapsed ?", 
+"5. Please observe if the roof is damaged?", "6. Please observe if windows/doors are sealed to natural elements ?", 
+"7. Please observe if there is a leakage /rottenness in the walls / floors?", 
+"10. How many separate rooms do the members of your household occupy?", 
+"7. Does your household pay any rent?", "8. Can your household generally afford to pay the rent without any major financial distress?"
+)
+              ,
+            variable =  
+c("DWE01", "SHEL01", "SHEL02", "SHEL03", "SHEL04", "SHEL05", 
+"SHEL06", "DWE05", "DWE08", "DWE09")
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("DWE01", "DWE01", "DWE01", "DWE01", "DWE01", "DWE01", "DWE01", 
+"DWE01", "DWE01", "SHEL01", "SHEL01", "SHEL01", "SHEL02", "SHEL02", 
+"SHEL02", "SHEL03", "SHEL03", "SHEL03", "SHEL04", "SHEL04", "SHEL04", 
+"SHEL05", "SHEL05", "SHEL05", "SHEL06", "SHEL06", "SHEL06", "DWE05", 
+"DWE08", "DWE08", "DWE09", "DWE09", "DWE09", "DWE09")
+               ,
+            label =  
+c("House", "Tent", "Caravan", "Collective Center", "Worksite/Unfinished Home/ Abandoned Building", 
+"Farm Building", "School, mosque, church or other religious building", 
+"Garage, shop, workshop, or other structure not meant as residential space", 
+"Other (Specify)", "Yes", "No", "Not possible to observe", "Yes", 
+"No", "Not possible to observe", "Yes", "No", "Not possible to observe", 
+"Yes", "No", "Not possible to observe", "Yes", "No", "Not possible to observe", 
+"Yes", "No", "Not possible to observe", NA, "Yes", "No", "Always", 
+"Often", "Sometimes", "Never")
+               ,
+            standard =  
+c("2", "3", "4", "5", "6", "7", "8", "9", "96", "1", "0", "98", 
+"1", "0", "98", "1", "0", "98", "1", "0", "98", "1", "0", "98", 
+"1", "0", "98", NA, "1", "0", "1", "2", "3", "4")
+              )) 
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 9.1")
+  } else {
   
  #Only apartment and house
 datalist[["main"]]$dwe01_cat<- dplyr::case_when(
@@ -2633,7 +2114,8 @@ datalist[["main"]]$outcome9_1  <- labelled::labelled(datalist[["main"]]$outcome9
            label = "Proportion of PoCs living in habitable
                             and affordable housing")
 
-   return(datalist)
+  }
+   return(datalist) 
 }
 ```
   
@@ -2641,12 +2123,8 @@ datalist[["main"]]$outcome9_1  <- labelled::labelled(datalist[["main"]]$outcome9
 ## data
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
-
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome9_1(datalist, mapper )
+datalist <- outcome9_1(datalist)
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome9_1,
@@ -2707,32 +2185,49 @@ test_that("outcome9_1 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome9_2 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
-  
+outcome9_2 <- function(datalist ){
+   # Mapper , 
+   mapper = list(
+           hierarchy = "main",
+          variablemap = data.frame(
+            label = 
+c("4. Does this household use anything for lighting?", "5. What does this household use most of the time as energy for lighting, or as a light source?", 
+"6. What source of electricity is used most of the time in this household?"
+)
+              ,
+            variable =  
+c("LIGHT01", "LIGHT02", "LIGHT03")
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("LIGHT01", "LIGHT01", "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", 
+"LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", 
+"LIGHT02", "LIGHT02", "LIGHT02", "LIGHT03", "LIGHT03", "LIGHT03", 
+"LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", 
+"LIGHT03")
+               ,
+            label =  
+c("Yes", "No", "Electricity (including solar mini-grids, hybrid mini-grids and national grid)", 
+"Solar home system", "Solar-powered lantern or flashlight", "Rechargeable flashlight, mobile, torch or lantern", 
+"Battery powered flashlight, torch or lantern", "Biogas lamp", 
+"LPG lamp", "Gasoline lamp", "Kerosene or paraffin lamp", "Oil lamp", 
+"Candle", "Open fire", "Other, specify", "No electricity in household", 
+"National grid connection from [COMPANY]", "Local mini grid", 
+"Solar home system", "Solar lantern", "Electric generator", "Rechargeable battery", 
+"Dry cell battery / torch", "Other, specify", "Don't know")
+               ,
+            standard =  
+c("1", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", 
+"11", "12", "96", "0", "1", "2", "3", "4", "5", "6", "7", "96", 
+"98")
+              )) 
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
-                             mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+                             mapper = mapper) 
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 9.2")
+  } else {
     
 datalist[["main"]]$outcome9_2 <- dplyr::case_when(
   datalist[["main"]]$LIGHT01 == 1 & 
@@ -2750,6 +2245,7 @@ datalist[["main"]]$outcome9_2  <- labelled::labelled(datalist[["main"]]$outcome9
                     label = "Proportion of PoC that have energy to 
                     ensure lighting")
 
+}
    return(datalist)
 }
 ```
@@ -2758,12 +2254,8 @@ datalist[["main"]]$outcome9_2  <- labelled::labelled(datalist[["main"]]$outcome9
 ## data
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
-
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome9_2(datalist, mapper )
+datalist <- outcome9_2(datalist )
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome9_2,
@@ -2822,33 +2314,40 @@ test_that("outcome9_2 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome10_1 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
+outcome10_1 <- function(datalist){
+  # Mapper , 
+  mapper = list(
+           hierarchy = "ind",
+          variablemap = data.frame(
+            label = 
+c("1. Do you have a *[National Child Immunisation Record]*, immunisation records from a private health provider or any other document where ${name_individual}’s vaccinations are written down?", 
+"2. Did you ever have a [National Child Immunisation Record] or immunisation records from a private health provider for ${name_individual}?", 
+"3. Has ${name_individual} ever received a measles containing vaccine(i.e. measles, MR or MMR)? That is a shot at the age of 9 months or older - to prevent (him/her) from getting measles", 
+"4. How many times was the measles vaccine received?")
+              ,
+            variable =  
+c("MMR01", "MMR02", "MMR03", "MMR04")
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("MMR01", "MMR01", "MMR01", "MMR01", "MMR02", "MMR02", "MMR02", 
+"MMR03", "MMR03", "MMR03", "MMR04")
+               ,
+            label =  
+c("Yes, has only card(s)", "Yes, has only other document", "Yes, has a card(s) and another document", 
+"No, has no cards and no other document", "Yes", "No", "Don't know", 
+"Yes", "No", "Don't know", NA)
+               ,
+            standard =  
+c("1", "2", "3", "4", "1", "0", "98", "1", "0", "98", NA)
+              ))  
   
-  
-
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
-                             mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+                             mapper = mapper) 
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 10.1")
+  } else {
   
   
 datalist[["ind"]]$outcome10_1<- dplyr::case_when(
@@ -2861,6 +2360,7 @@ datalist[["ind"]]$outcome10_1  <- labelled::labelled(datalist[["ind"]]$outcome10
                             labels = c('Yes' = 1, 'No' = 0 ),
                                 label = "Proportion of children aged 9 months 
                             to five years who have received measles vaccination")
+}
    return(datalist)
 }
 ```
@@ -2870,11 +2370,8 @@ datalist[["ind"]]$outcome10_1  <- labelled::labelled(datalist[["ind"]]$outcome10
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome10_1(datalist, mapper )
+datalist <- outcome10_1(datalist)
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome10_1,
@@ -2937,32 +2434,44 @@ test_that("outcome10_1 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome10_2 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
-  
+outcome10_2 <- function(datalist){
+  ## Mapper , 
+  mapper = list(
+           hierarchy = "main",
+          variablemap = data.frame(
+            label = 
+c("1. In addition to ${namechild2less} was there any live birth in this household in the past 2 years?", 
+"2. Was there any live birth in this household in the past 2 years?", 
+"3. Who assisted with the delivery of  the latest child born alive ?", 
+"4. Where did the birth take place for the latest child born alive ?"
+)
+              ,
+            variable =  
+c("BIR01", "BIR02", "BIR03", "BIR04")
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("BIR01", "BIR01", "BIR02", "BIR02", "BIR03", "BIR03", "BIR03", 
+"BIR03", "BIR03", "BIR03", "BIR03", "BIR03", "BIR04", "BIR04", 
+"BIR04", "BIR04")
+               ,
+            label =  
+c("Yes", "No", "Yes", "No", "Health professional", "Doctor", 
+"Nurse/midwife", "Traditional birth attendant", "Community health worker", 
+"Relative/friend", "Other (specify)", "Don't know", "Respondent’s home", 
+"Public sector", "Private sector", "Other, specify")
+               ,
+            standard =  
+c("1", "0", "1", "0", "1", "2", "3", "4", "5", "6", "96", "98", 
+"1", "2", "3", "96")
+              )) 
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 10.2")
+  } else {
     
 datalist[["main"]]$outcome10_2 <- dplyr::case_when( 
     (datalist[["main"]]$BIR01 == 1 | 
@@ -2985,6 +2494,7 @@ datalist[["main"]]$outcome10_2  <- labelled::labelled(datalist[["main"]]$outcome
                             labels = c('Yes' = "1", 'No' = "0" ),
                                  label = "Proportion of births attended
                             by skilled health personnel")
+}
    return(datalist)
 }
 ```
@@ -2993,12 +2503,8 @@ datalist[["main"]]$outcome10_2  <- labelled::labelled(datalist[["main"]]$outcome
 ## data
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
-
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome10_2(datalist, mapper )
+datalist <- outcome10_2(datalist  )
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome10_2,
@@ -3062,32 +2568,49 @@ test_that("outcome10_2 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome12_1 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
-  
+outcome12_1 <- function(datalist ){
+  # Mapper , 
+    mapper = list(
+           hierarchy = "main",
+          variablemap = data.frame(
+            label = 
+c("1. What is the main source of drinking water for this household?", 
+"2. Where is this ${source} - ${source2} located?", "3. How long does it take to go there, get water, and come back, including waiting time?", 
+"4. In the last 30 days, has there been any time when your household did not have sufficient quantities of drinking water when needed?"
+)
+              ,
+            variable =  
+c("DWA01", "DWA02", "DWA03", "DWA04")
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("DWA01", "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", 
+"DWA01", "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", 
+"DWA01", "DWA01", "DWA01", "DWA01", "DWA02", "DWA02", "DWA02", 
+"DWA03", "DWA04", "DWA04")
+               ,
+            label =  
+c("Piped Into Dwelling", "Piped Into Yard/Plot", "Piped To Neighbor", 
+"Public Tap/Standpipe", "Tube Well/Borehole", "Protected Dug Well", 
+"Unprotected Dug Well", "Protected Spring", "Unprotected Spring", 
+"Rain Water Collection", "Tanker Truck/Water Vendor", "Cart With Small Tank/Drum", 
+"Surface Water (River, Stream, Pond, Dam, Canal)", "Bottled Water", 
+"Sachet Water", "Water Kiosk", "Other (Specify)", "Don't Know", 
+"In Own Dwelling", "In Own Yard/Plot", "Elsewhere", NA, "Yes", 
+"No")
+               ,
+            standard =  
+c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", 
+"13", "14", "15", "16", "96", "98", "1", "2", "3", NA, "1", "0"
+)
+              )) 
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
-                             mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+                             mapper = mapper) 
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 12.1")
+  } else {
   
   #convert hour into minutes
 datalist[["main"]]$time_DWA <- dplyr::case_when(
@@ -3149,6 +2672,7 @@ datalist[["main"]]$outcome12_1  <- labelled::labelled(outcome12_1 ,
                             label = "Proportion of PoC using at 
                             least basic drinking water services") 
 
+   }
    return(datalist)
 }
 ```
@@ -3158,11 +2682,8 @@ datalist[["main"]]$outcome12_1  <- labelled::labelled(outcome12_1 ,
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome12_1(datalist, mapper )
+datalist <- outcome12_1(datalist  )
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome12_1,
@@ -3218,32 +2739,55 @@ test_that("outcome12_1 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome12_2 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
+outcome12_2 <- function(datalist ){
+  ## mapper, 
   
+mapper = list(
+           hierarchy = "main",
+          variablemap = data.frame(
+            label = 
+c("1. What is the MAIN type of toilet facility used by your household?", 
+"2. Has your toilet ever been emptied?", "3. The last time it was emptied, where were the contents emptied to?", 
+"4. Where is this toilet facility located?", "5. Does your household share this facility with others households?"
+)
+              ,
+            variable =  
+c("TOI01", "TOI02", "TOI03", "TOI04", "TOI05")
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("TOI01", "TOI01", "TOI01", "TOI01", "TOI01", "TOI01", "TOI01", 
+"TOI01", "TOI01", "TOI01", "TOI01", "TOI01", "TOI01", "TOI02", 
+"TOI02", "TOI02", "TOI03", "TOI03", "TOI03", "TOI03", "TOI03", 
+"TOI03", "TOI03", "TOI04", "TOI04", "TOI04", "TOI05", "TOI05"
+)
+               ,
+            label =  
+c("Flush/pour flush to the piped sewer system", "Flush/pour-flush to septic tank", 
+"Flush/pour-flush to pit latrine", "Flush/pour-flush to open drain", 
+"Flush/pour-flush to don't know where", "Ventilated improved pit latrine", 
+"Pit latrine with slab", "Pit latrine without slab/open pit", 
+"Composting toilet", "Bucket", "Hanging toilet/hanging latrine", 
+"No facility/bush/field", "Other (Specify)", "Yes, emptied", 
+"No, never emptied", "Don't know", "Removed by a service provider to a treatment plant", 
+"Removed by a service provider and buried in a covered pit", 
+"Removed by a service provider to don’t know where", "Emptied by household and buried in a covered pit", 
+"Emptied by household to uncovered pit, open ground, water body, or elsewhere", 
+"Other (specify)", "Don’t know", "In Own Dwelling", "In Own Yard/Plot", 
+"Elsewhere", "Yes", "No")
+               ,
+            standard =  
+c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", 
+"96", "1", "2", "98", "1", "2", "3", "4", "5", "96", "98", "1", 
+"2", "3", "1", "0")
+              ))
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
-                             mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+                             mapper = mapper) 
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 12.2")
+  } else {
   
     
 datalist[["main"]]$toi_cond1 <- dplyr::case_when(
@@ -3303,6 +2847,7 @@ datalist[["main"]]$outcome12_2  <- labelled::labelled(datalist[["main"]]$outcome
                             labels = c('Yes' = 1, 'No' = 0 ),
                                 label = "Proportion of Persons of Concern 
                             with acess to a safe household toilet")
+}
    return(datalist)
 }
 ```
@@ -3313,11 +2858,8 @@ datalist[["main"]]$outcome12_2  <- labelled::labelled(datalist[["main"]]$outcome
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome12_2(datalist, mapper )
+datalist <- outcome12_2(datalist)
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome12_2,
@@ -3373,32 +2915,42 @@ test_that("outcome12_2 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome13_1 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
+outcome13_1 <- function(datalist){
   
+  ## Mapper , 
+mapper = list(
+           hierarchy = "main",
+          variablemap = data.frame(
+            label = 
+c("1. Do you, either by yourself or together with someone else, currently have an account at a bank or another type of formal financial institution in ${countryname} ?", 
+"2. Do you, personally, have a/an [local terminology for ATM/debit card] in ${countryname} ?", 
+"3. Is this [local terminology for ATM/debit card] connected to an account with your name on it in ${countryname} ?", 
+"4. In the past 12 months, have you used a mobile phone to make payments, to buy things, or to send or receive money?", 
+"5. In the past 12 months, have you, personally, used a mobile phone to make payments, to buy things, or to send or receive money using a service such as [local example of mobile money from GSMA database, like M-PESA]?"
+)
+              ,
+            variable =  
+c("BANK01", "BANK02", "BANK03", "BANK04", "BANK05")
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("BANK01", "BANK01", "BANK02", "BANK02", "BANK03", "BANK03", 
+"BANK04", "BANK04", "BANK05", "BANK05")
+               ,
+            label =  
+c("Yes", "No", "Yes", "No", "Yes", "No", "Yes", "No", "Yes", 
+"No")
+               ,
+            standard =  
+c("1", "0", "1", "0", "1", "0", "1", "0", "1", "0")
+              ))  
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 13.1")
+  } else {
   
 datalist[["main"]]$outcome13_1 <- dplyr::case_when(
       datalist[["main"]]$BANK01 == 1 | 
@@ -3417,6 +2969,7 @@ datalist[["main"]]$outcome13_1  <- labelled::labelled(datalist[["main"]]$outcome
                 label = "PoC with an account at a bank or other financial 
                 institution or with a mobile-money service provider")
   
+}
    return(datalist)
 }
 ```
@@ -3426,11 +2979,8 @@ datalist[["main"]]$outcome13_1  <- labelled::labelled(datalist[["main"]]$outcome
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome13_1(datalist, mapper )
+datalist <- outcome13_1(datalist )
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome13_1,
@@ -3484,33 +3034,40 @@ test_that("outcome13_1 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome13_2 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
-  
+outcome13_2 <- function(datalist){
+  ## Mapper , 
+mapper = list(
+           hierarchy = "main",
+          variablemap = data.frame(
+            label = 
+c("11. Compared to this time last year, has your income increased, remained the same, or decreased?", 
+"12. Compared to last year at this time, do you feel you can afford more things, the same, or fewer things in terms of goods and services?"
+)
+              ,
+            variable =  
+c("INC01", "INC02")
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("INC01", "INC01", "INC01", "INC01", "INC02", "INC02", "INC02", 
+"INC02")
+               ,
+            label =  
+c("Increased compared to previous year", "Been the same compared to previous year", 
+"Decreased compared to previous year", "Don't know ", "More ", 
+"The same ", "Fewer ", "Don't know ")
+               ,
+            standard =  
+c("1", "2", "3", "98", "1", "2", "3", "98")
+              ))  
   
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 13.2")
+  } else {
   
 datalist[["main"]]$outcome13_2<- dplyr::case_when(
   
@@ -3525,6 +3082,7 @@ datalist[["main"]]$outcome13_2  <- labelled::labelled(datalist[["main"]]$outcome
                     label = "Proportion of PoC who self-report positive changes 
                     in their income compared to previous year")
 
+}
  return(datalist)
 }
 ```
@@ -3534,11 +3092,8 @@ datalist[["main"]]$outcome13_2  <- labelled::labelled(datalist[["main"]]$outcome
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome13_2(datalist, mapper )
+datalist <- outcome13_2(datalist)
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome13_2,
@@ -3596,32 +3151,51 @@ test_that("outcome13_2 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome13_3 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
-  
+outcome13_3 <- function(datalist ){
+  # mapper , 
+     mapper = list(
+           hierarchy = "main",
+          variablemap = data.frame(
+            label = 
+c("1. During the past 7 days, did you work for someone else for pay, for one or more hours?", 
+"2. During the past 7 days, did you run or do any kind of business, farming, or other activity to generate income?", 
+"3. During the past 7 days, did you help in a family business or farm?", 
+"4. Even though you did not work, during the past 7 days, did he/she have a paid job from which he/she was temporarily absent?", 
+"5. Even though you did not work, during the past 7 days, did he/she have a business or a helper job in a family business/farm from which he/she was temporarily absent?", 
+"6. Last week, did you do any work in…?", "7. Was this work that you mentioned in...?", 
+"8. Thinking about this work, are the products intended...?", 
+"9. During the last 30 days, did you do anything to find a paid job or try to start a business?", 
+"10. Could you start working within the next two weeks?")
+              ,
+            variable =  
+c("UNEM01", "UNEM02", "UNEM03", "UNEM04", "UNEM05", "UNEM06", 
+"UNEM07", "UNEM08", "UNEM09", "UNEM10")
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("UNEM01", "UNEM01", "UNEM02", "UNEM02", "UNEM03", "UNEM03", 
+"UNEM04", "UNEM04", "UNEM05", "UNEM05", "UNEM06", "UNEM06", "UNEM06", 
+"UNEM07", "UNEM07", "UNEM07", "UNEM08", "UNEM08", "UNEM08", "UNEM08", 
+"UNEM09", "UNEM09", "UNEM10", "UNEM10")
+               ,
+            label =  
+c("Yes", "No", "Yes", "No", "Yes", "No", "Yes", "No", "Yes", 
+"No", "Farming or rearing farm animals", "Fishing or fish farming", 
+"None of the above", "Farming or rearing farm animals", "Fishing or fish farming", 
+"None of the above", "Only for sale", "Mainly for sale", "Only for family use", 
+"Mainly for family use", "Yes", "No", "Yes", "No")
+               ,
+            standard =  
+c("1", "0", "1", "0", "1", "0", "1", "0", "1", "0", "1", "2", 
+"3", "1", "2", "3", "1", "2", "3", "4", "1", "0", "1", "0")
+              )) 
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
-                             mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+                             mapper = mapper) 
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 13.23")
+  } else {
   
 
 datalist[["main"]]$employed<- dplyr::case_when(
@@ -3661,7 +3235,7 @@ datalist[["main"]]$labour_force<- dplyr::case_when(
 datalist[["main"]]$outcome13_3 <- 
   datalist[["main"]]$unemployed/ 
   datalist[["main"]]$labour_force
-
+  }
  return(datalist)
     
 }
@@ -3734,31 +3308,43 @@ test_that("outcome13_3 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome14_1 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
-
+outcome14_1 <- function(datalist ){
+  ## Mapper , 
+       mapper = list(
+           hierarchy = "ind",
+          variablemap = data.frame(
+            label = 
+c("1. Does ${name_individual} have the documents below?", "2. Does ${name_individual} have any other document that establishes his/her legal identity?", 
+"3. Does ${name_individual} have a birth certificate?", "4. Has ${name_individual}'s birth been registered with civil authorities?", 
+"5. Does ${name_individual} have the documents below?", "6. Does ${name_individual} have any other document that establishes your legal identity?"
+)
+              ,
+            variable =  
+c("REG01", "REG02", "REG03", "REG04", "REG05", "REG06")
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("REG01", "REG01", "REG01", "REG02", "REG02", "REG02", "REG03", 
+"REG03", "REG03", "REG04", "REG04", "REG04", "REG04", "REG05", 
+"REG05", "REG05", "REG06", "REG06", "REG06")
+               ,
+            label =  
+c("Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Don't know", "Yes", "No", "Don't know", "Prefer not to say", 
+"Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond"
+)
+               ,
+            standard =  
+c("1", "0", "99", "1", "0", "99", "1", "0", "98", "1", "0", "98", 
+"99", "1", "0", "99", "1", "0", "99")
+              ))
+       
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 14.1")
+  } else {
 
 datalist[["ind"]]$document_under5 <- dplyr::case_when(
       datalist[["ind"]]$REG05a == 1 |  #ind$REG05a - passport
@@ -3825,7 +3411,7 @@ datalist[["ind"]]$outcome14_1  <- labelled::labelled(datalist[["ind"]]$outcome14
                             labels = c('Yes' = 1, 'No' = 0 ),
                 label = "Proportion of returnees with legally recognized identity 
                 documents or credentials")
-  
+  }
    return(datalist)
 }
 ```
@@ -3835,11 +3421,8 @@ datalist[["ind"]]$outcome14_1  <- labelled::labelled(datalist[["ind"]]$outcome14
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
 
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome14_1(datalist, mapper )
+datalist <- outcome14_1(datalist )
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome14_1,
@@ -3899,32 +3482,72 @@ test_that("outcome14_1 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome16_1 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
-  
+outcome16_1 <- function(datalist ){
+  # Mapper , 
+   
+mapper = list(
+           hierarchy = "main",
+          variablemap = data.frame(
+            label = 
+c("1. Who owns the **land** that you currently live in?", "2. Do you have official documentation (legally, customarily or otherwise recognized by relevant authorities) for who owns the **land** that your current housing is built on?", 
+"3. What type of documents does your household have for the **land** you currently live in?   ", 
+"4. Who owns the **housing** that you currently live in?", "5. Do you have official documentation (legally, customarily or otherwise recognized by relevant authorities) for who owns the **housing**?", 
+"6. What type of documents does your household have for the **housing** you currently live in?   ", 
+"9. In the next 12 months, how likely or unlikely is it that you could lose your right to this housing and/or land, against your will?"
+)
+              ,
+            variable =  
+c("DWE06_land", "DWE06a_land", "DWE07_land", "DWE06_housing", 
+"DWE06a_housing", "DWE07_housing", "DWE10")
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("DWE06_land", "DWE06_land", "DWE06_land", "DWE06_land", "DWE06_land", 
+"DWE06_land", "DWE06_land", "DWE06_land", "DWE06_land", "DWE06_land", 
+"DWE06_land", "DWE06_land", "DWE06a_land", "DWE06a_land", "DWE06a_land", 
+"DWE07_land", "DWE07_land", "DWE07_land", "DWE07_land", "DWE07_land", 
+"DWE07_land", "DWE07_land", "DWE06_housing", "DWE06_housing", 
+"DWE06_housing", "DWE06_housing", "DWE06_housing", "DWE06_housing", 
+"DWE06_housing", "DWE06_housing", "DWE06_housing", "DWE06_housing", 
+"DWE06_housing", "DWE06_housing", "DWE06a_housing", "DWE06a_housing", 
+"DWE06a_housing", "DWE07_housing", "DWE07_housing", "DWE07_housing", 
+"DWE07_housing", "DWE07_housing", "DWE07_housing", "DWE07_housing", 
+"DWE10", "DWE10", "DWE10", "DWE10", "DWE10")
+               ,
+            label =  
+c("Respondent or another HH member", "Unrelated Person", "Friend Or Relative", 
+"Ngo/Non-Religious Charity", "Government Agency Or Municipality", 
+"UNHCR", "Religious Organization/ Charity", "Foreign Government", 
+"Unowned/Squatting", "Other (Specify) |____|", "Don't know", 
+"Prefer not to respond", "Yes", "No", "Don't know", "Title deed", 
+"Certificate of customary ownership ", "Certificate of occupancy  ", 
+"Certificate of hereditary acquisition listed in registry ", 
+"Rental contract  ", "Lease registered", "Other (Specify) |_____|", 
+"Respondent or another HH member", "Unrelated Person", "Friend Or Relative", 
+"Ngo/Non-Religious Charity", "Government Agency Or Municipality", 
+"UNHCR", "Religious Organization/ Charity", "Foreign Government", 
+"Unowned/Squatting", "Other (Specify) |____|", "Don't know", 
+"Prefer not to respond", "Yes", "No", "Don't know", "Title deed", 
+"Certificate of customary ownership ", "Certificate of occupancy  ", 
+"Certificate of hereditary acquisition listed in registry ", 
+"Rental contract  ", "Lease registered", "Other (Specify) |_____|", 
+"Very unlikely", "Somewhat unlikely", "Somewhat likely", "Very likely", 
+"Don't Know")
+               ,
+            standard =  
+c("1", "2", "3", "4", "5", "6", "7", "8", "9", "96", "98", "99", 
+"1", "0", "98", "1", "2", "3", "4", "5", "6", "96", "1", "2", 
+"3", "4", "5", "6", "7", "8", "9", "96", "98", "99", "1", "0", 
+"98", "1", "2", "3", "4", "5", "6", "96", "1", "2", "3", "4", 
+"99")
+              ))
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
-                             mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+                             mapper = mapper) 
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 16.1")
+  } else {
   
   # likelihood of losing right for housing is unlikely
   datalist[["main"]]$housing_cond1<- dplyr::case_when(
@@ -3966,7 +3589,7 @@ datalist[["main"]]$utcome16_1  <- labelled::labelled(datalist[["main"]]$outcome1
                             labels = c('Yes' = 1, 'No' = 0 ),
           label = "Proportion of PoC with secure tenure rights and/or property
           rights to housing and/or land")
-
+  }
    return(datalist)
 }
 ```
@@ -3975,12 +3598,8 @@ datalist[["main"]]$utcome16_1  <- labelled::labelled(datalist[["main"]]$outcome1
 ## data
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
-
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome16_1(datalist, mapper )
+datalist <- outcome16_1(datalist )
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome16_1,
@@ -4038,32 +3657,35 @@ test_that("outcome16_1 works", {
 #' @return new calculated variable - appended or not...
 #' 
 #' @export
-outcome16_2 <- function(datalist, 
-         mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")))  ){
-
+outcome16_2 <- function(datalist ){
+   # Mapper , 
+       
+mapper = list(
+           hierarchy = "main",
+          variablemap = data.frame(
+            label = 
+"1. In the last 12 months, have you or any member of your household received any payment from ${countryname} national or local government from the following sources?"
+              ,
+            variable =  
+"SPF01"
+              ),
+          modalitymap = data.frame(
+            variable =  
+"SPF01"
+               ,
+            label =  
+NA_character_
+               ,
+            standard =  
+NA_character_
+              )) 
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  datalist <- fct_re_map(datalist = datalist,
-                              mapper = mapper)
+  if (! isTRUE(check_map )) {
+   cat( "There are missing data requirement to calculate Indicator Outcome 16.2")
+  } else {
   
 datalist[["main"]]$outcome16_2<- dplyr::case_when(
     datalist[["main"]]$SPF01a == 1 |
@@ -4080,7 +3702,7 @@ datalist[["main"]]$outcome16_2  <- labelled::labelled(datalist[["main"]]$outcome
                             labels = c('Yes' = 1, 'No' = 0 ),
    label = "Proportion of Persons of Concern covered by social protection 
    floors/systems")
-    
+  }
    return(datalist)
 }
 ```
@@ -4089,12 +3711,8 @@ datalist[["main"]]$outcome16_2  <- labelled::labelled(datalist[["main"]]$outcome
 ## data
 datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
                                                  package = "IndicatorCalc"))
-
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome16_2(datalist, mapper )
+datalist <- outcome16_2(datalist)
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome16_2,

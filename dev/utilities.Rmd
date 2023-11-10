@@ -58,11 +58,13 @@ Each indicator calculation is based on predefined frame, variable name and varia
 
 Therefore each indicator function is organised in 3  steps:
 
- * Check if the standard frame/variable/modalities are already present in the dataset (organised as a list..) `fct_check_map`
+ * Apply fuzzy matching `fct_var_mapping()` to map within a specified XlsForm the expected variables for indicator calculation. The output is a convenient excel file that will need to be manually revised. The process is very similar than data cleaning with a cleaning log as implemented within [{cleaningtools}](https://edouard-legoupil.github.io/cleaningtools/)
  
- * If not apply the mapping supplied as argument within the function `fct_re_map`
+ * Once the mapping as been revised, `fct_build_map()` is used to create the mapper with the precise list format used by the next function
  
- * Apply the calculation - either to append the new variable to the existing data or to output just the final vector with results. 
+ * Apply the mapping the function `fct_re_map()` to obtain the data in the exact format expected by the indicator calculation functions
+
+ * For each indicator, checking that standard frame/variable/modalities are present in the dataset with `fct_check_map()`, apply the indicator calculation . 
 
 ## fct_var_mapping
     
@@ -70,139 +72,324 @@ Therefore each indicator function is organised in 3  steps:
 #' fct_var_mapping
 #' 
 #' Create a diff to identify the mapping between expected variables / modalities and 
-#' what is has been configured in a specific xlsform
+#' what is has been configured in a specific xlsform. The function use a fuzzy matching
+#'  process to identify the best and second best match process... 
+#'  It generates an excel file ready for manual review and that can be used as an input 
+#'  for the next function in the pipeline fct_build_map()
 #' 
 #' @param xlsformpath path to the xlsform
 #' @param mappingfile_out path to file to out the mapping
 #' 
+#' @import stringdist
+#' @import sdplyr
+#' 
 #' @return a list with the best mapping...
 #' 
 #' @export
-fct_var_mapping <- function(xlsformpath){
-  
+fct_var_mapping <- function(xlsformpath,
+                            mappingfile_out){
+  ## Pulling Comparison base ######
   IndicMap <- readxl::read_excel( system.file("IndicMap.xlsx", package = "IndicatorCalc"))
-  dico <- kobocruncher::kobo_dico(xlsformpath)
+  dico <- kobocruncher::kobo_dico(xlsformpath) 
   
-  ## Map variable
+ # Comparing variables ##########
+ # names(IndicMap)
+  varMapIndic <- IndicMap |>
+    dplyr::select(QuestionVar, label, type) |>
+    dplyr::distinct() |>
+     tibble::as_tibble()
+  ## Comparing based on variable name          
+  vec1 <- varMapIndic$QuestionVar
+  
+  ## Now taking the form...
+   varMapForm <- dico[["variables"]] |>
+      # names(varMapForm)
+     # levels(as.factor(varMapForm$type))
+    dplyr::select(name, name_or, type, label) |>
+    dplyr::filter(type %in% c("integer","multiple", "select_multiple", "select_one")) |>
+    dplyr::distinct() |>
+     tibble::as_tibble()
+  ## Comparing based on variable name 
+  vec2 <- varMapForm$name_or
+  
+  # Initialize an empty dataframe to store the results
+  result_match <- data.frame(
+    Indic = character(),
+    best_match = character(),
+    matching_index_best = integer(),
+    second_best = character(),
+    matching_index_second_best = integer(),
+    stringsAsFactors = FALSE
+  )
+  # Loop through each element in the first vector
+  for (i in seq_along(vec1)) {
+    #i <- 1
+    # Calculate Levenshtein distances between the current element and all elements in the second vector
+    distances <- stringdist::stringdistmatrix(vec1[i], vec2)
+    
+    # Find the index of the minimum distance (best match)
+    best_match_index <- which.min(distances)
+    
+    # Sort distances to find the second best match
+    sorted_distances <- sort(distances)
+    second_best_match_index <- which(distances == sorted_distances[2])
+    thismatch <- data.frame(
+        Indic = vec1[i],
+        best_match = vec2[best_match_index],
+        matching_index_best = distances[best_match_index],
+        second_best = vec2[second_best_match_index[1]],
+        matching_index_second_best = sorted_distances[2]
+      )
+    # Append the results to the dataframe
+    result_match <- rbind( result_match, thismatch )
+  }
+  ## merge this with type and label
+  result_matchInd <- varMapIndic |>
+                  dplyr::left_join(result_match, by = c("QuestionVar"="Indic" )) |>
+                  dplyr::left_join(varMapForm |>
+                                   dplyr::rename( best_name = "name", 
+                                                    best_type = "type", 
+                                                    best_label = "label"), 
+                                   by = c("best_match"="name_or" ))  |>
+                  dplyr::left_join(varMapForm |>
+                                   dplyr::rename( second_name = "name", 
+                                                    second_type = "type", 
+                                                    second_label = "label"), 
+                                   by = c("second_best"="name_or" ))  |>
+    dplyr::select(QuestionVar, label, type, 
+                  best_match, matching_index_best, best_name, best_type, best_label,
+                  second_best, matching_index_second_best, 
+                  second_name, second_type, second_label)
+  
+ # Comparing modalities ##########
+ # names(IndicMap)
+  varMapMod <- IndicMap |>
+    dplyr::select(QuestionVar, list_name, name_mod, label_mod) |>
+    dplyr::mutate( mod = paste0(QuestionVar, ".", name_mod)) |>
+    dplyr::distinct() |>
+     tibble::as_tibble()
+  ## Comparing based on variable name          
+  vec1 <- varMapMod$mod
+  
+  ## Now taking the form...
+   varMapFormMod1 <- 
+      dico[["variables"]] |>
+      dplyr::filter(type %in% c( "select_multiple", "select_one")) |>
+      dplyr::select( name_or, type, list_name) |>
+      dplyr::rename(name_var = "name_or") |>
+     ## retain only modalities from the var matching
+     dplyr::filter( name_var %in% result_match$best_match |
+                      name_var %in% result_match$second_best )
+   
+    varMapFormMod2 <- dico[["modalities"]] |>
+      # names(varMapFormMod)
+     # levels(as.factor(varMapForm$type))
+    dplyr::select(list_name, name, label)|>
+     ## retain only modalities from the var matching
+     dplyr::filter( list_name %in%  varMapFormMod1$list_name )
+   
+   varMapFormMod3 <- varMapFormMod2 |>
+    dplyr::left_join(  varMapFormMod1  ,
+      by = c( "list_name"), 
+      relationship  = "many-to-many") |>
+    dplyr::mutate( mod = paste0(name_var, ".", name)) |>
+    dplyr::distinct() |>
+     tibble::as_tibble()
+  ## Comparing based on variable name 
+  vec2 <- varMapFormMod3$mod
+  
+  # Initialize an empty dataframe to store the results
+  result_match <- data.frame(
+    Indic = character(),
+    best_match = character(),
+    matching_index_best = integer(),
+    second_best = character(),
+    matching_index_second_best = integer(),
+    stringsAsFactors = FALSE
+  )
+  # Loop through each element in the first vector
+  for (i in seq_along(vec1)) {
+    #i <- 1
+    # Calculate Levenshtein distances between the current element and all elements in the second vector
+    distances <- stringdist::stringdistmatrix(vec1[i], vec2)
+    
+    # Find the index of the minimum distance (best match)
+    best_match_index <- which.min(distances)
+    
+    # Sort distances to find the second best match
+    sorted_distances <- sort(distances)
+    second_best_match_index <- which(distances == sorted_distances[2])
+    thismatch <- data.frame(
+        Indic = vec1[i],
+        best_match = vec2[best_match_index],
+        matching_index_best = distances[best_match_index],
+        second_best = vec2[second_best_match_index[1]],
+        matching_index_second_best = sorted_distances[2]
+      )
+    # Append the results to the dataframe
+    result_match <- rbind( result_match, thismatch )
+  }
+  ## merge this with type and label
+  result_matchMod <- varMapMod |>
+                  dplyr::left_join(result_match, by = c("mod"="Indic" )) |>
+                  dplyr::left_join(varMapFormMod3 |>
+                                   dplyr::rename( best_name = "name", 
+                                                    best_type = "type", 
+                                                    best_list_name = "list_name", 
+                                                    best_label = "label"), 
+                                   by = c("best_match"="mod" ))  |>
+                  dplyr::left_join(varMapFormMod3 |>
+                                   dplyr::rename( second_name = "name", 
+                                                  second_type = "type", 
+                                                  second_list_name = "list_name", 
+                                                  second_label = "label"), 
+                                   by = c("second_best"="mod" ))  |>
+    # dput( names(result_matchMod))
+    dplyr::select(QuestionVar, list_name, name_mod, label_mod, mod, 
+                  best_match, matching_index_best,
+                  best_list_name, best_name, best_label, best_type,
+                  second_best, matching_index_second_best, 
+                  second_list_name, second_name, second_label, second_type)                 
+  results <- list(
+    result_matchInd = result_matchInd,
+    result_matchMod = result_matchMod
+    
+  )
+  
+  ## Return the excel file
+  if(!(is.null(mappingfile_out))){
+    openxlsx2::write_xlsx(results,
+                      file = mappingfile_out, 
+                      overwrite = T,
+                      na.strings = "")
+  }
   
   
-  ## Map modalities
+  # Return the results
+  return(results)
+}
+
+
+```
+  
+```{r example-fct_var_mapping}
+# Test the function
+form <- system.file("RMSCAPI.xlsx", package = "IndicatorCalc")
+# Get the map to revise
+mapper <- fct_var_mapping(xlsformpath = form,
+                          mappingfile_out = here::here("inst", "map_to_revise.xlsx"))
+```
+  
+```{r tests-fct_var_mapping}
+test_that("fct_var_mapping works", {
+  expect_true(inherits(fct_var_mapping, "function"))
+})
+```
+
+
+## fct_build_map
+    
+```{r function-fct_build_map}
+#' fct_build_map
+#' 
+#' Quick helper to reformat the data from the mapping file into the mapping file  to use  with each indicator calculation
+#' 
+#' @param mappingfile full path to the xlsx file with the revise variable mapping
+#' 
+#' @return a list 
+#' 
+#' @export
+fct_build_map <- function(mappingfile){
+  
+   
+  IndicMap <- readxl::read_excel( system.file("IndicMap.xlsx", package = "IndicatorCalc"))
+  mappingfile <- readxl::read_excel( mappingfile)
+  
+  listind <- IndicMap |> dplyr::select(IndName) |> dplyr::distinct() |> dplyr::pull()
+  filemap <- tempfile()
+  filemap <- tempfile()
+   if (file.exists(filemap)) file.remove(filemap) 
+  ## Roving around indicators
+  for ( thisInd in listind ) {
+    # thisInd <- listind[1]
+     cat( paste0(thisInd, "\n"), file = filemap , sep = "\n", append = TRUE)
+     cat( paste0( "------\n"), file = filemap , sep = "\n", append = TRUE)
+     cat( paste0( "mapper = list("), file = filemap , sep = "\n", append = TRUE)
+     cat( paste0( "           hierarchy = \"",
+                  IndicMap |> 
+                    dplyr::filter(IndName == thisInd) |> 
+                    dplyr::select(MeasureLevel) |> 
+                    dplyr::distinct() |> 
+                    dplyr::pull(),
+               "\","), file = filemap , sep = "\n", append = TRUE)
+     ## Mapping variables
+     thisvar <- IndicMap |> 
+                    dplyr::filter(IndName == thisInd) |> 
+                    dplyr::select(QuestionVar, label) |> 
+                    dplyr::distinct()  
+     cat( paste0( "          variablemap = data.frame("), file = filemap , sep = "\n", append = TRUE)
+     cat( paste0( "            label = "), file = filemap , sep = "\n", append = TRUE)
+     ## Looping around labels
+          dput( thisvar |> dplyr::pull(label) , file = "dev/lab.R" )
+          file_str <- paste(readLines("dev/lab.R"), collapse="\n")
+     cat( paste0(file_str), file = filemap , sep = "\n", append = TRUE)
+     cat( paste0( "              ,"), file = filemap , sep = "\n", append = TRUE)
+     cat( paste0( "            variable =  "), file = filemap , sep = "\n", append = TRUE)
+     ## Looping around  variable
+      dput( thisvar |> dplyr::pull(QuestionVar), file = "dev/lab.R" )
+          file_str <- paste(readLines("dev/lab.R"), collapse="\n")
+     cat( paste0(file_str), file = filemap , sep = "\n", append = TRUE)
+     cat( paste0( "              ),"), file = filemap , sep = "\n", append = TRUE)
+     ## Mapping modality
+     thismod <- IndicMap |> 
+                    dplyr::filter(IndName == thisInd) |> 
+                    dplyr::select(QuestionVar, label_mod, name_mod) |> 
+                    dplyr::filter(! (is.null(name_mod)) ) |> 
+                    dplyr::distinct()  
+     cat( paste0( "          modalitymap = data.frame("), file = filemap , sep = "\n", append = TRUE)
+     cat( paste0( "            variable =  "), file = filemap , sep = "\n", append = TRUE)
+     ## Looping around variable for modalities
+      dput( thismod |> dplyr::pull(QuestionVar) , file = "dev/lab.R" )
+          file_str <- paste(readLines("dev/lab.R"), collapse="\n")
+     cat( paste0(file_str), file = filemap , sep = "\n", append = TRUE)
+     cat( paste0( "               ,"), file = filemap , sep = "\n", append = TRUE)
+     cat( paste0( "            label =  "), file = filemap , sep = "\n", append = TRUE)
+     ## Looping around labels for modalities
+      dput( thismod |> dplyr::pull(label_mod) , file = "dev/lab.R" )
+          file_str <- paste(readLines("dev/lab.R"), collapse="\n")
+     cat( paste0(file_str), file = filemap , sep = "\n", append = TRUE)
+     cat( paste0( "               ,"), file = filemap , sep = "\n", append = TRUE)
+     cat( paste0( "            standard =  "), file = filemap , sep = "\n", append = TRUE)
+     ## Looping around standard for modalities
+      dput( thismod |> dplyr::pull(name_mod) , file = "dev/lab.R" )
+          file_str <- paste(readLines("dev/lab.R"), collapse="\n")
+     cat( paste0(file_str), file = filemap , sep = "\n", append = TRUE)
+     cat( paste0( "              ))"), file = filemap , sep = "\n", append = TRUE) 
+     cat( paste0( "------\n"), file = filemap , sep = "\n", append = TRUE)
+     
+  }
+    
+    
+  
+  
     
 }
 ```
   
-```{r example-fct_var_mapping}
+```{r example-fct_build_map}
+mappingfile = here::here("inst", "map_to_revise.xlsx")
+mapper <- fct_build_map(mappingfile = mappingfile)
 
-form <- system.file("RMSCAPI.xlsx", package = "IndicatorCalc")
-#fct_var_mapping(xlsformpath = form)
 ```
   
-```{r tests-fct_var_mapping}
-# test_that("fct_var_mapping works", {
-#   expect_true(inherits(var_mapping, "function")) 
-# })
-```
-  
-
-## fct_check_map
-
-```{r function-fct_check_map}
-#' fct_check_map
-#' 
-#' This check if the standard variables and modalities included in the mapper are
-#' actually present in the datalist with the same exact name - this is actually
-#' usually not the case as the standard format to save kobodatset in xlsx includes 
-#' group in the variable name
-#' 
-#' @param datalist A list with all hierarchical data frame for a survey data set.
-#'    format is expected to match the Excel export synchronized from kobo to RILD
-#'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#' 
-#' 
-#' @return TRUE or FALSE
-#' 
-#' @export
-fct_check_map <- function(datalist, mapper){
-
-   ## Loop around the variables within mapper
-   for ( i in 1:nrow(mapper[["variablemap"]]) ) {
-     # i <- 1
-     thisvar <-  mapper[["variablemap"]][["variable"]][[i]]
-     
-    if ( is.null( datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]] ) ) 
-      
-    {cli::cli_alert_info(paste0( thisvar ," standard variable was not found in the dataset.\n"))
-      }
-     else {
-       ## If present check modalities
-       mod <- mapper[["modalitymap"]] |>
-         dplyr::filter( variable == thisvar ) |>
-         dplyr::pull(standard)
-      
-      if( any(levels(as.factor(datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]])) %in%  mod ) )
-           { cat(paste0( thisvar ," is in the dataset and has at least one of the expected modality for calculation\n")) } else {
-            cli::cli_alert_info(paste0( thisvar ,
-                  " standard variable in the dataset misses at least one response among : ",
-                                    mod))  }
-     }
-   }
-}
-```
-  
-```{r example-fct_check_map}
-
-mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")
-            )
-          )
-
-## Correct format
-data <- list(main = data.frame(
-                LIGHT01 = c("1",  "1",  "0", "1",  "1",  "0", "1",  "1",  "1"),
-                LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
-             )
-fct_check_map(datalist = data, mapper = mapper )
-
-## One variable is not correctly 
-data <- list(main = data.frame(
-                LIGHT01 = c("1",  "1",  "0", "1",  "1",  "0", "1",  "1",  "1"),
-                LIGH03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
-             )
-fct_check_map(datalist = data, mapper = mapper )
-
-## The first variable does not include a single 1...
-data <- list(main = data.frame(
-                LIGHT01 = c("0",  "0",  "0", "0",  "0",  "0", "0",  "0",  "0"),
-                LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
-             )
-fct_check_map(datalist = data, mapper = mapper )
-```
-  
-```{r tests-fct_check_map}
-test_that("fct_check_map works", {
-  expect_true(inherits(fct_check_map, "function")) 
+```{r tests-fct_build_map}
+test_that("fct_build_map works", {
+  expect_true(inherits(fct_build_map, "function")) 
 })
 ```
+  
+
+
 
 ## fct_get_all_variable_names
     
@@ -221,6 +408,8 @@ test_that("fct_check_map works", {
 #' @importFrom purrr imap list_rbind
 #' @importFrom tibble tibble as_tibble_col
 #' @importFrom tidyr unnest
+#' 
+#' @keyword internal
 #' 
 #' @export
 fct_get_all_variable_names <- function(datalist){
@@ -248,7 +437,6 @@ test_that("fct_get_all_variable_names works", {
   expect_true(inherits(fct_get_all_variable_names, "function")) 
 })
 ```
- 
 
 ## fct_re_map
     
@@ -372,6 +560,118 @@ test_that("fct_re_map works", {
 ```
 
 
+## fct_check_map
+
+```{r function-fct_check_map}
+#' fct_check_map
+#' 
+#' This functions checks if the standard variables and modalities included in the mapper are
+#' actually present in the datalist with the same exact name - this is actually
+#' usually not the case as the standard format to save kobo dataset in xlsx includes 
+#' group in the variable name. 
+#' This function is used internally in each indicator function as an eror catcher before
+#' performing calculations... 
+#' 
+#' @param datalist A list with all hierarchical data frame for a survey data set.
+#'    format is expected to match the Excel export synchronized from kobo to RILD
+#'    and loaded with  kobocruncher::kobo_data() 
+#'                    
+#' @param mapper a list providing the mapping of the variables used for the 
+#' calculation - this mapper is potentially to be adjusted in relation with deviation
+#' between the the standard XlsForm and the contextualized dataset
+#' 
+#' 
+#' @return boolean flag TRUE or FALSE indicating if we can go forward for the indicator calculation
+#' 
+#' @export
+fct_check_map <- function(datalist, mapper){
+  # rm(check )
+   check <- data.frame( check = c(""))
+   ## Loop around the variables within mapper
+   for ( i in 1:nrow(mapper[["variablemap"]]) ) {
+     # i <- 1
+     thisvar <-  mapper[["variablemap"]][["variable"]][[i]]
+     
+    if ( is.null( datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]] ) ) 
+      
+    {cli::cli_alert_info(paste0( thisvar ," standard variable was not found in the dataset.\n"))
+       check <- rbind(  check , check = c(FALSE))
+      }
+     else {
+    ## If present check modalities
+    mod <- mapper[["modalitymap"]] |>
+         dplyr::filter( variable == thisvar ) |>
+         dplyr::pull(standard)
+      
+   if( any(levels(as.factor(datalist[[mapper[["hierarchy"]] ]] [[ thisvar ]])) %in%  mod ) )
+      { cat(paste0( thisvar ," is in the dataset and has at least one of the expected modality for calculation\n")) 
+     check <- rbind(  check , check = c(TRUE))
+     } else {
+    cli::cli_alert_info(paste0( thisvar , " standard variable in the dataset misses at least one response among : ", mod)) 
+       check <- rbind(  check , check = c(FALSE)) }
+     }
+   }
+   ## Check if have any fasel
+   finalcheck <- if( FALSE %in% check$check ) { paste0(FALSE)}  else { paste0(TRUE)}
+   
+   return(finalcheck)
+}
+```
+  
+```{r example-fct_check_map}
+## below is the mapper to chck if we have the variables to calculate the 
+# electricity subindicators within impact 2.2
+mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c(
+"Does this household use anything for lighting?",
+"What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+          "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98")
+            )
+          )
+
+## Correct format
+data <- list(main = data.frame(
+                LIGHT01 = c("1",  "1",  "0", "1",  "1",  "0", "1",  "1",  "1"),
+                LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
+             )
+check <- fct_check_map(datalist = data, mapper = mapper )
+check
+
+## One variable is not correctly 
+data <- list(main = data.frame(
+                LIGHT01 = c("1",  "1",  "0", "1",  "1",  "0", "1",  "1",  "1"),
+                LIGH03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
+             )
+check <- fct_check_map(datalist = data, mapper = mapper )
+check 
+
+## The first variable does not include a single 1...
+data <- list(main = data.frame(
+                LIGHT01 = c("0",  "0",  "0", "0",  "0",  "0", "0",  "0",  "0"),
+                LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
+             )
+check <- fct_check_map(datalist = data, mapper = mapper )
+check 
+```
+  
+```{r tests-fct_check_map}
+test_that("fct_check_map works", {
+  expect_true(inherits(fct_check_map, "function")) 
+})
+```
+
+
+
 ## fct_plot_indic_donut
     
 ```{r function-fct_plot_indic_donut}
@@ -381,11 +681,11 @@ test_that("fct_re_map works", {
 #'  and interpretation threshold if available
 #'  
 #'  @param indicator vector
-#'  @param  subtitle_chart  
-#'  @param   caption_chart  
-#'  @param    ordered_threhold  vector with the different threshold 
+#'  @param subtitle_chart  subtitle for the chart
+#'  @param caption_chart  caption for the chart
+#'  @param ordered_threhold  vector with the different threshold 
 #'    (green, orange, red)
-#'  @param   iconunicode  unicode value for fontawesome --- 
+#'  @param iconunicode  unicode value for fontawesome --- 
 #'              see https://fontawesome.com/search?o=r&m=free
 #' 
 #' 
@@ -478,6 +778,458 @@ test_that("fct_plot_indic_donut works", {
 })
 ```
   
+
+## fct_plot_rbm_sdg - SDG Comparison
+    
+```{r function-fct_plot_rbm_sdg}
+#' @title Plot SDG Indicator for a country
+#' @description The function is designed to help the interpretation of survey 
+#'  results by providing a comparison guidelines. It displays a chart to have a 
+#'  base of comparison when analyzing the results of UNHCR of UNHCR Result monitoring
+#'  survey. It pulls the values published within the UN Registry of SDG Indicator values
+#'  The function includes a mapping table between RBM/RMS and SDG and 
+#'  extract the data from https://unstats.un.org/SDGAPI/swagger/ using the package SDGsR
+#'  https://drmattg.github.io/SDGsR/articles/Introduction_to_SDGsR.html
+#'               devtools::install_github("DrMattG/SDGsR", dependencies = TRUE)
+#' @param country iso3 code for the country (easier to recall than the M49 used in the API)
+#' @param rbm  the RBM variable name - that can match SDG 
+#' @param years  years to filter the chart - for instance c(2000,2022)
+#' 
+#' @importFrom SDGsR get_indicator
+#' @importFrom countrycode countrycode
+#' @importFrom janitor clean_names
+#' @importFrom stringr str_replace
+#' 
+#' @return a ggplot2 object
+#' @export
+fct_plot_rbm_sdg <- function( country = "BRA", 
+                      rbm = "outcome16_2",
+                      years = c(2000, 2022)) {
+  require(ggplot2)
+  require(dplyr)
+  
+  ## Below is a mapping table between indicators codes for UNHCR and SDG...
+sdg_rbm <-  structure(list(
+  indicator = c("1.4.1", "3.8.1", "16.9.1", "7.1.2", 
+                "7.1.1", "3.1.2", "6.1.1", "6.2.1", 
+                "8.10.2", "8.5.2", "1.4.2", "1.3.1", "16.1.4"), 
+               
+  SDG_indic = c(
+    "1.4.1 Proportion of population living in households with access to basic services", 
+  "3.8.1 Coverage of essential health services (defined as the average coverage of 
+  essential services based on tracer interventions that include reproductive, maternal, 
+  newborn and child health, infectious diseases, non-communicable diseases and service 
+  capacity and access, among the general and the most disadvantaged population)", 
+  "16.9.1 Proportion of children under 5 years of age whose births have been registered 
+  with a civil authority, by age", 
+  "7.1.2 Proportion of population with primary reliance on clean fuels and technology", 
+  "7.1.1 Proportion of population with access to electricity", 
+  "3.1.2 Proportion of births attended by skilled health personnel", 
+  "6.1.1 Proportion of population using safely managed drinking water services", 
+  "6.2.1 Proportion of population using (a) safely managed sanitation services and (b) 
+  a hand-washing facility with soap and water", 
+  "8.10.2 Proportion of adults (15 years and older) with an account at a bank or other
+  financial institution or with a mobile-money-service provider", 
+  "8.5.2 Unemployment rate, by sex, age and persons with disabilities", 
+  "1.4.2 Proportion of total adult population with secure tenure rights to land, (a)
+  with legally recognized documentation, and (b) who perceive their rights to land as 
+  secure, by sex and type of tenure", 
+  "1.3.1 Proportion of population covered by social protection floors/systems, by sex,
+  distinguishing children, unemployed persons, older persons, persons with disabilities,
+  pregnant women, newborns, work-injury victims and the poor and the vulnerable", 
+  "16.1.4 Proportion of population that feel safe walking alone around the area they live"), 
+  
+  RMS = c("impact2_2", "impact2_3", "outcome1_2", "outcome8_2", 
+          "outcome9_2", "outcome10_2", "outcome12_1", "outcome12_2", "outcome13_1", 
+          "outcome13_3", "outcome16_1", "outcome16_2", "impact3_3"),
+  
+  target = c("1.4", 
+  "3.8", "16.9", "7.1", "7.1", "3.1", "6.1", "6.2", "8.10", "8.5", 
+  "1.4", "1.3", "16.1"),
+  
+  description = c("By 2030, ensure that all men and women, in particular the poor and 
+                  the vulnerable, have equal rights to economic resources, as well as 
+                  access to basic services, ownership and control over land and other
+                  forms of property, inheritance, natural resources, appropriate new 
+                  technology and financial services, including microfinance", 
+  "Achieve universal health coverage, including financial risk protection, access to
+  quality essential health-care services and access to safe, effective, quality and
+  affordable essential medicines and vaccines for all", 
+  "By 2030, provide legal identity for all, including birth registration", 
+  "By 2030, ensure universal access to affordable, reliable and modern energy services", 
+  "By 2030, ensure universal access to affordable, reliable and modern energy services", 
+  "By 2030, reduce the global maternal mortality ratio to less than 70 per 100,000 live births", 
+  "By 2030, achieve universal and equitable access to safe and affordable drinking water for all", 
+  "By 2030, achieve access to adequate and equitable sanitation and hygiene for all and
+  end open defecation, paying special attention to the needs of women and girls and those
+  in vulnerable situations", "Strengthen the capacity of domestic financial institutions 
+  to encourage and expand access to banking, insurance and financial services for all", 
+  "By 2030, achieve full and productive employment and decent work for all women and men,
+  including for young people and persons with disabilities, and equal pay for work of equal value", 
+  "By 2030, ensure that all men and women, in particular the poor and the vulnerable, 
+  have equal rights to economic resources, as well as access to basic services, ownership 
+  and control over land and other forms of property, inheritance, natural resources, 
+  appropriate new technology and financial services, including microfinance", 
+  "Implement nationally appropriate social protection systems and measures for all, 
+  including floors, and by 2030 achieve substantial coverage of the poor and the vulnerable", 
+  "Significantly reduce all forms of violence and related death rates everywhere")), 
+  class = c("tbl_df", "tbl", "data.frame"), row.names = c(NA, 
+  -13L))
+
+  # ctry <- ForcedDisplacementStat::reference |>
+  #          filter(iso_3 == country ) |> 
+  #          select(iso_3, ctryname, M49_code) 
+  
+  sdg_code_label <- sdg_rbm |>
+           filter(RMS == rbm  )
+  
+  sdg_code <- sdg_rbm |>
+           filter(RMS == rbm  ) |>
+           pull(indicator)
+  
+  #cat(paste0("\n \n -------\n Pulling RMS Host country comparison data for ", ctry$ctryname,  "\n\n"))
+  #cat(paste0("Retrieving now : ", sdg_code_label$SDG_indic , "\n"))
+  Ind1 <- SDGsR::get_indicator(Country = countrycode::countrycode(country, 
+                                                                  origin = 'iso3c', 
+                                                                  destination = 'un'), 
+                               indicator= sdg_code)
+
+  ## Check if the API did return something
+  if(nrow(Ind1) == 0) {
+        #cat(paste0("\n ಠ_ಠ  \n No data rcould be etrieved  from API for ", sdg_code_label$SDG_indic , " in country: ", ctry$ctryname ,"n\n"))
+        p <-  ggplot() +     
+             annotate("text",  x = 1, y = 1,  size = 10,
+             label = stringr::str_wrap(paste0("\n ಠ_ಠ  \n No data could be retrieved from  UNStat API for: ", 
+                          sdg_code_label$SDG_indic , " (related to UNHCR Indicator ", rbm ,
+                          ") in country: ", 
+                          countrycode::countrycode(country,  
+                                                   origin = 'iso3c',
+                                                   destination = 'country.name') ,
+                          "."), 50 ) ) +   theme_void()
+    
+    
+       return(p)
+    } else {
+       # cat(paste0("Done! ", nrow(Ind1), " records gathered   ヽ(´▽`)/ \n\n"))
+  
+  ## Remove rows when value is NaN
+  Ind1 <- Ind1[ !(is.nan(Ind1$value)), ]
+  ## Replace NaN by NA for upper and lower Bound
+  Ind1$upperBound <- ifelse(is.nan(Ind1$upperBound), NA , Ind1$upperBound )
+  Ind1$lowerBound <- ifelse(is.nan(Ind1$lowerBound), NA , Ind1$lowerBound )
+
+  #cat ("sleep 3 sec between each indicators...")
+  #Sys.sleep(3)
+
+
+  #Ind1$target <- as.character(Ind1$target )
+ Ind1  <- Ind1 %>% 
+           as.data.frame()  %>%
+           janitor::clean_names() %>%  
+           ## Cleaning a few country name for better legibility
+            dplyr::mutate ( geo_area_name = stringr::str_replace(geo_area_name, "Venezuela \\(Bolivarian Republic of\\)", "Venezuela"),
+                      geo_area_name = stringr::str_replace(geo_area_name, "Bolivia \\(Plurinational State of\\)", "Bolivia")) #%>%  
+           #dplyr::left_join(Goals, by="target")
+   #names(Ind1)
+
+   ## remove all empty disaggregation
+   # Ind2 <- as.data.frame(Ind1[ , colSums(is.na(Ind1)) == 0])
+   Ind2 <- Ind1%>%  
+                   select(series_description, geo_area_name, time_period_start,value ) %>% 
+                  group_by(series_description, geo_area_name, time_period_start) %>% 
+      ## Aggregate base on Unit type - aka sum or average 
+        summarize(valmean = mean(as.numeric(value)),
+                  valsum = sum(as.numeric(value))  )%>% 
+           #So we overprint in the right order
+            arrange(time_period_start) #%>% 
+      
+    if( unique(Ind1$attributes$Units) %in% c("NUM_TH" , "NUMBER") ) {
+        Ind2$value <- Ind2$valsum
+      } else {
+        Ind2$value <- Ind2$valmean
+      }
+    # names(Ind2)
+   p <- ggplot(data =  Ind2, 
+             aes(x = time_period_start,
+                 y = value,
+                 group = 1)) +
+        geom_line( linewidth = 1.5, color = "#0072BC" ) +
+        geom_point(shape =15, size = 2, color = "#0072BC") +  
+        facet_wrap(~ series_description) +
+       #scale_y_continuous(labels = unhcRstyle::format_si()) +
+        scale_x_continuous(limits = years) +
+        #geom_hline(yintercept = 0, size = 0.7, colour = "#333333") +
+        unhcrthemes::theme_unhcr(font_size = 20) + ## Insert UNHCR Style
+        theme(panel.grid.major.y  = element_line(color = "#cbcbcb"), 
+              panel.grid.major.x  = element_blank(), 
+              panel.grid.minor = element_blank(),
+              #panel.grid.major.x = element_blank(),
+              legend.position="none",
+              strip.text.x = element_text(size = 8)) +
+        labs(title = stringr::str_wrap(paste0(  countrycode::countrycode(country,  
+                                                   origin = 'iso3c',
+                                                   destination = 'country.name'), ": ",sdg_code_label$description ), 80), 
+             subtitle = stringr::str_wrap( paste0(sdg_code_label$SDG_indic, " (related to UNHCR Indicator ", rbm, ")"), 100),
+             x = " ", 
+             y = paste0(unique(Ind1$attributes$Units)),
+             caption = stringr::str_wrap( paste0("Source: ", unique(Ind1$source), ", Data extracted from UNStat API"), 100))
+   
+        #  gghighlight::gghighlight(value >= mean(dfna1$value),
+        # #value - sdval,
+        #                  use_direct_label = FALSE) + 
+        # geom_tile( data = yearfocus,
+        #            aes(x = year, 
+        #                y = value, 
+        #                fill = as_factor((decade/10)%%2)),
+        #            show.legend = FALSE) +
+        # scale_fill_manual(values = c("0" = "white", 
+        #                              "1" = "#99999922")) +  
+   return(p)
+   
+  }
+   
+}
+```
+  
+```{r example-fct_plot_rbm_sdg}
+fct_plot_rbm_sdg( country = "BRA", 
+          rbm = "impact2_2",
+          years = c(2000, 2022)) +
+        unhcrthemes::theme_unhcr(font_size = 10) 
+```
+  
+```{r tests-fct_plot_rbm_sdg}
+test_that("fct_plot_rbm_sdg works", {
+  expect_true(inherits(fct_plot_rbm_sdg, "function")) 
+})
+```
+  
+ 
+## fct_compass_table
+    
+```{r function-fct_compass_table}
+#' @title Write simple compass indicator table
+#' @description The function take the list of calculated variables from an RMS
+#'              and output an excel document in the same folder with the correct
+#'              format for import into COMPASS.
+#'
+#'              The function assumes you have already calculated the indicators and
+#'              have a datalist object with all the correct calculation inside.
+#'              
+#'              The output can conveniently be upoaded as an indicator ressource in ridl
+#'
+#' @param country iso3 code for the country (easier to recall than the M49 used in the API)
+#' @param operation operation name
+#' @param year year to use to extract the baseline from Population Statistics
+#' @param population_type  The list of population type for baseline calculation
+#' @param population_rms  The list of population type covered by RMS
+#' @param rms_indicator list with indicators and their related frame to pull the value
+#' @param ridl name of ridl data container to push the data to
+#' @param publish yes / no 
+#'
+#' @import  refugees  
+#' @importFrom janitor clean_names
+#'
+#' @return frame with all compass indicators
+#' 
+#' @export
+#'
+fct_compass_table <- function(country ,
+                                operation,
+                                year ,
+                                population_type,
+                                population_rms,
+                                rms_indicator,
+                                ridl,
+                                publish) {
+# 
+# 
+#   totalBaseline <- refugees::population  |>
+#     filter(CountryAsylumCode == country,
+#            Year == 2022 ,
+#            Population.type %in% population_type)  |>
+#     group_by(CountryAsylumName)  |>
+#     summarise(Value = sum(Value, na.rm = TRUE)) |>
+#     ungroup() |>
+#     dplyr::pull( Value)
+# 
+#   rms_indicator =  as.data.frame(rms_indicator)
+# 
+#   ## Initialise the data frame
+#   compass <- data.frame( t(c( a =  operation,
+#        b = population_rms,
+#        c =  "Percent",
+#        d =  totalBaseline,
+#        e = 10,
+#        f =  10,
+#        g = "XXX" )) )
+# 
+#   ## append all the values
+#   for (i in (1:nrow(rms_indicator))) {
+#     # i <- 3
+#     t <- as.data.frame(eval(parse(text= paste0("table( datalist[[\"",
+#                                  rms_indicator[i,1] ,
+#                                  "\"]]$",
+#                                  rms_indicator[i, 2] ,")" ) )))
+#     #cat( paste0(rms_indicator[i,3] , "\n"))
+# 
+#     #class(t)
+#     if( nrow(t) == 0) {
+#       t1 <- 0 } else  if( nrow(t |> dplyr::filter(Var1 ==1 ))  == 1)  {
+#       t1 <- eval(parse(text= paste0("as.data.frame( prop.table(table( datalist[[\"",
+#                             rms_indicator[i,1],"\"]]$",
+#                             rms_indicator[i,2],"))) |>
+#                             dplyr::filter(Var1 ==1 ) |> dplyr::pull(Freq)"))) } else {
+#       t1 <- 0}
+#     compass1 <- as.data.frame(t(c( a = operation,
+#          b =  population_rms,
+#          c = "Percent",
+#          d =  totalBaseline,
+#          e = round(t1 * 100,2),
+#          f = round(totalBaseline *t1),
+#          g = rms_indicator[i,3] )))
+#     #str(compass)
+#     #str(compass1)
+#     compass <- rbind( compass,compass1)
+#     rm(compass1)
+#     }
+# 
+#   compass <- compass |>
+#     as.data.frame() |>
+#     dplyr::slice(-1) |>
+#     dplyr::mutate (Plan = a ,
+#                    `Population Type (operational)` = b ,
+#                    `Show As` = c,
+#                    `Baseline Num.` =  f,
+#                    `Baseline Den.` = d,
+#                    `%`  = e ,
+#                    `Indicator` = g)|>
+#     dplyr::select(Plan,
+#                   `Indicator`,
+#                   `Population Type (operational)`,
+#                   `Show As`,
+#                   `Baseline Num.`,
+#                   `Baseline Den.`,
+#                   `%`  )
+# 
+#   ## And now saving
+#   ## Create a new workbook
+#   wb <- openxlsx::createWorkbook()
+#   ## add the cleaning log to the file
+#   openxlsx::addWorksheet(wb, "Compass")
+#   openxlsx::writeData(wb,  "Compass",
+#                       compass, withFilter = TRUE)
+#   ## Save workbook
+#   openxlsx::saveWorkbook(wb,
+#                          file = here::here(paste0("compass_",
+#                                                  country,"_",
+#                                                  stringr::str_replace_all(string=population_rms, pattern=" ", repl=""),
+#                                                  ".xlsx") ),
+#                          overwrite = TRUE)
+#   
+#   
+#   ## Now push to RILD 
+#   if( publish == "yes"){
+#   p <- riddle::dataset_show(param$ridl)
+#   list_of_resources <- p[["resources"]][[1]]
+# 
+#   time <- format(Sys.Date(),  '%d%b%y')
+#   ### Publish the analysis plan ####
+#   namecompass = paste0("compass_",  country,"_",
+#                        stringr::str_replace_all(string=population_rms, pattern=" ", repl=""))
+#   ### Check if the name is already in the resources
+#   if(namecompass %in% list_of_resources$name) {
+#         ## get the resource id
+#         resourceid <- list_of_resources |>
+#                       dplyr::filter ( name == namecompass) |>
+#                        dplyr::pull(id)
+#         ## get the new resource version
+#         curversion <- list_of_resources |>
+#           dplyr::filter ( name == namecompass) |>
+#           dplyr::pull(version)
+# 
+#         ## Build resource metadata
+#         metadatacompass <- riddle::resource_metadata(
+#             type = "attachment",
+#             url = paste0(namecompass, ".xlsx"),
+#             name = namecompass,
+#             description = paste0("Compass output generated from RMS on ",  time,
+#                                  ". Built using kobocruncher "),
+#             format = "xlsx",
+#             version = (curversion + 1),
+#             visibility =  "public",
+#             file_type = "other",
+#             ## Revise here based on the name from your crunching report
+#             upload =  httr::upload_file(here::here(paste0(namecompass, ".xlsx")))
+#           )
+#         riddle::resource_update(id = resourceid,
+#                                 res_metadata = metadatacompass)
+#     } else {
+# 
+#         metadatacompass <- riddle::resource_metadata(
+#           type = "attachment",
+#           url = paste0(namecompass, ".xlsx"),
+#           name = namecompass,
+#             description = paste0("Compass output generated from RMS on ",  time,
+#                                  ". Built using kobocruncher "),
+#           format = "xlsx",
+#           visibility =  "public",
+#           file_type = "other",
+#           ## Revise here based on the name from your crunching report
+#           upload =  httr::upload_file(here::here(paste0(namecompass, ".xlsx")))
+#         )
+#         riddle::resource_create(package_id = p$id,
+#                                 res_metadata = metadatacompass)
+#     }
+#   
+#    }
+# 
+#   return(compass)
+
+}
+```
+  
+```{r example-fct_compass_table}
+# compass <- export_compass_fill( country = "ECU",
+#                        operation = "Ecuador ABC",
+#                        year = 2022,
+#                         population_type = c("REF","ASY", "OIP"),
+#                         population_rms = "Refugees and Asylum-seekers",
+#                         rms_indicator =    rbind(
+#   c("main", "impact2_2",  "2.2 Proportion of PoCs residing in physically safe and
+#                            secure settlements with access to basic facilities"),
+#   c("main", "impact2_3",  "2.3 Proportion of PoC with access to health services"),
+#   c("P2.S3", "impact3_2a", "3.2a Proportion of PoC enrolled in primary education" ),
+#   c("P2.S3", "impact3_2b",  "3.2b Proportion of PoC enrolled in secondary education" ),
+#   c("main", "impact3_3",  "3.3 Proportion of PoC feeling safe walking alone in their neighborhood (related SDG 16.1.4)." ),
+#   c("S2", "outcome1_2", "1.2 Proportion of children under 5 years of age whose births
+#                    have been registered with a civil authority. [SDG 16.9.1 - Tier 1]" ),
+#   c("S2", "outcome1_3", "1.3 Proportion of PoC with legally recognized identity documents or credentials [GCR 4.2.2]." ),
+#   c("main", "outcome4_1", "4.1 Proportion of PoC who know where to access available GBV services." ),
+#   c("main", "outcome4_2", "4.2 Proportion of POCs who do not accept violence against women." ),
+#   c("main", "outcome8_2", "8.2 Proportion of PoC with primary reliance on clean (cooking) fuels and technology [SDG 7.1.2 Tier 1]" ),
+#   c("main", "outcome9_1", "9.1 Proportion of PoCs living in habitable and affordable housing." ),
+#   c("main", "outcome9_2", "9.2 Proportion of PoC that have energy to ensure lighting (close to Sphere)." ),
+#   c("main","outcome12_1", "12.1 Proportion of PoC using at least basic drinking water services (SDG)." ),
+# #  c("main" , "outcome12_2", "12.2 Proportion of PoC with access to a safe household toilet (SDG)." ),
+#   c("main", "outcome13_1", "13.1. Proportion of PoC with an account at a bank or other
+#                               financial institution or with a mobile-money-service provider [SDG 8.10.2 Tier 1]." ),
+#   c("main", "outcome13_2", "13.2. Proportion of PoC who self-report positive changes in their income compared to previous year." ),
+#   c("main", "outcome13_3",  "13.3 Proportion of PoC (working age) who are unemployed." ),
+#   c("main", "outcome16_1", "16.1. Proportion of PoC with secure tenure rights and/or
+#     property rights to housing and/or land [revised SDG indicator 1.4.2]." )#,
+#  # c("main", "outcome16_2", "16.2. Proportion of PoC covered by social protection floors/systems [SDG 1.3.1]." )
+#      ),
+#              ridl = params$ridl,
+#              publish = params$publish )
+```
+  
+```{r tests-fct_compass_table}
+#test_that("fct_compass_table works", {  expect_true(inherits(fct_compass_table, "function")) })
+```
+  
+ 
+
 
 
 
@@ -926,457 +1678,126 @@ test_that("fct_kobo_dummy works", {
 ```
 
 
-## fct_plot_rbm_sdg - SDG Comparison
+# Utilities
+
+## fct_require
     
-```{r function-fct_plot_rbm_sdg}
-#' @title Plot SDG Indicator for a country
-#' @description The function is designed to help the interpretation of survey 
-#'  results by providing a comparison guidelines. It displays a chart to have a 
-#'  base of comparison when analyzing the results of UNHCR of UNHCR Result monitoring
-#'  survey. It pulls the values published within the UN Registry of SDG Indicator values
-#'  The function includes a mapping table between RBM/RMS and SDG and 
-#'  extract the data from https://unstats.un.org/SDGAPI/swagger/ using the package SDGsR
-#'  https://drmattg.github.io/SDGsR/articles/Introduction_to_SDGsR.html
-#'               devtools::install_github("DrMattG/SDGsR", dependencies = TRUE)
-#' @param country iso3 code for the country (easier to recall than the M49 used in the API)
-#' @param rbm  the RBM variable name - that can match SDG 
-#' @param years  years to filter the chart - for instance c(2000,2022)
+```{r function-fct_require}
+#' fct_require
 #' 
-#' @importFrom SDGsR get_indicator
-#' @importFrom countrycode countrycode
-#' @importFrom janitor clean_names
-#' @importFrom stringr str_replace
+#' Write in a file the variable requirement for each single indicator functions
 #' 
-#' @return a ggplot2 object
+#' The function is used to conveniently keep the mapping between the excel tables used to show requirement by
+#' each functions 
+#' 
+#' @return print in console
+#' 
 #' @export
-fct_plot_rbm_sdg <- function( country = "BRA", 
-                      rbm = "outcome16_2",
-                      years = c(2000, 2022)) {
-  require(ggplot2)
-  require(dplyr)
+fct_require <- function(){
   
-  ## Below is a mapping table between indicators codes for UNHCR and SDG...
-sdg_rbm <-  structure(list(
-  indicator = c("1.4.1", "3.8.1", "16.9.1", "7.1.2", 
-                "7.1.1", "3.1.2", "6.1.1", "6.2.1", 
-                "8.10.2", "8.5.2", "1.4.2", "1.3.1", "16.1.4"), 
-               
-  SDG_indic = c(
-    "1.4.1 Proportion of population living in households with access to basic services", 
-  "3.8.1 Coverage of essential health services (defined as the average coverage of 
-  essential services based on tracer interventions that include reproductive, maternal, 
-  newborn and child health, infectious diseases, non-communicable diseases and service 
-  capacity and access, among the general and the most disadvantaged population)", 
-  "16.9.1 Proportion of children under 5 years of age whose births have been registered 
-  with a civil authority, by age", 
-  "7.1.2 Proportion of population with primary reliance on clean fuels and technology", 
-  "7.1.1 Proportion of population with access to electricity", 
-  "3.1.2 Proportion of births attended by skilled health personnel", 
-  "6.1.1 Proportion of population using safely managed drinking water services", 
-  "6.2.1 Proportion of population using (a) safely managed sanitation services and (b) 
-  a hand-washing facility with soap and water", 
-  "8.10.2 Proportion of adults (15 years and older) with an account at a bank or other
-  financial institution or with a mobile-money-service provider", 
-  "8.5.2 Unemployment rate, by sex, age and persons with disabilities", 
-  "1.4.2 Proportion of total adult population with secure tenure rights to land, (a)
-  with legally recognized documentation, and (b) who perceive their rights to land as 
-  secure, by sex and type of tenure", 
-  "1.3.1 Proportion of population covered by social protection floors/systems, by sex,
-  distinguishing children, unemployed persons, older persons, persons with disabilities,
-  pregnant women, newborns, work-injury victims and the poor and the vulnerable", 
-  "16.1.4 Proportion of population that feel safe walking alone around the area they live"), 
   
-  RMS = c("impact2_2", "impact2_3", "outcome1_2", "outcome8_2", 
-          "outcome9_2", "outcome10_2", "outcome12_1", "outcome12_2", "outcome13_1", 
-          "outcome13_3", "outcome16_1", "outcome16_2", "impact3_3"),
+  IndicMap <- readxl::read_excel( system.file("IndicMap.xlsx", package = "IndicatorCalc"))
   
-  target = c("1.4", 
-  "3.8", "16.9", "7.1", "7.1", "3.1", "6.1", "6.2", "8.10", "8.5", 
-  "1.4", "1.3", "16.1"),
+  ## Below is the format we are trying to replicate
   
-  description = c("By 2030, ensure that all men and women, in particular the poor and 
-                  the vulnerable, have equal rights to economic resources, as well as 
-                  access to basic services, ownership and control over land and other
-                  forms of property, inheritance, natural resources, appropriate new 
-                  technology and financial services, including microfinance", 
-  "Achieve universal health coverage, including financial risk protection, access to
-  quality essential health-care services and access to safe, effective, quality and
-  affordable essential medicines and vaccines for all", 
-  "By 2030, provide legal identity for all, including birth registration", 
-  "By 2030, ensure universal access to affordable, reliable and modern energy services", 
-  "By 2030, ensure universal access to affordable, reliable and modern energy services", 
-  "By 2030, reduce the global maternal mortality ratio to less than 70 per 100,000 live births", 
-  "By 2030, achieve universal and equitable access to safe and affordable drinking water for all", 
-  "By 2030, achieve access to adequate and equitable sanitation and hygiene for all and
-  end open defecation, paying special attention to the needs of women and girls and those
-  in vulnerable situations", "Strengthen the capacity of domestic financial institutions 
-  to encourage and expand access to banking, insurance and financial services for all", 
-  "By 2030, achieve full and productive employment and decent work for all women and men,
-  including for young people and persons with disabilities, and equal pay for work of equal value", 
-  "By 2030, ensure that all men and women, in particular the poor and the vulnerable, 
-  have equal rights to economic resources, as well as access to basic services, ownership 
-  and control over land and other forms of property, inheritance, natural resources, 
-  appropriate new technology and financial services, including microfinance", 
-  "Implement nationally appropriate social protection systems and measures for all, 
-  including floors, and by 2030 achieve substantial coverage of the poor and the vulnerable", 
-  "Significantly reduce all forms of violence and related death rates everywhere")), 
-  class = c("tbl_df", "tbl", "data.frame"), row.names = c(NA, 
-  -13L))
-
-  # ctry <- ForcedDisplacementStat::reference |>
-  #          filter(iso_3 == country ) |> 
-  #          select(iso_3, ctryname, M49_code) 
+  # mapper = list(
+  #           hierarchy = "main",
+  #           variablemap = data.frame(
+  #             label = c("Does this household use anything for lighting?",
+  #                       "What source of electricity is used most of the time in this household?"),
+  #             variable = c("LIGHT01", 
+  #                          "LIGHT03"),
+  #             mappattern = c("LIGHT01", 
+  #                          "LIGHT03") ),
+  #           modalitymap = data.frame(
+  #             variable = c( "LIGHT01", 
+  #                           "LIGHT03", "LIGHT03", "LIGHT03"),
+  #             label = c( "yes",
+  #               "No electricity in household", "Other, specify", "Don't know"),
+  #             standard = c( "1",
+  #                          "1", "96", "98"),
+  #             map = c("yes",
+  #                     "Noelec", "Other", "Dontknow")
+  #           )
+  #         )
   
-  sdg_code_label <- sdg_rbm |>
-           filter(RMS == rbm  )
-  
-  sdg_code <- sdg_rbm |>
-           filter(RMS == rbm  ) |>
-           pull(indicator)
-  
-  #cat(paste0("\n \n -------\n Pulling RMS Host country comparison data for ", ctry$ctryname,  "\n\n"))
-  #cat(paste0("Retrieving now : ", sdg_code_label$SDG_indic , "\n"))
-  Ind1 <- SDGsR::get_indicator(Country = countrycode::countrycode(country, 
-                                                                  origin = 'iso3c', 
-                                                                  destination = 'un'), 
-                               indicator= sdg_code)
-
-  ## Check if the API did return something
-  if(nrow(Ind1) == 0) {
-        #cat(paste0("\n ಠ_ಠ  \n No data rcould be etrieved  from API for ", sdg_code_label$SDG_indic , " in country: ", ctry$ctryname ,"n\n"))
-        p <-  ggplot() +     
-             annotate("text",  x = 1, y = 1,  size = 10,
-             label = stringr::str_wrap(paste0("\n ಠ_ಠ  \n No data could be retrieved from  UNStat API for: ", 
-                          sdg_code_label$SDG_indic , " (related to UNHCR Indicator ", rbm ,
-                          ") in country: ", 
-                          countrycode::countrycode(country,  
-                                                   origin = 'iso3c',
-                                                   destination = 'country.name') ,
-                          "."), 50 ) ) +   theme_void()
-    
-    
-       return(p)
-    } else {
-       # cat(paste0("Done! ", nrow(Ind1), " records gathered   ヽ(´▽`)/ \n\n"))
-  
-  ## Remove rows when value is NaN
-  Ind1 <- Ind1[ !(is.nan(Ind1$value)), ]
-  ## Replace NaN by NA for upper and lower Bound
-  Ind1$upperBound <- ifelse(is.nan(Ind1$upperBound), NA , Ind1$upperBound )
-  Ind1$lowerBound <- ifelse(is.nan(Ind1$lowerBound), NA , Ind1$lowerBound )
-
-  #cat ("sleep 3 sec between each indicators...")
-  #Sys.sleep(3)
-
-
-  #Ind1$target <- as.character(Ind1$target )
- Ind1  <- Ind1 %>% 
-           as.data.frame()  %>%
-           janitor::clean_names() %>%  
-           ## Cleaning a few country name for better legibility
-            dplyr::mutate ( geo_area_name = stringr::str_replace(geo_area_name, "Venezuela \\(Bolivarian Republic of\\)", "Venezuela"),
-                      geo_area_name = stringr::str_replace(geo_area_name, "Bolivia \\(Plurinational State of\\)", "Bolivia")) #%>%  
-           #dplyr::left_join(Goals, by="target")
-   #names(Ind1)
-
-   ## remove all empty disaggregation
-   # Ind2 <- as.data.frame(Ind1[ , colSums(is.na(Ind1)) == 0])
-   Ind2 <- Ind1%>%  
-                   select(series_description, geo_area_name, time_period_start,value ) %>% 
-                  group_by(series_description, geo_area_name, time_period_start) %>% 
-      ## Aggregate base on Unit type - aka sum or average 
-        summarize(valmean = mean(as.numeric(value)),
-                  valsum = sum(as.numeric(value))  )%>% 
-           #So we overprint in the right order
-            arrange(time_period_start) #%>% 
-      
-    if( unique(Ind1$attributes$Units) %in% c("NUM_TH" , "NUMBER") ) {
-        Ind2$value <- Ind2$valsum
-      } else {
-        Ind2$value <- Ind2$valmean
-      }
-    # names(Ind2)
-   p <- ggplot(data =  Ind2, 
-             aes(x = time_period_start,
-                 y = value,
-                 group = 1)) +
-        geom_line( linewidth = 1.5, color = "#0072BC" ) +
-        geom_point(shape =15, size = 2, color = "#0072BC") +  
-        facet_wrap(~ series_description) +
-       #scale_y_continuous(labels = unhcRstyle::format_si()) +
-        scale_x_continuous(limits = years) +
-        #geom_hline(yintercept = 0, size = 0.7, colour = "#333333") +
-        unhcrthemes::theme_unhcr(font_size = 20) + ## Insert UNHCR Style
-        theme(panel.grid.major.y  = element_line(color = "#cbcbcb"), 
-              panel.grid.major.x  = element_blank(), 
-              panel.grid.minor = element_blank(),
-              #panel.grid.major.x = element_blank(),
-              legend.position="none",
-              strip.text.x = element_text(size = 8)) +
-        labs(title = stringr::str_wrap(paste0(  countrycode::countrycode(country,  
-                                                   origin = 'iso3c',
-                                                   destination = 'country.name'), ": ",sdg_code_label$description ), 80), 
-             subtitle = stringr::str_wrap( paste0(sdg_code_label$SDG_indic, " (related to UNHCR Indicator ", rbm, ")"), 100),
-             x = " ", 
-             y = paste0(unique(Ind1$attributes$Units)),
-             caption = stringr::str_wrap( paste0("Source: ", unique(Ind1$source), ", Data extracted from UNStat API"), 100))
-   
-        #  gghighlight::gghighlight(value >= mean(dfna1$value),
-        # #value - sdval,
-        #                  use_direct_label = FALSE) + 
-        # geom_tile( data = yearfocus,
-        #            aes(x = year, 
-        #                y = value, 
-        #                fill = as_factor((decade/10)%%2)),
-        #            show.legend = FALSE) +
-        # scale_fill_manual(values = c("0" = "white", 
-        #                              "1" = "#99999922")) +  
-   return(p)
-   
+  listind <- IndicMap |> dplyr::select(IndName) |> dplyr::distinct() |> dplyr::pull()
+   if (file.exists("dev/mapper.R")) file.remove("dev/mapper.R") 
+  ## Roving around indicators
+  for ( thisInd in listind ) {
+    # thisInd <- listind[1]
+     cat( paste0("# --- ", thisInd, "\n"), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     cat( paste0( "# -----------------------------\n"), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     cat( paste0( "mapper = list("), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     cat( paste0( "           hierarchy = \"",
+                  IndicMap |> 
+                    dplyr::filter(IndName == thisInd) |> 
+                    dplyr::select(MeasureLevel) |> 
+                    dplyr::distinct() |> 
+                    dplyr::pull(),
+               "\","), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     ## Mapping variables
+     thisvar <- IndicMap |> 
+                    dplyr::filter(IndName == thisInd) |> 
+                    dplyr::select(QuestionVar, label) |> 
+                    dplyr::distinct()  
+     cat( paste0( "          variablemap = data.frame("), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     cat( paste0( "            label = "), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     ## Looping around labels
+          dput( thisvar |> dplyr::pull(label) , file = "dev/lab.R" )
+          file_str <- paste(readLines("dev/lab.R"), collapse="\n")
+     cat( paste0(file_str), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     cat( paste0( "              ,"), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     cat( paste0( "            variable =  "), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     ## Looping around  variable
+      dput( thisvar |> dplyr::pull(QuestionVar), file = "dev/lab.R" )
+          file_str <- paste(readLines("dev/lab.R"), collapse="\n")
+     cat( paste0(file_str), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     cat( paste0( "              ),"), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     ## Mapping modality
+     thismod <- IndicMap |> 
+                    dplyr::filter(IndName == thisInd) |> 
+                    dplyr::select(QuestionVar, label_mod, name_mod) |> 
+                    dplyr::filter(! (is.null(name_mod)) ) |> 
+                    dplyr::distinct()  
+     cat( paste0( "          modalitymap = data.frame("), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     cat( paste0( "            variable =  "), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     ## Looping around variable for modalities
+      dput( thismod |> dplyr::pull(QuestionVar) , file = "dev/lab.R" )
+          file_str <- paste(readLines("dev/lab.R"), collapse="\n")
+     cat( paste0(file_str), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     cat( paste0( "               ,"), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     cat( paste0( "            label =  "), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     ## Looping around labels for modalities
+      dput( thismod |> dplyr::pull(label_mod) , file = "dev/lab.R" )
+          file_str <- paste(readLines("dev/lab.R"), collapse="\n")
+     cat( paste0(file_str), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     cat( paste0( "               ,"), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     cat( paste0( "            standard =  "), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     ## Looping around standard for modalities
+      dput( thismod |> dplyr::pull(name_mod) , file = "dev/lab.R" )
+          file_str <- paste(readLines("dev/lab.R"), collapse="\n")
+     cat( paste0(file_str), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     cat( paste0( "              ))"), file = "dev/mapper.R" , sep = "\n", append = TRUE) 
+     cat( paste0( "# -----------------------------\n"), file = "dev/mapper.R" , sep = "\n", append = TRUE)
+     
   }
-   
+    
+    
 }
 ```
   
-```{r example-fct_plot_rbm_sdg}
-fct_plot_rbm_sdg( country = "BRA", 
-          rbm = "impact2_2",
-          years = c(2000, 2022)) +
-        unhcrthemes::theme_unhcr(font_size = 10) 
+```{r example-fct_require}
+## Write in dev/mapper.R each of the function parameters - as recorded in  system.file("IndicMap.xlsx", package = "IndicatorCalc")
+fct_require()
 ```
   
-```{r tests-fct_plot_rbm_sdg}
-test_that("fct_plot_rbm_sdg works", {
-  expect_true(inherits(fct_plot_rbm_sdg, "function")) 
+```{r tests-fct_require}
+test_that("fct_require works", {
+  expect_true(inherits(fct_require, "function")) 
 })
 ```
   
- 
-
-
-## fct_compass_table
-    
-```{r function-fct_compass_table}
-#' @title Write simple compass indicator table
-#' @description The function take the list of calculated variables from an RMS
-#'              and output an excel document in the same folder with the correct
-#'              format for import into COMPASS.
-#'
-#'              The function assumes you have already calculated the indicators and
-#'              have a datalist object with all the correct calculation inside
-#'
-#' @param country iso3 code for the country (easier to recall than the M49 used in the API)
-#' @param operation operation name
-#' @param year year to use to extract the baseline from Population Statistics
-#' @param population_type  The list of population type for baseline calculation
-#' @param population_rms  The list of population type covered by RMS
-#' @param rms_indicator list with indicators and their related frame to pull the value
-#' @param ridl name of ridl data container to push the data to
-#' @param publish yes / no 
-#'
-#' @import  refugees  
-#' @importFrom janitor clean_names
-#'
-#' @return frame with all compass indicators
-#' 
-#' @export
-#'
-fct_compass_table <- function(country ,
-                                operation,
-                                year ,
-                                population_type,
-                                population_rms,
-                                rms_indicator,
-                                ridl,
-                                publish) {
-# 
-# 
-#   totalBaseline <- refugees::population  |>
-#     filter(CountryAsylumCode == country,
-#            Year == 2022 ,
-#            Population.type %in% population_type)  |>
-#     group_by(CountryAsylumName)  |>
-#     summarise(Value = sum(Value, na.rm = TRUE)) |>
-#     ungroup() |>
-#     dplyr::pull( Value)
-# 
-#   rms_indicator =  as.data.frame(rms_indicator)
-# 
-#   ## Initialise the data frame
-#   compass <- data.frame( t(c( a =  operation,
-#        b = population_rms,
-#        c =  "Percent",
-#        d =  totalBaseline,
-#        e = 10,
-#        f =  10,
-#        g = "XXX" )) )
-# 
-#   ## append all the values
-#   for (i in (1:nrow(rms_indicator))) {
-#     # i <- 3
-#     t <- as.data.frame(eval(parse(text= paste0("table( datalist[[\"",
-#                                  rms_indicator[i,1] ,
-#                                  "\"]]$",
-#                                  rms_indicator[i, 2] ,")" ) )))
-#     #cat( paste0(rms_indicator[i,3] , "\n"))
-# 
-#     #class(t)
-#     if( nrow(t) == 0) {
-#       t1 <- 0 } else  if( nrow(t |> dplyr::filter(Var1 ==1 ))  == 1)  {
-#       t1 <- eval(parse(text= paste0("as.data.frame( prop.table(table( datalist[[\"",
-#                             rms_indicator[i,1],"\"]]$",
-#                             rms_indicator[i,2],"))) |>
-#                             dplyr::filter(Var1 ==1 ) |> dplyr::pull(Freq)"))) } else {
-#       t1 <- 0}
-#     compass1 <- as.data.frame(t(c( a = operation,
-#          b =  population_rms,
-#          c = "Percent",
-#          d =  totalBaseline,
-#          e = round(t1 * 100,2),
-#          f = round(totalBaseline *t1),
-#          g = rms_indicator[i,3] )))
-#     #str(compass)
-#     #str(compass1)
-#     compass <- rbind( compass,compass1)
-#     rm(compass1)
-#     }
-# 
-#   compass <- compass |>
-#     as.data.frame() |>
-#     dplyr::slice(-1) |>
-#     dplyr::mutate (Plan = a ,
-#                    `Population Type (operational)` = b ,
-#                    `Show As` = c,
-#                    `Baseline Num.` =  f,
-#                    `Baseline Den.` = d,
-#                    `%`  = e ,
-#                    `Indicator` = g)|>
-#     dplyr::select(Plan,
-#                   `Indicator`,
-#                   `Population Type (operational)`,
-#                   `Show As`,
-#                   `Baseline Num.`,
-#                   `Baseline Den.`,
-#                   `%`  )
-# 
-#   ## And now saving
-#   ## Create a new workbook
-#   wb <- openxlsx::createWorkbook()
-#   ## add the cleaning log to the file
-#   openxlsx::addWorksheet(wb, "Compass")
-#   openxlsx::writeData(wb,  "Compass",
-#                       compass, withFilter = TRUE)
-#   ## Save workbook
-#   openxlsx::saveWorkbook(wb,
-#                          file = here::here(paste0("compass_",
-#                                                  country,"_",
-#                                                  stringr::str_replace_all(string=population_rms, pattern=" ", repl=""),
-#                                                  ".xlsx") ),
-#                          overwrite = TRUE)
-#   
-#   
-#   ## Now push to RILD 
-#   if( publish == "yes"){
-#   p <- riddle::dataset_show(param$ridl)
-#   list_of_resources <- p[["resources"]][[1]]
-# 
-#   time <- format(Sys.Date(),  '%d%b%y')
-#   ### Publish the analysis plan ####
-#   namecompass = paste0("compass_",  country,"_",
-#                        stringr::str_replace_all(string=population_rms, pattern=" ", repl=""))
-#   ### Check if the name is already in the resources
-#   if(namecompass %in% list_of_resources$name) {
-#         ## get the resource id
-#         resourceid <- list_of_resources |>
-#                       dplyr::filter ( name == namecompass) |>
-#                        dplyr::pull(id)
-#         ## get the new resource version
-#         curversion <- list_of_resources |>
-#           dplyr::filter ( name == namecompass) |>
-#           dplyr::pull(version)
-# 
-#         ## Build resource metadata
-#         metadatacompass <- riddle::resource_metadata(
-#             type = "attachment",
-#             url = paste0(namecompass, ".xlsx"),
-#             name = namecompass,
-#             description = paste0("Compass output generated from RMS on ",  time,
-#                                  ". Built using kobocruncher "),
-#             format = "xlsx",
-#             version = (curversion + 1),
-#             visibility =  "public",
-#             file_type = "other",
-#             ## Revise here based on the name from your crunching report
-#             upload =  httr::upload_file(here::here(paste0(namecompass, ".xlsx")))
-#           )
-#         riddle::resource_update(id = resourceid,
-#                                 res_metadata = metadatacompass)
-#     } else {
-# 
-#         metadatacompass <- riddle::resource_metadata(
-#           type = "attachment",
-#           url = paste0(namecompass, ".xlsx"),
-#           name = namecompass,
-#             description = paste0("Compass output generated from RMS on ",  time,
-#                                  ". Built using kobocruncher "),
-#           format = "xlsx",
-#           visibility =  "public",
-#           file_type = "other",
-#           ## Revise here based on the name from your crunching report
-#           upload =  httr::upload_file(here::here(paste0(namecompass, ".xlsx")))
-#         )
-#         riddle::resource_create(package_id = p$id,
-#                                 res_metadata = metadatacompass)
-#     }
-#   
-#    }
-# 
-#   return(compass)
-
-}
-```
-  
-```{r example-fct_compass_table}
-# compass <- export_compass_fill( country = "ECU",
-#                        operation = "Ecuador ABC",
-#                        year = 2022,
-#                         population_type = c("REF","ASY", "OIP"),
-#                         population_rms = "Refugees and Asylum-seekers",
-#                         rms_indicator =    rbind(
-#   c("main", "impact2_2",  "2.2 Proportion of PoCs residing in physically safe and
-#                            secure settlements with access to basic facilities"),
-#   c("main", "impact2_3",  "2.3 Proportion of PoC with access to health services"),
-#   c("P2.S3", "impact3_2a", "3.2a Proportion of PoC enrolled in primary education" ),
-#   c("P2.S3", "impact3_2b",  "3.2b Proportion of PoC enrolled in secondary education" ),
-#   c("main", "impact3_3",  "3.3 Proportion of PoC feeling safe walking alone in their neighborhood (related SDG 16.1.4)." ),
-#   c("S2", "outcome1_2", "1.2 Proportion of children under 5 years of age whose births
-#                    have been registered with a civil authority. [SDG 16.9.1 - Tier 1]" ),
-#   c("S2", "outcome1_3", "1.3 Proportion of PoC with legally recognized identity documents or credentials [GCR 4.2.2]." ),
-#   c("main", "outcome4_1", "4.1 Proportion of PoC who know where to access available GBV services." ),
-#   c("main", "outcome4_2", "4.2 Proportion of POCs who do not accept violence against women." ),
-#   c("main", "outcome8_2", "8.2 Proportion of PoC with primary reliance on clean (cooking) fuels and technology [SDG 7.1.2 Tier 1]" ),
-#   c("main", "outcome9_1", "9.1 Proportion of PoCs living in habitable and affordable housing." ),
-#   c("main", "outcome9_2", "9.2 Proportion of PoC that have energy to ensure lighting (close to Sphere)." ),
-#   c("main","outcome12_1", "12.1 Proportion of PoC using at least basic drinking water services (SDG)." ),
-# #  c("main" , "outcome12_2", "12.2 Proportion of PoC with access to a safe household toilet (SDG)." ),
-#   c("main", "outcome13_1", "13.1. Proportion of PoC with an account at a bank or other
-#                               financial institution or with a mobile-money-service provider [SDG 8.10.2 Tier 1]." ),
-#   c("main", "outcome13_2", "13.2. Proportion of PoC who self-report positive changes in their income compared to previous year." ),
-#   c("main", "outcome13_3",  "13.3 Proportion of PoC (working age) who are unemployed." ),
-#   c("main", "outcome16_1", "16.1. Proportion of PoC with secure tenure rights and/or
-#     property rights to housing and/or land [revised SDG indicator 1.4.2]." )#,
-#  # c("main", "outcome16_2", "16.2. Proportion of PoC covered by social protection floors/systems [SDG 1.3.1]." )
-#      ),
-#              ridl = params$ridl,
-#              publish = params$publish )
-```
-  
-```{r tests-fct_compass_table}
-#test_that("fct_compass_table works", {  expect_true(inherits(fct_compass_table, "function")) })
-```
-  
- 
-
  
  
 

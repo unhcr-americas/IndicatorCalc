@@ -24,11 +24,131 @@ library(unhcrthemes)
 library(fontawesome)
 ```
 
----
-class: inverse, center, middle
+# Intro
 
-# Checks
-
-
----
+ * Standardized Indicator Calculations
  
+ * Package Objectives
+ 
+ * Potential Challenges
+ 
+ * Setting up data transformation  
+ 
+ * Manual Review
+ 
+ * Report Template
+ 
+ * Companion App
+ 
+ 
+---
+
+# Standardized Indicator Calculations
+
+ * key indicators used to measure, inform and monitor progress towards global development objectives
+
+ * [UNHCR Results Monitoring Surveys (RMS)](https://intranet.unhcr.org/en/support-services/common-good-data-initiatives/household-surveys/Results-Monitoring-Surveys.html) are household-level surveys with standard questionnaires following context-appropriate methodological approaches.
+ 
+  * The calculation of Standard Indicators is a key step in the analysis of Household survey dataset.
+  
+  * UNHCR Results Monitoring Survey is based on international statistical standards and definitions.
+		     
+ 
+???
+ 
+There is broad consensus around the key indicators used to measure, inform and monitor progress towards global development objectives, as exemplified by the Sustainable Development Goals and related efforts of the MICS, DHS, IHSN, together with national governments. UNHCR's objectives are largely aligned with these frameworks. [UNHCR Results Monitoring Surveys (RMS)](https://intranet.unhcr.org/en/support-services/common-good-data-initiatives/household-surveys/Results-Monitoring-Surveys.html) are household-level surveys with standard questionnaires following context-appropriate methodological approaches. They can be implemented across UNHCR operations to monitor changes in the lives of all relevant groups of persons of concern (impacts) and in UNHCR's key areas of engagement (outcomes). RMS help us to calculate impact and outcome indicators in a standardized way to have a global understanding of the results. Both indicators and questionnaire is also largely aligned with MICS, DHS, IHSN, national household surveys and other UNHCR standardized surveys. 
+
+
+---
+
+# Package Objectives
+
+ * Turning existing scripts as functions
+
+ * Designed to work based on dataset standard backup format exported from [kobotoolbox](http://http://kobo.unhcr.org)
+ 
+ * Works with [UNHCR Internal Data Repository](http://ridl.unhcr.org) (RIDL) integration in mind
+ 
+???
+ 
+The goal of `{IndicatorCalc}` is to ease the implementation of standard calculations for survey indicators related to Forcibly Displaced Population. Among the objectives is also to avoid duplication of documentation efforts around the information to include in the technical report and the information that is already expected to be gathered and recorded within [UNHCR Internal Data Repository](http://ridl.unhcr.org) which is following [Data Documentation Initiative](https://ddialliance.org/) standards.
+
+The package is designed to work based on dataset standard backup format exported from [kobotoolbox](http://http://kobo.unhcr.org) within [UNHCR internal data repository](http://ridl.unhcr.org). It is adapted from the initial [indicator script](https://github.com/bozdagilgi/UNHCR-RMS-Indicators) version. 
+
+Each calculation is implemented as a function with in-built check to identify whether the expected variables and modalities are within the dataset and a `mapper` to transform the data in the expected format in case of divergence of data structure between what was collected and what is expected. You can check each [function reference](/reference/index.html) to see in details all documented calculations
+
+
+---
+
+# Potential Challenges
+
+ * Standardized calculation to apply and can appear complex as sometime a single indicator might imply to compile more than 15 different variables
+		     
+ * Checking that form contextualization did not break the requirement in terms of variable
+ 
+ * Pipeline the work and streamline the process for indicator calculations
+ 
+ * How to automate as much as possible so that a simple interface can be built to allow for indicator calculation without coding capacity...
+
+ 
+???
+
+
+
+
+
+---
+
+# Setting up data transformation
+
+ *  
+
+ *   
+ 
+???
+
+ 
+Run the function var_mapping( "path/to/myxlsform.xlsx") in order to create your __variable mapping__. The variable mapping is designed to check if the expected variables and modalities are present in your dataset. 
+
+
+
+---
+
+# Manual Review
+
+ *  
+
+ *   
+ 
+???
+
+Review manually the variable mapping and __recode data__ manually the variables where the automatic match could not be applied and upload it back
+
+
+
+
+---
+
+# Report Template
+
+ *  Allows to use all the functions from the package wtihin a streamline data pipeline
+ 
+ *  The report is configured through parameters (in the _yaml_)
+
+ *   Pull metadata already documented within RIDL to avoid re-entering it, brings in Indicator Visualisation and pull comparable SDG valuess
+ 
+???
+
+Then either generate a dummy dataset or connect your project with [RIDL](https://ridl.unhcr.org) 
+ __apply calculation__ to get you summary report and download your expanded XlsForm to include it within your [Kobocruncher automatic data exploration](https/rstudio.unhcr.org/kobcruncher)
+
+
+---
+
+# Companion App
+
+ * A companion App is a web-based user interface to help implementing a complex process
+ 
+ * Created on the top of an existing packages - allows to use the package without coding or installing Rstudio
+ 
+ * current prototype available here: [{IndicatorCalc}](http://rstudio.unhcr.org/IndicatorCalc) 
