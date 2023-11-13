@@ -33,204 +33,24 @@ If it is the first time you use {fusen}, after 'description', you can directly r
 
 
 
-Indicator functions are designed to work based on data stored as a list - which is
- the default structure for a complex hierarchical survey dataset with nested tables
+Indicator functions are designed to work based on data stored as a list - which is the default structure for a complex hierarchical survey dataset with nested tables.
  
- The default export format from kobotoolbox includes variables names generated as a concatenation of groups and names.
+The default export format from kobotoolbox includes variables names generated as a concatenation of groups and names.
  
- The indicators calculation are based  on specific patterns to be identified within
- the variable names. This allow to handle cases where variables and questions would 
- have been shifted within the sequence of the questionnaire and through different 
- questions groups.
+The indicators calculation are based  on specific patterns to be identified within the variable names. This allow to handle cases where variables and questions would have been shifted within the sequence of the questionnaire and through different questions groups.
  
- The indicator functions also check that the data content is the one expected. 
- A check log is written to keep track of all issues
+The indicator functions also check that the data content is the one expected. 
+
+A check log is displayed in the console to keep track of all issues
  
-
-
-
-# Data Wrangling
-
-Each indicator calculation is based on predefined frame, variable name and variable value.
-
-Therefore each indicator function is organised in 3  steps:
-
- * Check if the standard frame/variable/modalities are already present in the dataset (organised as a list..) `fct_check_map`
- 
- * If not apply the mapping supplied as argument within the function `fct_re_map`
- 
- * Apply the calculation - either to append the new variable to the existing data or to output just the final vector with results. 
-
-
-## fct_var_mapping
-
-    
-
-  
-
-```{r example-fct_var_mapping}
-
-form <- system.file("RMSCAPI.xlsx", package = "IndicatorCalc")
-#fct_var_mapping(xlsformpath = form)
-```
-
-  
-
-  
-
-
-## fct_check_map
-
-  
-
-```{r example-fct_check_map}
-
-mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")
-            )
-          )
-
-## Correct format
-data <- list(main = data.frame(
-                LIGHT01 = c("1",  "1",  "0", "1",  "1",  "0", "1",  "1",  "1"),
-                LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
-             )
-fct_check_map(datalist = data, mapper = mapper )
-
-## One variable is not correctly 
-data <- list(main = data.frame(
-                LIGHT01 = c("1",  "1",  "0", "1",  "1",  "0", "1",  "1",  "1"),
-                LIGH03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
-             )
-fct_check_map(datalist = data, mapper = mapper )
-
-## The first variable does not include a single 1...
-data <- list(main = data.frame(
-                LIGHT01 = c("0",  "0",  "0", "0",  "0",  "0", "0",  "0",  "0"),
-                LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
-             )
-fct_check_map(datalist = data, mapper = mapper )
-```
-
-  
-
-## fct_get_all_variable_names
-
-    
-
-  
-
-```{r example-fct_get_all_variable_names}
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
-                                             package = "IndicatorCalc"))
-varname <-   fct_get_all_variable_names(datalist = datalist)
-head(varname, 10)
-```
-
-  
-
- 
-
-
-## fct_re_map
-
-    
-
-  
-
-```{r example-fct_re_map}
-mapper = list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("yes",
-                      "Noelec", "Other", "Dontknow")
-            )
-          )
-
-
-## One variable is not correctly 
-datalist <- list(mainhousehold = data.frame(
-                group.LIGHT01 = c("yes",  "yes",  "no", "yes",  "yes",
-                                  "no", "yes",  "yes",  "yes"),
-                group.LIGHT03 = c("Noelec", "Other", "Dontknow", "Noelec", "Other",
-                                  "Dontknow", "Nuclear", "Other", "Dontknow"))
-             )
-datalist <- fct_re_map(datalist = datalist, mapper = mapper )
-
-fct_check_map(datalist = datalist, mapper = mapper )
- 
-
-```
-
-  
-
-## fct_plot_indic_donut
-
-    
-
-  
-
-```{r example-fct_plot_indic_donut}
-test <- data.frame(
-  shelter = rbinom(20, 1, 0.5)) |> 
-  dplyr::mutate( shelter = 
-  labelled::labelled( shelter,
-                      labels = c( "Yes" = 1, "No" = 0),
-                      label = "Access to adequate shelter")) 
-  
-fct_plot_indic_donut(indicator = test$shelter,
-                     subtitle_chart = NULL,
-                     caption_chart = NULL,
-                     ordered_threhold = NULL,
-                     iconunicode = "e54f") 
-```
-
-  
-
-  
-
-
 
 
 # Generating data from a specific form definition
 
 One key function is to generate a dummy dataset based on a specific form structure
-
-To demonstrate the package we will use the standard questionnaire and then apply 
- each indicator function to demonstrate them.
+To demonstrate the package we will use the standard questionnaire and then apply each indicator function to demonstrate them.
  
-We can then also re-use the function to create dummy data based on any form and then apply 
- each indicator function to actually verify which indicators can be created based
- on the form content.
+We can then also re-use the function to create dummy data based on any form and then apply each indicator function to actually verify which indicators can be created based on the form content.
 
 
 ## fct_var_dummy
@@ -314,17 +134,278 @@ knitr::kable(head(frame, 5))
   
 
 ```{r example-fct_kobo_dummy}
-form <- system.file("RMSCAPI.xlsx", package = "IndicatorCalc")
+## generate dummy dataset for different form version
+
+## CAPI
+form <- system.file("RMS_CAPI_v2.xlsx", package = "IndicatorCalc")
 datalist <- fct_kobo_dummy(form,
                        n = 384,
                        file = NULL)
+# openxlsx::write.xlsx(datalist, here::here("inst", "dummy_RMS_CAPI_v2.xlsx"))
 
-## Save this to use it for testing the package...
+form <- system.file("RMS_CAPI_v3.xlsx", package = "IndicatorCalc")
+datalist <- fct_kobo_dummy(form,
+                       n = 384,
+                       file = NULL)
+# openxlsx::write.xlsx(datalist, here::here("inst", "dummy_RMS_CAPI_v3.xlsx"))
 
-openxlsx::write.xlsx(datalist, here::here("inst", "demo_data.xlsx"))
+## CATI
+form <- system.file("RMS_CATI_v0.xlsx", package = "IndicatorCalc")
+datalist <- fct_kobo_dummy(form,
+                       n = 384,
+                       file = NULL)
+# openxlsx::write.xlsx(datalist, here::here("inst", "dummy_RMS_CATI_v0.xlsx"))
+
+form <- system.file("RMS_CATI_v3.xlsx", package = "IndicatorCalc")
+datalist <- fct_kobo_dummy(form,
+                       n = 384,
+                       file = NULL)
+# openxlsx::write.xlsx(datalist, here::here("inst", "dummy_RMS_CATI_v3.xlsx"))
 ```
 
   
+
+# Data Wrangling
+
+Each indicator calculation is based on predefined frame, variable name and variable value. Some data wrangling is therefore required before performing the calculations.
+
+The packages comes with tool to support this task. The original data can be transformed with the function fct_re_map(). The mapper object is build with the `fct_build_map()` function, which require 2 files: 
+
+ * `IndicatorRequirementFile`   thi files is created from the orginal template and indicator scripts. It creates a mapping between question variables and indicator variables.
+
+* `mappingfile`  this one is created once and is designed to double check that the mapping can actually be performed. To obtain this file, we Apply fuzzy matching `fct_var_mapping()` to map within a specified XlsForm the expected variables for indicator calculation. The output is a convenient excel file that will need to be manually revised. The process is very similar than data cleaning with a cleaning log as implemented within [{cleaningtools}](https://edouard-legoupil.github.io/cleaningtools/)
+ 
+The data wrangling is then done with the function `fct_re_map()` to obtain the data in the exact format expected by the indicator calculation functions
+
+Before doing indicator calculation, `fct_check_map()` checks that standard frame/variable/modalities are present in the dataset. 
+
+
+## fct_var_mapping
+
+    
+
+  
+
+```{r example-fct_var_mapping}
+# Test the function
+form <- system.file("RMS_CAPI_v2.xlsx", package = "IndicatorCalc")
+IndicatorRequirementFile <- system.file("RMS_CAPI_v2_mapper.xlsx", package = "IndicatorCalc")
+# Get the map to revise
+mapper <- fct_var_mapping(xlsformpath = form,
+                          IndicatorRequirementFile = IndicatorRequirementFile,
+                       mappingfile_out = tempfile())
+                         #      here::here("inst", "RMS_CAPI_v2_mapping.xlsx"))
+```
+
+  
+
+## fct_build_map
+
+    
+
+  
+
+```{r example-fct_build_map}
+mappingfile <- system.file("RMS_CAPI_v2_mapping.xlsx", 
+                           package = "IndicatorCalc")
+
+IndicatorRequirementFile <- system.file("RMS_CAPI_v2_mapper.xlsx", 
+                           package = "IndicatorCalc")
+
+mappermain <- fct_build_map(mappingfile = mappingfile, 
+                            IndicatorRequirementFile = IndicatorRequirementFile,
+                            thisMeasureLevel = "main")
+
+mapperind <- fct_build_map(mappingfile = mappingfile,
+                            IndicatorRequirementFile = IndicatorRequirementFile,
+                           thisMeasureLevel = "ind")
+
+```
+
+  
+
+  
+
+
+
+
+## fct_get_all_variable_names
+
+    
+
+  
+
+```{r example-fct_get_all_variable_names}
+datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+                                             package = "IndicatorCalc"))
+varname <-   fct_get_all_variable_names(datalist = datalist)
+head(varname, 10)
+```
+
+  
+
+## fct_re_map
+
+    
+
+  
+
+```{r example-fct_re_map}
+mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c("Does this household use anything for lighting?",
+                        "What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03"),
+              mappattern = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+                "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98"),
+              map = c("yes",
+                      "Noelec", "Other", "Dontknow")
+            )
+          )
+
+
+## One variable is not correctly 
+datalist <- list(mainhousehold = data.frame(
+                group.LIGHT01 = c("yes",  "yes",  "no", "yes",  "yes",
+                                  "no", "yes",  "yes",  "yes"),
+                group.LIGHT03 = c("Noelec", "Other", "Dontknow", "Noelec", "Other",
+                                  "Dontknow", "Nuclear", "Other", "Dontknow"))
+             )
+datalist <- fct_re_map(datalist = datalist, mapper = mapper )
+
+#fct_check_map(datalist = datalist, mapper = mapper )
+
+## Now testing on a full remap...
+## Dummy data created with fct_kobo_dummy
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2.xlsx",
+                                                 package = "IndicatorCalc"))
+
+## Mapping file created from Dummy data  
+mappingfile <- system.file("RMS_CAPI_v2_mapping.xlsx", 
+                           package = "IndicatorCalc")
+
+IndicatorRequirementFile <- system.file("RMS_CAPI_v2_mapper.xlsx", 
+                           package = "IndicatorCalc")
+
+## and now we remap both required variables for main and ind
+mappermain <- fct_build_map(mappingfile = mappingfile, 
+                            IndicatorRequirementFile = IndicatorRequirementFile,
+                            thisMeasureLevel = "main")
+datalist <- fct_re_map(datalist = datalist, mapper = mappermain )
+
+mapperind <- fct_build_map(mappingfile = mappingfile, 
+                            IndicatorRequirementFile = IndicatorRequirementFile,
+                           thisMeasureLevel = "ind")
+datalist <- fct_re_map(datalist = datalist, mapper = mapperind )
+
+
+
+## Writing this in the installation folder of the packages to run all examples
+# openxlsx::write.xlsx( list ( main = as.data.frame(datalist[["main"]]),
+#                              ind = as.data.frame(datalist[["ind"]]) ), 
+#                       here::here("inst","dummy_RMS_CAPI_v2_mapped.xlsx"))
+
+```
+
+  
+
+## fct_check_map
+
+  
+
+```{r example-fct_check_map}
+## below is the mapper to chck if we have the variables to calculate the 
+# electricity subindicators within impact 2.2
+mapper = list(
+            hierarchy = "main",
+            variablemap = data.frame(
+              label = c(
+"Does this household use anything for lighting?",
+"What source of electricity is used most of the time in this household?"),
+              variable = c("LIGHT01", 
+                           "LIGHT03") ),
+            modalitymap = data.frame(
+              variable = c( "LIGHT01", 
+                            "LIGHT03", "LIGHT03", "LIGHT03"),
+              label = c( "yes",
+          "No electricity in household", "Other, specify", "Don't know"),
+              standard = c( "1",
+                           "1", "96", "98")
+            )
+          )
+
+## Correct format
+data <- list(main = data.frame(
+                LIGHT01 = c("1",  "1",  "0", "1",  "1",  "0", "1",  "1",  "1"),
+                LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
+             )
+check <- fct_check_map(datalist = data, mapper = mapper )
+check
+
+## One variable is not correctly 
+data <- list(main = data.frame(
+                LIGHT01 = c("1",  "1",  "0", "1",  "1",  "0", "1",  "1",  "1"),
+                LIGH03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
+             )
+check <- fct_check_map(datalist = data, mapper = mapper )
+check 
+
+## The first variable does not include a single 1...
+data <- list(main = data.frame(
+                LIGHT01 = c("0",  "0",  "0", "0",  "0",  "0", "0",  "0",  "0"),
+                LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
+             )
+check <- fct_check_map(datalist = data, mapper = mapper )
+check 
+```
+
+  
+
+# Plot
+
+## fct_plot_indic_donut
+
+    
+
+  
+
+```{r example-fct_plot_indic_donut, fig.height = 3, fig.width = 3}
+test <- data.frame(
+  shelter = rbinom(20, 1, 0.5)) |> 
+  dplyr::mutate( shelter = 
+  labelled::labelled( shelter,
+    labels = c( "Yes" = 1, "No" = 0),
+label = "Access to adequate shelter also testing a long title to see if it wraps well")) 
+  
+fct_plot_indic_donut(indicator = test$shelter,
+                     subtitle_chart = NULL,
+                     caption_chart = NULL,
+                     ordered_threhold = NULL,
+                     iconunicode = "e54f") 
+
+## test no value
+test2 <- NULL
+
+fct_plot_indic_donut(indicator = test2,
+                     subtitle_chart = NULL,
+                     caption_chart = NULL,
+                     ordered_threhold = NULL,
+                     iconunicode = "e54f") 
+```
+
+  
+
+  
+
 
 ## fct_plot_rbm_sdg - SDG Comparison
 
@@ -333,18 +414,17 @@ openxlsx::write.xlsx(datalist, here::here("inst", "demo_data.xlsx"))
   
 
 ```{r example-fct_plot_rbm_sdg}
-fct_plot_rbm_sdg( country = "BRA", 
-          rbm = "impact2_2",
-          years = c(2000, 2022)) +
-        unhcrthemes::theme_unhcr(font_size = 10) 
+# fct_plot_rbm_sdg( country = "BRA", 
+#           rbm = "impact2_2",
+#           years = c(2000, 2022)) +
+#         unhcrthemes::theme_unhcr(font_size = 10) 
 ```
 
   
 
   
- 
 
-
+# Export Indicator table 
 
 ## fct_compass_table
 
@@ -392,6 +472,41 @@ fct_plot_rbm_sdg( country = "BRA",
   
  
 
+
+
+
+# Utilities
+
+## fct_build_requirement
+
+    
+
+  
+
+```{r example-fct_build_requirement}
+## Write in dev/mapper.R each of the function parameters - as recorded in  system.file("IndicMap.xlsx", package = "IndicatorCalc")
+xlsformpath <- system.file("RMS_CAPI_v2.xlsx", package = "IndicatorCalc")
+RMS_CAPI_v2_mapper <- fct_build_requirement(xlsformpath )
+# openxlsx::write.xlsx(RMS_CAPI_v2_mapper, here::here("inst", "RMS_CAPI_v2_mapper.xlsx"))
+
+xlsformpath <- system.file("RMS_CAPI_v3.xlsx", package = "IndicatorCalc")
+RMS_CAPI_v3_mapper <- fct_build_requirement(xlsformpath )
+# openxlsx::write.xlsx(RMS_CAPI_v3_mapper, here::here("inst", "RMS_CAPI_v3_mapper.xlsx"))
+
+## CATI
+xlsformpath <- system.file("RMS_CATI_v0.xlsx", package = "IndicatorCalc")
+RMS_CATI_v0_mapper <- fct_build_requirement(xlsformpath )
+# openxlsx::write.xlsx(RMS_CATI_v0_mapper, here::here("inst", "RMS_CATI_v0_mapper.xlsx"))
+
+xlsformpath <- system.file("RMS_CATI_v3.xlsx", package = "IndicatorCalc")
+RMS_CATI_v3_mapper <- fct_build_requirement(xlsformpath )
+# openxlsx::write.xlsx(RMS_CATI_v3_mapper, here::here("inst", "RMS_CATI_v3_mapper.xlsx"))
+
+```
+
+  
+
+  
  
  
 

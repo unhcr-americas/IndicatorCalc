@@ -24,7 +24,7 @@
 #' @param n number of main records to be generated
 #' @param nrepeat max random number of repeat records to be generated 
 #'           when repeat_count is not mentionned 
-#' @param file file as xlsx where to save to the  
+#' @param file file as xlsx where to save the resulting data 
 #' 
 #' @importFrom kobocruncher kobo_dico
 #' 
@@ -33,14 +33,33 @@
 #' 
 #' @export
 #' @examples
-#' form <- system.file("RMSCAPI.xlsx", package = "IndicatorCalc")
+#' ## generate dummy dataset for different form version
+#'
+#' ## CAPI
+#' form <- system.file("RMS_CAPI_v2.xlsx", package = "IndicatorCalc")
 #' datalist <- fct_kobo_dummy(form,
 #'                        n = 384,
 #'                        file = NULL)
+#' # openxlsx::write.xlsx(datalist, here::here("inst", "dummy_RMS_CAPI_v2.xlsx"))
 #'
-#' ## Save this to use it for testing the package...
+#' form <- system.file("RMS_CAPI_v3.xlsx", package = "IndicatorCalc")
+#' datalist <- fct_kobo_dummy(form,
+#'                        n = 384,
+#'                        file = NULL)
+#' # openxlsx::write.xlsx(datalist, here::here("inst", "dummy_RMS_CAPI_v3.xlsx"))
 #'
-#' openxlsx::write.xlsx(datalist, here::here("inst", "demo_data.xlsx"))
+#' ## CATI
+#' form <- system.file("RMS_CATI_v0.xlsx", package = "IndicatorCalc")
+#' datalist <- fct_kobo_dummy(form,
+#'                        n = 384,
+#'                        file = NULL)
+#' # openxlsx::write.xlsx(datalist, here::here("inst", "dummy_RMS_CATI_v0.xlsx"))
+#'
+#' form <- system.file("RMS_CATI_v3.xlsx", package = "IndicatorCalc")
+#' datalist <- fct_kobo_dummy(form,
+#'                        n = 384,
+#'                        file = NULL)
+#' # openxlsx::write.xlsx(datalist, here::here("inst", "dummy_RMS_CATI_v3.xlsx"))
 fct_kobo_dummy <- function(form,
                        n = 384,
                        file){
@@ -53,6 +72,8 @@ fct_kobo_dummy <- function(form,
   conf <- data.frame(
       name <- dico[["variables"]] |>
         dplyr::filter(repeatvar ==  frame)  |> 
+        dplyr::filter(! is.na(name))  |> 
+        dplyr::filter(!(type %in% c("note", "begin_group", "end_group","begin_repeat", "end_repeat") ))  |> 
         dplyr::select(name),
       
       # dico[["variables"]]|>
@@ -60,11 +81,15 @@ fct_kobo_dummy <- function(form,
       #   dplyr::distinct(type)
       type <- dico[["variables"]]|>
         dplyr::filter(repeatvar ==  frame)  |> 
+        dplyr::filter(! is.na(name))  |> 
+        dplyr::filter(!(type %in% c("note", "begin_group", "end_group","begin_repeat", "end_repeat") ))  |>
         dplyr::select(type),
       
       ## pulling list options...
       list_opt <- dico[["variables"]] |>
         dplyr::filter(repeatvar ==  frame)  |> 
+        dplyr::filter(! is.na(name))  |> 
+        dplyr::filter(!(type %in% c("note", "begin_group", "end_group","begin_repeat", "end_repeat") ))  |>
         dplyr::select(list_name) ,
         #dplyr::left_join(modal, by = c("list_name")) |>
       #  dplyr::select( list_opt)
@@ -72,6 +97,8 @@ fct_kobo_dummy <- function(form,
       
       constraint <- dico[["variables"]]|>
         dplyr::filter(repeatvar ==  frame)  |> 
+        dplyr::filter(! is.na(name))  |> 
+        dplyr::filter(!(type %in% c("note", "begin_group", "end_group","begin_repeat", "end_repeat") ))  |>
         dplyr::select(constraint)
   )
   
@@ -89,7 +116,7 @@ fct_kobo_dummy <- function(form,
   
   ## then apply fct_var_dummy interactively... 
   for(i in (1:nrow(conf)) ) {
-   # i <- 6
+   # i <- 1
     cat(paste0(i, "-", conf[i, c("type")], "-", conf[i, c("name")],  "\n"))
   
   ## manage specific case when list name is not defined in ccoices but pulled from data..
@@ -99,7 +126,10 @@ fct_kobo_dummy <- function(form,
   this.listname <- conf[i , c("list_name")]
   this.constraint =  conf[i, c("constraint")] 
   
-  if( !(this.listname %in% c( dico[["modalities"]] |>  dplyr::pull(list_name))) ) { 
+  ## cas there's no list matching..
+  if( this.type %in% c("select_one", "select_multiple") & 
+      !(this.listname %in% c( dico[["modalities"]] |> 
+                              dplyr::pull(list_name))) ) { 
      this.listname <- NULL
      this.type <- "text"
      }
@@ -150,7 +180,10 @@ fct_kobo_dummy <- function(form,
         
                confrep <- data.frame(
                     name <- dico[["variables"]] |>
-                      dplyr::filter(repeatvar ==  rep)  |> 
+                      dplyr::filter(repeatvar ==  rep)  |>  
+                      dplyr::filter(! is.na(name))  |> 
+                      dplyr::filter(!(type %in% c("note", "begin_group",
+                                                  "end_group","begin_repeat", "end_repeat") ))  |>
                       dplyr::select(name),
                     
                     # dico[["variables"]]|>
@@ -158,11 +191,17 @@ fct_kobo_dummy <- function(form,
                     #   dplyr::distinct(type)
                     type <- dico[["variables"]]|>
                       dplyr::filter(repeatvar ==  rep)  |> 
+                      dplyr::filter(! is.na(name))  |> 
+                      dplyr::filter(!(type %in% c("note", "begin_group",
+                                                  "end_group","begin_repeat", "end_repeat") ))  |>
                       dplyr::select(type),
                     
                     ## pulling list options...
                     list_opt <- dico[["variables"]] |>
                       dplyr::filter(repeatvar ==  rep)  |> 
+                      dplyr::filter(! is.na(name))  |> 
+                      dplyr::filter(!(type %in% c("note", "begin_group",
+                                                  "end_group","begin_repeat", "end_repeat") ))  |>
                       dplyr::select(list_name) ,
                       #dplyr::left_join(modal, by = c("list_name")) |>
                     #  dplyr::select( list_opt)
@@ -170,6 +209,9 @@ fct_kobo_dummy <- function(form,
                     
                     constraint <- dico[["variables"]]|>
                       dplyr::filter(repeatvar ==  rep)  |> 
+                      dplyr::filter(! is.na(name))  |> 
+                      dplyr::filter(!(type %in% c("note", "begin_group",
+                                                  "end_group","begin_repeat", "end_repeat") ))  |>
                       dplyr::select(constraint)
                   )
             
@@ -200,7 +242,9 @@ fct_kobo_dummy <- function(form,
             this.listname <- confrep[i , c("list_name")]
             this.constraint =  confrep[i, c("constraint")] 
             
-            if( !(this.listname %in% c( dico[["modalities"]] |>  dplyr::pull(list_name))) ) { 
+            if(this.type %in% c("select_one", "select_multiple") & 
+              !(this.listname %in% c( dico[["modalities"]] |>  
+                                      dplyr::pull(list_name))) ) { 
                this.listname <- NULL
                this.type <- "text"
                }

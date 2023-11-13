@@ -4,28 +4,12 @@
 \alias{impact_2_2}
 \title{impact_2_2}
 \usage{
-impact_2_2(
-  datalist,
-  mapper = list(hierarchy = "main", variablemap = data.frame(label =
-    c("Access to shelter", "Access to electricity", "Access to drinking water",
-    "Access to  healthcare"), variable = c("shelter", "electricity", "drinkingwater",
-    "healthcare"), mappattern = c("shelter", "electricity", "drinkingwater",
-    "healthcare")), modalitymap = data.frame(variable = c("shelter", "shelter",
-    "electricity", "electricity", "drinkingwater", "drinkingwater", "healthcare",
-    "healthcare"), label = c("Yes", "No", "Yes", "No", "Yes", 
-     "No", "Yes", "No"),
-    standard = c("1", "0", "1", "0", "1", "0", "1", "0"), map = c("1", "0", "1", "0",
-    "1", "0", "1", "0")))
-)
+impact_2_2(datalist)
 }
 \arguments{
 \item{datalist}{A list with all hierarchical data frame for a survey data set.
 format is expected to match the Excel export synchronized from kobo to RILD
 and loaded with  kobocruncher::kobo_data()}
-
-\item{mapper}{a list providing the mapping of the variables used for the
-calculation - this mapper is potentially to be adjusted in relation with deviation
-between the the standard XlsForm and the contextualized dataset}
 }
 \value{
 new calculated variable - appended or not...
@@ -38,7 +22,92 @@ settlements with access to basic facilities}
 Once electricity, healthcare, drinking water and adequate shelter are
 calculated, check the values for each variable before,
 calculating 2.2 impact indicator.
+}
+\section{inter_electricity}{
+Households lighting provides a sense of safety and security within and outside
+the households after sunset.
 
+If households lack access to electricity, especially for lighting and
+connectivity, this affects the occupants' security and limits their
+opportunities for socialization, learning and self-reliance.
+
+\strong{Numerator}: Population with access to electricity, especially for lighting
+and connectivity
+
+\strong{Denominator}: Total population
+
+\strong{Formula}: \emph{LIGHT01} = 1 & \emph{LIGHT03} != 1, 96, 98
+}
+
+\section{inter_healthcare}{
+Access to healthcare depends on availability of healthcare, including physical
+reach, acceptability and affordability for all.
+For this indicator, the focus is on the availability of healthcare system.
+According to \href{https://spherestandards.org/wp-content/uploads/Sphere-Handbook-2018-EN.pdf}{The Sphere Handbook},
+primary healthcare facility should be accessible within one hour's walk from dwellings.
+\strong{Numerator}: Population that can reach a primary healthcare facility within one hour from dwellings
+\strong{Denominator}: Total population
+\strong{Formula}: \emph{HEA01} != 96, 98 & \emph{HEA03} <= 60
+(reachable within one hour/60 minutes)
+}
+
+\section{inter_drinkingwater}{
+Access to clean drinking water is essential for a person's survival and well
+being and a precursor for achieving protection outcomes related to health,
+education and economic developed.
+The calculation for access drinking water is linked to SGD Indicator
+\href{https://unstats.un.org/sdgs/metadata/files/Metadata-06-01-01.pdf}{6.1.1}.
+The questionnaire module and the analysis guidance is taken from \href{https://mics.unicef.org/tools#analysis}{UNICEF MICS6}.
+
+\strong{Numerator}: Population using improved sources of drinking water either in their dwelling/yard/plot or within 30 minutes round trip collection time
+
+\strong{Denominator}: Total population
+
+\strong{Formula}:
+\emph{DWA03} < 30 (under 30 minutes), &
+\emph{DWA01} != 7,9,13,96,98 &
+\emph{DWA02} != 3
+
+This basic service is calculated from the main dataset
+There are three conditions as below  improved source,
+in dwelling/yard/plot and reachable under 30 minutes
+}
+
+\section{inter_shelter}{
+The right to access adequate housing is protected by international law.
+The concept of "adequacy" means that housing is more than four walls and a
+roof as indicated in \href{https://spherestandards.org/wp-content/uploads/Sphere-Handbook-2018-EN.pdf}{The Sphere Handbook}.
+Habitable housing primarily refers to the fact that the housing should provide
+protection from cold, damp, heat, rain, wind, and other threats to health,
+structural hazards, and disease vectors and it should not be overcrowded.
+As shelter/housing is primarily a contextual element, there may be
+discrepancies from country to country on how this data is measured.
+
+Adequate shelter is measured based on having improved material for the
+dwelling as indicated in \href{https://dhsprogram.com/pubs/pdf/AS61/AS61.pdf}{DHS}
+publication on housing conditions which is also used by \href{https://mics.unicef.org/tools}{MICS6}.
+
+Overcrowding is also used which occurs if there are more than three people
+per habitable room as defined by \href{https://www.ncbi.nlm.nih.gov/books/NBK535289/table/ch3.tab2/}{UN-Habitat}.
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{**Numerator**: Population that have access to adequate housing
+**Denominator**: Total population
+}\if{html}{\out{</div>}}
+
+\strong{Formula}:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{ *DWE01* = 1,2 &
+ *DWE02* = 3,4,5,6,7,8,9 & 
+ *DWE03* = 8,9,10,11,12,13 & 
+ *DWE04* = 10,11,12,13,14,15 & 
+ crowding (*HH01*/*DWE05*) \\<= 3
+}\if{html}{\out{</div>}}
+
+Adequate shelter is calculated from the main dataset
+classify as habitable when improved/adequate shelter
+}
+
+\section{Compile alll}{
 Once all variables are correctly calculated, we can compute the final
 variable for impact 2.2 indicator.
 \strong{Numerator}: Population residing in physically safe and secure settlements with access to basic facilities
@@ -47,185 +116,50 @@ variable for impact 2.2 indicator.
 
 Impact 2.2 is "1" if all services above are accessible
 }
+
 \examples{
-datalist <- kobocruncher::kobo_data( system.file("test.xlsx",
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
+## Apply calculation
+datalist <-  impact_2_2(datalist)
 
-#Healthcare
-mapper <-  list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c(
-  "In general, when anyone in your household is sick, 
-   where do they go to seek care?",
-  "How long does it take to go there when you use the mode of transport 
-  that you mentioned above?"),
-              variable = c("HEA01", 
-                           "HEA03"),
-              mappattern = c("HEA01", 
-                           "HEA03") ),
-            modalitymap = data.frame(
-              variable = c( "HEA01", "HEA01" ),
-              label = c(  "Other, specify", "Don't know"),
-              standard = c("96", "98" ),
-              map = c("96", "98" )))
-
-datalist <- inter_healthcare(datalist, mapper )
-
-## Electricity
-mapper <- list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-       "What source of electricity is used most of the time in this household?"),
-              variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
-                           "LIGHT03") ),
-            modalitymap = data.frame(
-              variable = c( "LIGHT01", 
-                            "LIGHT03", "LIGHT03", "LIGHT03"),
-              label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
-              standard = c( "1",
-                           "1", "96", "98"),
-              map = c("yes",
-                      "1", "96", "98"))) 
-
-datalist <- inter_electricity( datalist =datalist, mapper = mapper  )
-
-## Drinking Water
-## in the contextualised form - DWA03a has been skipped and all results are in min... 
-## only manual transformation can adjust this before we use the mapper..
-
-datalist[["main"]]$DWA03a  <- "1" 
-
-datalist[["main"]]$DWA03b <- 
-  datalist[["main"]]$VulnerabilityScoring.BasicNeeds.DWA03
-
-# now the mapper
-mapper <-  list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c(
-               "What is the main source of drinking water for this household?",
-               "Where is this source located?",
-               "Unit used to measure time to access",
-               "How long does it take to go there, get water, and come back,
-                including waiting time?"),
-              variable = c("DWA01", 
-                           "DWA02", 
-                           "DWA03a", 
-                           "DWA03b" ),
-              mappattern = c("DWA01", 
-                           "DWA02", 
-                           "DWA03a", 
-                           "DWA03b" ) ),
-            modalitymap = data.frame(
-             variable = c("DWA01",  "DWA01", "DWA01","DWA01",  "DWA01", 
-                   "DWA02","DWA02", "DWA02",
-                   "DWA03a","DWA03a"),
-             label = c( 
-                ##DWA01
-                "Unprotected Dug Well", 
-                "Unprotected Spring",
-                "Surface Water (River, Stream, Pond, Dam, Canal)",
-                "Other, specify",
-                "Don't know",
-                ##DWA02
-                "In Own Dwelling", 
-                "In Own Yard/Plot",
-                "Elsewhere",
-                ## DWA03a
-                "Minutes", 
-                "Hours"    ),
-             standard = c( "7", "9", "13", "96", "98",
-                           "1", "2", "3",
-                           "1", "2"),
-             map = c( "7", "9", "13", "96", "98",
-                       "1", "2", "3",
-                        "1", "2") ) 
-         )
-  
-datalist <- inter_drinkingwater(datalist, mapper )
-
-##Shelter
-mapper <- list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c(
-                "What type of dwelling does the household live in?",
-"Main material of the dwelling floor",
-"Main material of the roof",
-"Main material of the exterior walls",
-"How many separate rooms do the members of your household occupy?",
-"What is the total number of persons in this household?"),
-              variable = c("DWE01","DWE02","DWE03","DWE04","DWE05", 
-                           "HH01"),
-              mappattern = c("DWE01","DWE02","DWE03","DWE04","DWE05", 
-                           "progres_groupsize") ),
-            modalitymap = data.frame(
-              variable = c( "DWE01","DWE01",
-                            "DWE02","DWE02","DWE02",
-                            "DWE03","DWE03","DWE03","DWE03","DWE03","DWE03",
-                            "DWE04","DWE04","DWE04","DWE04","DWE04","DWE04"),
-              label = c(  "Apartment", "House", # DWE01
-                         "Earth/sand", "Dung", "Other (Specify)", #DWE02
-                         
-                         "Metal/tin", "Wood", "Calamine/Cement fibre", 
-                         "Ceramic tiles", "Cement", "Roofing shingles",#DWE03
-                         
-                         "Cement", "Stone with lime/ cement", "Bricks", 
-                         "Cement blocks", "Covered adobe", "Wood planks/shingles" # DWE04
-                         ),
-              standard = c( "1","2",
-                           "1", "2","96",
-                           "8","9","10","11","12","13",
-                           "10","11","12","13","14","15"),
-              map = c("1","2",
-                           "1", "2","96",
-                           "8","9","10","11","12","13",
-                           "10","11","12","13","14","15"))) 
-## Calculate
-datalist <-  inter_shelter(datalist, mapper)
-
-## and now impact
-
-mapper <-   list(
-            hierarchy = "main",
-            variablemap = data.frame(
-              label = c("Access to shelter", 
-                        "Access to electricity", 
-                         "Access to drinking water", 
-                         "Access to  healthcare"),
-              variable = c("shelter", 
-                           "electricity", 
-                           "drinkingwater", 
-                           "healthcare"),
-              mappattern = c("shelter", 
-                           "electricity", 
-                           "drinkingwater", 
-                           "healthcare") ),
-            modalitymap = data.frame(
-              variable = c( "shelter", "shelter",
-                           "electricity",  "electricity", 
-                           "drinkingwater", "drinkingwater", 
-                           "healthcare","healthcare"),
-              label = c( "Yes","No",
-                       "Yes","No",
-                       "Yes","No",
-                       "Yes","No"),
-              standard = c( "1","0",
-                           "1","0",
-                           "1","0",
-                           "1","0"),
-              map = c("1","0",
-                           "1","0",
-                           "1","0",
-                           "1","0")))
- 
-datalist <-  impact_2_2(datalist, mapper)
+table(datalist[["main"]]$impact2_2, useNA = "ifany")
 
 fct_plot_indic_donut(indicator = datalist[["main"]]$impact2_2,
                      iconunicode = "f140") 
+
+
+## Can get the details as well
+
+table(datalist[["main"]]$electricity, useNA = "ifany")
+fct_plot_indic_donut(indicator = datalist[["main"]]$electricity,
+                     iconunicode = "f0e7") 
+
+table(datalist[["main"]]$healthcare, useNA = "ifany")
+fct_plot_indic_donut(indicator = datalist[["main"]]$healthcare,
+                     iconunicode = "f479") 
+
+ 
+table(datalist[["main"]]$drinkingwater, useNA = "ifany")
+fct_plot_indic_donut(indicator = datalist[["main"]]$drinkingwater,
+                     iconunicode = "e006") 
+
+## Check intermediary variables
+table(datalist[["main"]]$dwa_cond1, useNA = "ifany")
+table(datalist[["main"]]$reachableU30, useNA = "ifany")
+table(datalist[["main"]]$DWA02, useNA = "ifany")
+table(datalist[["main"]]$dwa_cond2, useNA = "ifany")
+
+# Tabulate
+table(datalist[["main"]]$dwe01_cat, useNA = "ifany")
+table(datalist[["main"]]$dwe02_cat, useNA = "ifany")
+table(datalist[["main"]]$dwe03_cat, useNA = "ifany")
+table(datalist[["main"]]$dwe04_cat, useNA = "ifany")
+table(datalist[["main"]]$dwe05_cat, useNA = "ifany")
+table(datalist[["main"]]$shelter, useNA = "ifany")
+#plot
+fct_plot_indic_donut(datalist[["main"]]$shelter,
+                     iconunicode = "e54f") 
+
 }

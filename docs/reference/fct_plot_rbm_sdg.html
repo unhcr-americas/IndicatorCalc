@@ -13,7 +13,7 @@ survey. It pulls the values published within the UN Registry of SDG Indicator va
 The function includes a mapping table between RBM/RMS and SDG and
 extract the data from https://unstats.un.org/SDGAPI/swagger/ using the package SDGsR
 https://drmattg.github.io/SDGsR/articles/Introduction_to_SDGsR.html
-devtools::install_github("DrMattG/SDGsR", dependencies = TRUE)'><meta property="og:image" content="/logo.png"><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
+devtools::install_github("DrMattG/SDGsR", dependencies = TRUE)'><!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
 <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
 <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
 <![endif]--></head><body>
@@ -38,6 +38,7 @@ devtools::install_github("DrMattG/SDGsR", dependencies = TRUE)'><meta property="
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
+    <a class="dropdown-item" href="../articles/indicators-calculation-functions.html">Indicators calculation functions</a>
     <a class="dropdown-item" href="../articles/utilities.html">Utilities</a>
   </div>
 </li>
@@ -60,7 +61,7 @@ devtools::install_github("DrMattG/SDGsR", dependencies = TRUE)'><meta property="
 </nav><div class="container template-reference-topic">
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>Plot SDG Indicator for a country</h1>
+      <img src="" class="logo" alt=""><h1>Plot SDG Indicator for a country</h1>
       <small class="dont-index">Source: <a href="https://github.com/unhcr-americas/IndicatorCalc/blob/HEAD/R/fct_plot_rbm_sdg.R" class="external-link"><code>R/fct_plot_rbm_sdg.R</code></a></small>
       <div class="d-none name"><code>fct_plot_rbm_sdg.Rd</code></div>
     </div>
@@ -104,21 +105,11 @@ devtools::install_github("DrMattG/SDGsR", dependencies = TRUE)</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">fct_plot_rbm_sdg</span><span class="op">(</span> country <span class="op">=</span> <span class="st">"BRA"</span>, </span></span>
-<span class="r-in"><span>          rbm <span class="op">=</span> <span class="st">"impact2_2"</span>,</span></span>
-<span class="r-in"><span>          years <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2000</span>, <span class="fl">2022</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
-<span class="r-in"><span>        <span class="fu">unhcrthemes</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/unhcrthemes/man/theme_unhcr.html" class="external-link">theme_unhcr</a></span><span class="op">(</span>font_size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span> </span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Loading required package: ggplot2</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Loading required package: dplyr</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Attaching package: ‘dplyr’</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> The following objects are masked from ‘package:stats’:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     filter, lag</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> The following objects are masked from ‘package:base’:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     intersect, setdiff, setequal, union</span>
-<span class="r-plt img"><img src="fct_plot_rbm_sdg-1.png" alt="" width="700" height="433"></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># fct_plot_rbm_sdg( country = "BRA", </span></span></span>
+<span class="r-in"><span><span class="co">#           rbm = "impact2_2",</span></span></span>
+<span class="r-in"><span><span class="co">#           years = c(2000, 2022)) +</span></span></span>
+<span class="r-in"><span><span class="co">#         unhcrthemes::theme_unhcr(font_size = 10) </span></span></span>
+<span class="r-in"></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>

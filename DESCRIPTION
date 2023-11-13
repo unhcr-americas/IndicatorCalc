@@ -22,9 +22,11 @@ Imports:
     ggtext,
     glue,
     golem,
+    grid,
     janitor,
     kobocruncher,
     labelled,
+    openxlsx2,
     plyr,
     purrr,
     readxl,
@@ -39,6 +41,7 @@ Imports:
     sjlabelled,
     sjmisc,
     stats,
+    stringdist,
     stringr,
     sysfonts,
     systemfonts,
@@ -50,13 +53,10 @@ Imports:
     utils,
     withr
 Suggests: 
-    here,
-    knitr,
-    openxlsx,
-    testthat
+    knitr
 VignetteBuilder: 
     knitr
-Remotes: 
+Remotes:
     edouard-legoupil/kobocruncher,
     edouard-legoupil/riddle,
     edouard-legoupil/unhcrshiny,

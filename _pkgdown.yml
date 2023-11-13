@@ -6,11 +6,11 @@ reference:
 - title: Impact
   desc: Calculation for Impact Indicators
 - contents:
-  - starts_with("impact_")
+  - starts_with("impact")
 - title: Outcome
   desc: Calculation for Outcome Indicators
   contents:
-  - starts_with("outcome_")
+  - starts_with("outcome")
 - title: Intermediate
   desc: Calculation for Intermediate Variables
   contents:

@@ -2,29 +2,57 @@ indicators.Rmd:
   path: dev/indicators.Rmd
   state: active
   R:
-  - R/fct_check_map.R
-  - R/fct_get_all_variable_names.R
-  - R/fct_plot_indic_donut.R
-  - R/fct_re_map.R
   - R/impact_2_2.R
-  - R/inter_drinkingwater.R
-  - R/inter_electricity.R
-  - R/inter_healthcare.R
-  - R/inter_shelter.R
+  - R/impact2_3.R
+  - R/impact3_2a.R
+  - R/impact3_2b.R
+  - R/impact3_3.R
+  - R/outcome1_2.R
+  - R/outcome1_3.R
+  - R/outcome10_1.R
+  - R/outcome10_2.R
+  - R/outcome12_1.R
+  - R/outcome12_2.R
+  - R/outcome13_1.R
+  - R/outcome13_2.R
+  - R/outcome13_3.R
+  - R/outcome14_1.R
+  - R/outcome16_1.R
+  - R/outcome16_2.R
+  - R/outcome4_1.R
+  - R/outcome4_2.R
+  - R/outcome5_2.R
+  - R/outcome8_2.R
+  - R/outcome9_1.R
+  - R/outcome9_2.R
   tests:
-  - tests/testthat/test-fct_check_map.R
-  - tests/testthat/test-fct_get_all_variable_names.R
-  - tests/testthat/test-fct_re_map.R
-  - tests/testthat/test-fct_plot_indic_donut.R
-  - tests/testthat/test-inter_electricity.R
-  - tests/testthat/test-inter_healthcare.R
-  - tests/testthat/test-inter_drinkingwater.R
-  - tests/testthat/test-inter_shelter.R
   - tests/testthat/test-impact_2_2.R
-  vignettes: vignettes/development.Rmd
+  - tests/testthat/test-impact2_3.R
+  - tests/testthat/test-impact3_2a.R
+  - tests/testthat/test-impact3_2b.R
+  - tests/testthat/test-impact3_3.R
+  - tests/testthat/test-outcome1_2.R
+  - tests/testthat/test-outcome1_3.R
+  - tests/testthat/test-outcome4_1.R
+  - tests/testthat/test-outcome4_2.R
+  - tests/testthat/test-outcome5_2.R
+  - tests/testthat/test-outcome8_2.R
+  - tests/testthat/test-outcome9_1.R
+  - tests/testthat/test-outcome9_2.R
+  - tests/testthat/test-outcome10_1.R
+  - tests/testthat/test-outcome10_2.R
+  - tests/testthat/test-outcome12_1.R
+  - tests/testthat/test-outcome12_2.R
+  - tests/testthat/test-outcome13_1.R
+  - tests/testthat/test-outcome13_2.R
+  - tests/testthat/test-outcome13_3.R
+  - tests/testthat/test-outcome14_1.R
+  - tests/testthat/test-outcome16_1.R
+  - tests/testthat/test-outcome16_2.R
+  vignettes: vignettes/indicators-calculation-functions.Rmd
   inflate:
     flat_file: dev/indicators.Rmd
-    vignette_name: Development
+    vignette_name: Indicators calculation functions
     open_vignette: true
     check: true
     document: true
@@ -33,6 +61,8 @@ utilities.Rmd:
   path: dev/utilities.Rmd
   state: active
   R:
+  - R/fct_build_map.R
+  - R/fct_build_requirement.R
   - R/fct_check_map.R
   - R/fct_compass_table.R
   - R/fct_get_all_variable_names.R
@@ -43,15 +73,17 @@ utilities.Rmd:
   - R/fct_var_dummy.R
   - R/fct_var_mapping.R
   tests:
-  - tests/testthat/test-fct_var_mapping.R
-  - tests/testthat/test-fct_check_map.R
-  - tests/testthat/test-fct_get_all_variable_names.R
-  - tests/testthat/test-fct_re_map.R
-  - tests/testthat/test-fct_plot_indic_donut.R
   - tests/testthat/test-fct_var_dummy.R
   - tests/testthat/test-fct_kobo_dummy.R
+  - tests/testthat/test-fct_var_mapping.R
+  - tests/testthat/test-fct_build_map.R
+  - tests/testthat/test-fct_get_all_variable_names.R
+  - tests/testthat/test-fct_re_map.R
+  - tests/testthat/test-fct_check_map.R
+  - tests/testthat/test-fct_plot_indic_donut.R
   - tests/testthat/test-fct_plot_rbm_sdg.R
   - tests/testthat/test-fct_compass_table.R
+  - tests/testthat/test-fct_build_requirement.R
   vignettes: vignettes/utilities.Rmd
   inflate:
     flat_file: dev/utilities.Rmd

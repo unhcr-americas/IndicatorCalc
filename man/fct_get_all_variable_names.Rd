@@ -24,3 +24,4 @@ datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx",
 varname <-   fct_get_all_variable_names(datalist = datalist)
 head(varname, 10)
 }
+\keyword{internal}

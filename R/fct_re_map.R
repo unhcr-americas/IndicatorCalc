@@ -49,12 +49,42 @@
 #'              )
 #' datalist <- fct_re_map(datalist = datalist, mapper = mapper )
 #'
-#' fct_check_map(datalist = datalist, mapper = mapper )
-#'  
+#' #fct_check_map(datalist = datalist, mapper = mapper )
+#'
+#' ## Now testing on a full remap...
+#' ## Dummy data created with fct_kobo_dummy
+#' datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2.xlsx",
+#'                                                  package = "IndicatorCalc"))
+#'
+#' ## Mapping file created from Dummy data  
+#' mappingfile <- system.file("RMS_CAPI_v2_mapping.xlsx", 
+#'                            package = "IndicatorCalc")
+#'
+#' IndicatorRequirementFile <- system.file("RMS_CAPI_v2_mapper.xlsx", 
+#'                            package = "IndicatorCalc")
+#'
+#' ## and now we remap both required variables for main and ind
+#' mappermain <- fct_build_map(mappingfile = mappingfile, 
+#'                             IndicatorRequirementFile = IndicatorRequirementFile,
+#'                             thisMeasureLevel = "main")
+#' datalist <- fct_re_map(datalist = datalist, mapper = mappermain )
+#'
+#' mapperind <- fct_build_map(mappingfile = mappingfile, 
+#'                             IndicatorRequirementFile = IndicatorRequirementFile,
+#'                            thisMeasureLevel = "ind")
+#' datalist <- fct_re_map(datalist = datalist, mapper = mapperind )
+#'
+#'
+#'
+#' ## Writing this in the installation folder of the packages to run all examples
+#' # openxlsx::write.xlsx( list ( main = as.data.frame(datalist[["main"]]),
+#' #                              ind = as.data.frame(datalist[["ind"]]) ), 
+#' #                       here::here("inst","dummy_RMS_CAPI_v2_mapped.xlsx"))
 #'
 fct_re_map <- function(datalist, mapper){
   
    varname <-   fct_get_all_variable_names(datalist)
+
    ## Loop around the variables within mapper
    for ( i in 1:nrow(mapper[["variablemap"]]) ) {
      # i <- 4 
@@ -104,7 +134,6 @@ fct_re_map <- function(datalist, mapper){
     rm(thisvar, newlev)
      }
    }
-  
    return(datalist)
     
 }

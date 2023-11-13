@@ -167,7 +167,7 @@ fct_var_dummy <- function( frame,
      }
 
      ## date ###########   
-     if( type %in% c("date",  "start ", "end")) {
+     if( type %in% c("date",  "start", "end")) {
       res <- dplyr::tibble(
         thisvar  = Sys.time() - abs(rnorm(n, 0, sd = 2) * 365 * 24 * 3600))
       ## Now rename the variable

@@ -137,11 +137,7 @@ pkgload::load_all(export_all = FALSE)
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
+#'                                           
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -152,32 +148,29 @@ pkgload::load_all(export_all = FALSE)
 impact_2_2 <- function(datalist ){
   
   ## Mapper 
-  mapper = list(
+mapper = list(
            hierarchy = "main",
           variablemap = data.frame(
             label = 
-c("1. In general, when anyone in your household is sick, where do they go to seek care?", 
+c("1. When anyone in your household is sick, where do they go to seek care?", 
 "2. How do you reach this facility if you need to seek care?", 
 "3. How long does it take to go there when you use the mode of transport that you mentioned above?", 
 "4. Does this household use anything for lighting?", "5. What does this household use most of the time as energy for lighting, or as a light source?", 
 "6. What source of electricity is used most of the time in this household?", 
 "1. What is the main source of drinking water for this household?", 
-"2. Where is this ${source} - ${source2} located?", "3. How long does it take to go there, get water, and come back, including waiting time?", 
+"2. Where is this ${source} - ${source2} located?", "Unit", "Time", 
 "4. In the last 30 days, has there been any time when your household did not have sufficient quantities of drinking water when needed?", 
-"1.What type of dwelling does the household live in?", "2. Please observe if the door is lockable ?", 
-"3. Please observe if windows are lockable ?", "4. Please observe if shelter collapsed or partially collapsed ?", 
-"5. Please observe if the roof is damaged?", "6. Please observe if windows/doors are sealed to natural elements ?", 
-"7. Please observe if there is a leakage /rottenness in the walls / floors?", 
-"8. In the last 12 months, has your neighbourhood experienced flooding for more than 7 consecutive days?        ", 
-"9. Are there any known landmines or unexploded ordnance reported in your neighbourhood's vicinity?            ", 
-"10. How many separate rooms do the members of your household occupy?"
+"1.What type of dwelling does the household live in?", "2. Main material of the dwelling floor", 
+"3. Main material of the roof.", "4. Main material of the exterior walls", 
+"5. How many separate rooms do the members of your household occupy?", 
+"8. Does your household pay any rent?", "9. Can your household generally afford to pay the rent without any major financial distress?", 
+"What is the total number of persons in this household ? (including the respondent)"
 )
               ,
             variable =  
 c("HEA01", "HEA02", "HEA03", "LIGHT01", "LIGHT02", "LIGHT03", 
-"DWA01", "DWA02", "DWA03", "DWA04", "DWE01", "SHEL01", "SHEL02", 
-"SHEL03", "SHEL04", "SHEL05", "SHEL06", "RISK01", "RISK02", "DWE05"
-)
+"DWA01", "DWA02", "DWA03a", "DWA03b", "DWA04", "DWE01", "DWE02", 
+"DWE03", "DWE04", "DWE05", "DWE08", "DWE09", "HH01")
               ),
           modalitymap = data.frame(
             variable =  
@@ -185,17 +178,20 @@ c("HEA01", "HEA01", "HEA01", "HEA01", "HEA01", "HEA01", "HEA01",
 "HEA02", "HEA02", "HEA02", "HEA02", "HEA03", "LIGHT01", "LIGHT01", 
 "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", 
 "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", 
-"LIGHT02", "LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", 
-"LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", "DWA01", 
+"LIGHT02", "LIGHT02", "LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", 
+"LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", 
 "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", 
 "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", 
-"DWA01", "DWA01", "DWA01", "DWA02", "DWA02", "DWA02", "DWA03", 
-"DWA04", "DWA04", "DWE01", "DWE01", "DWE01", "DWE01", "DWE01", 
-"DWE01", "DWE01", "DWE01", "DWE01", "SHEL01", "SHEL01", "SHEL01", 
-"SHEL02", "SHEL02", "SHEL02", "SHEL03", "SHEL03", "SHEL03", "SHEL04", 
-"SHEL04", "SHEL04", "SHEL05", "SHEL05", "SHEL05", "SHEL06", "SHEL06", 
-"SHEL06", "RISK01", "RISK01", "RISK02", "RISK02", "RISK02", "DWE05"
-)
+"DWA01", "DWA01", "DWA01", "DWA01", "DWA02", "DWA02", "DWA02", 
+"DWA03a", "DWA03a", "DWA03b", "DWA04", "DWA04", "DWE01", "DWE01", 
+"DWE01", "DWE01", "DWE01", "DWE01", "DWE01", "DWE01", "DWE01", 
+"DWE01", "DWE02", "DWE02", "DWE02", "DWE02", "DWE02", "DWE02", 
+"DWE02", "DWE02", "DWE02", "DWE02", "DWE03", "DWE03", "DWE03", 
+"DWE03", "DWE03", "DWE03", "DWE03", "DWE03", "DWE03", "DWE03", 
+"DWE03", "DWE03", "DWE03", "DWE03", "DWE04", "DWE04", "DWE04", 
+"DWE04", "DWE04", "DWE04", "DWE04", "DWE04", "DWE04", "DWE04", 
+"DWE04", "DWE04", "DWE04", "DWE04", "DWE04", "DWE04", "DWE05", 
+"DWE08", "DWE08", "DWE09", "DWE09", "DWE09", "DWE09", "HH01")
                ,
             label =  
 c("NGO facility (charity, faith-based organization)", "UNHCR Health Partner (Caritas, Save the Children)", 
@@ -203,10 +199,10 @@ c("NGO facility (charity, faith-based organization)", "UNHCR Health Partner (Car
 "Pharmacy", "Other, specify", "Don't know", "By walk", "Private car", 
 "Public transport (bus, boat)", "Other, specify", NA, "Yes", 
 "No", "Electricity (including solar mini-grids, hybrid mini-grids and national grid)", 
-"Solar home system", "Solar-powered lantern or flashlight", "Rechargeable flashlight, mobile, torch or lantern", 
-"Battery powered flashlight, torch or lantern", "Biogas lamp", 
-"LPG lamp", "Gasoline lamp", "Kerosene or paraffin lamp", "Oil lamp", 
-"Candle", "Open fire", "Other, specify", "No electricity in household", 
+"Electricity (from diesel generator)", "Solar home system", "Solar-powered lantern or flashlight", 
+"Rechargeable flashlight, mobile, torch or lantern", "Battery powered flashlight, torch or lantern", 
+"Biogas lamp", "LPG lamp", "Gasoline lamp", "Kerosene or paraffin lamp", 
+"Oil lamp", "Candle", "Open fire", "Other, specify", "No electricity in household", 
 "National grid connection from [COMPANY]", "Local mini grid", 
 "Solar home system", "Solar lantern", "Electric generator", "Rechargeable battery", 
 "Dry cell battery / torch", "Other, specify", "Don't know", "Piped Into Dwelling", 
@@ -216,135 +212,192 @@ c("NGO facility (charity, faith-based organization)", "UNHCR Health Partner (Car
 "Tanker Truck/Water Vendor", "Cart With Small Tank/Drum", "Surface Water (River, Stream, Pond, Dam, Canal)", 
 "Bottled Water", "Sachet Water", "Water Kiosk", "Other (Specify)", 
 "Don't Know", "In Own Dwelling", "In Own Yard/Plot", "Elsewhere", 
-NA, "Yes", "No", "House", "Tent", "Caravan", "Collective Center", 
-"Worksite/Unfinished Home/ Abandoned Building", "Farm Building", 
-"School, mosque, church or other religious building", "Garage, shop, workshop, or other structure not meant as residential space", 
-"Other (Specify)", "Yes", "No", "Not possible to observe", "Yes", 
-"No", "Not possible to observe", "Yes", "No", "Not possible to observe", 
-"Yes", "No", "Not possible to observe", "Yes", "No", "Not possible to observe", 
-"Yes", "No", "Not possible to observe", "Yes", "No", "Yes", "No", 
-"Don't know", NA)
+"Minutes", "Hours", NA, "Yes", "No", "Apartment", "House", "Tent", 
+"Caravan", "Collective Center", "Worksite/Unfinished Home/ Abandoned Building", 
+"Farm Building", "School, mosque, church or other religious building", 
+"Garage, shop, workshop, or other structure not meant as residential space", 
+"Other (Specify)", "Earth/sand", "Dung", "Wood planks", "Palm/bamboo", 
+"Parquet or polished wood", "Vinyl or asphalt strips", "Ceramic tiles", 
+"Cement", "Carpet", "Other (Specify)", "No roof", "Thatch/Palm leaf", 
+"Sod", "Rustic mat", "Palm/bamboo", "Wood planks", "Cardboard", 
+"Metal/tin", "Wood", "Calamine/Cement fibre", "Ceramic tiles", 
+"Cement", "Roofing shingles", "Other (Specify)", "No walls", 
+"Cane/Palm/ Trunks", "Dirt", "Bamboo with mud", "Stone with mud", 
+"Uncovered adobe", "Plywood", "Cardboard", "Reused wood", "Cement", 
+"Stone with lime/ cement", "Bricks", "Cement blocks", "Covered adobe", 
+"Wood planks/shingles", "Other (Specify)", NA, "Yes", "No", "Always", 
+"Often", "Sometimes", "Never", NA)
                ,
             standard =  
 c("1", "2", "3", "4", "5", "96", "98", "1", "2", "3", "96", NA, 
 "1", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", 
-"11", "12", "96", "0", "1", "2", "3", "4", "5", "6", "7", "96", 
-"98", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", 
-"12", "13", "14", "15", "16", "96", "98", "1", "2", "3", NA, 
-"1", "0", "2", "3", "4", "5", "6", "7", "8", "9", "96", "1", 
-"0", "98", "1", "0", "98", "1", "0", "98", "1", "0", "98", "1", 
-"0", "98", "1", "0", "98", "1", "0", "1", "0", "98", NA)
+"11", "12", "13", "96", "1", "2", "3", "4", "5", "6", "7", "8", 
+"96", "98", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", 
+"11", "12", "13", "14", "15", "16", "96", "98", "1", "2", "3", 
+"1", "2", NA, "1", "0", "1", "2", "3", "4", "5", "6", "7", "8", 
+"9", "96", "1", "2", "3", "4", "5", "6", "7", "8", "9", "96", 
+"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", 
+"13", "96", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", 
+"11", "12", "13", "14", "15", "96", NA, "1", "0", "1", "2", "3", 
+"4", NA)
               ))
-  
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Impact 2.2")
   } else {
 
     ## now pull the calculation...
   
   ## Electricity ########
-  datalist[["main"]]$electricity <-  dplyr::case_when(datalist[["main"]]$LIGHT01=="1" & 
-                       (datalist[["main"]]$LIGHT03!="1" | 
-                        datalist[["main"]]$LIGHT03!="96" |
-                        datalist[["main"]]$LIGHT03!="98")  ~ "1", 
-                     TRUE ~ "0" )
+  datalist[["main"]]$electricity <-  dplyr::case_when(
+    datalist[["main"]]$LIGHT01 == 1 & 
+                       (as.integer(datalist[["main"]]$LIGHT03) != 1 | 
+                        as.integer(datalist[["main"]]$LIGHT03)!= 96 |
+                        as.integer(datalist[["main"]]$LIGHT03) != 98)  ~ 1, 
+                     TRUE ~ 0 )
  
   datalist[["main"]]$electricity <- labelled::labelled(  
                             datalist[["main"]]$electricity,
-                            labels = c('Yes' = "1", 'No' = "0" ),
+                            labels = c('Yes' = 1, 'No' = 0 ),
                                  label = "Access to electricity")
   ## healthcare ########
   datalist[["main"]]$healthcare <- 
-           dplyr::case_when((datalist[["main"]]$HEA01!="96" | 
-                               datalist[["main"]]$HEA01!="98") & 
-                              datalist[["main"]]$HEA03 <= 60 ~ "1",
-                     TRUE ~ "0")
+           dplyr::case_when((
+             as.integer(datalist[["main"]]$HEA01) != 96 | 
+             as.integer(datalist[["main"]]$HEA01) != 98) & 
+             as.integer(datalist[["main"]]$HEA03) <= 60 ~ 1,
+                     TRUE ~ 0)
 
   datalist[["main"]]$healthcare <- labelled::labelled(datalist[["main"]]$healthcare,
-                            labels = c('Yes' = "1", 'No' = "0" ),
+                            labels = c('Yes' = 1, 'No' = 0 ),
                                 label = "Access to healthcare facility")
 
+  ## Drinking Water #################
+  datalist[["main"]]$time_DWA <-  dplyr::case_when(
+    as.integer(datalist[["main"]]$DWA03a) == 1 ~ 1, 
+    as.integer(datalist[["main"]]$DWA03a) == 2 ~ 60) 
+  #convert hour into minutes
+  # datalist[["main"]]$time_DWA <- as.numeric(datalist[["main"]]$time_DWA)
+  datalist[["main"]]$time_tot <- datalist[["main"]]$time_DWA * 
+      as.numeric(datalist[["main"]]$DWA03b)
+  
+  datalist[["main"]]$reachableU30 <-  dplyr::case_when( 
+    datalist[["main"]]$time_tot > 30 ~  0, 
+                                TRUE ~ 1) 
+  # reachable under 30 minutes
+  datalist[["main"]]$dwa_cond1 <-  dplyr::case_when(
+    as.integer(datalist[["main"]]$DWA01) != 7 |
+    as.integer(datalist[["main"]]$DWA01) != 9 |
+    as.integer(datalist[["main"]]$DWA01) !=  13 | 
+    as.integer(datalist[["main"]]$DWA01) !=  96 |
+    as.integer(datalist[["main"]]$DWA01) !=  98 ~ 1,
+                               TRUE ~ 0) 
+  # improved source
+  datalist[["main"]]$dwa_cond2 <- dplyr::case_when( 
+    
+    #UNDER30 MIN
+    as.integer(datalist[["main"]]$reachableU30) == 1 & 
+    as.integer(datalist[["main"]]$DWA02) == 3 ~ 1, 
+    
+    # NOT UNDER30 MIN
+    as.integer(datalist[["main"]]$reachableU30) == 0 & 
+    as.integer(datalist[["main"]]$DWA02) == 3 ~ 0, 
+    
+    # in the dwelling/yard/plot
+    as.integer(datalist[["main"]]$DWA02) == 1 | 
+    as.integer(datalist[["main"]]$DWA02) == 2 ~ 1, 
+      TRUE ~ NA ) 
+  
+  datalist[["main"]]$drinkingwater <- dplyr::case_when(
+      (as.integer(datalist[["main"]]$dwa_cond1) == 1 & 
+        as.integer(datalist[["main"]]$dwa_cond2) == 1 ) ~ 1, 
+      TRUE ~ 0)
+  
+  datalist[["main"]]$drinkingwater <- labelled::labelled(datalist[["main"]]$drinkingwater,
+                              labels = c('Yes' = 1, 'No' = 0 ),
+                                    label = "Access to drinking water")
+  
+  
   ## shelter #########
   #Only apartment and house
-datalist[["main"]]$dwe01_cat <- 
-  dplyr::case_when(
-    (datalist[["main"]]$DWE01=="1" | 
-     datalist[["main"]]$DWE01=="2") ~ "1", 
-    TRUE ~ "0" )
-## unimproved floor when earth,sand,clay,mud, dung or other
-datalist[["main"]]$dwe02_cat<- dplyr::case_when( 
-    (datalist[["main"]]$DWE02=="1" | 
-     datalist[["main"]]$DWE02=="2" | 
-     datalist[["main"]]$DWE02=="96") ~ "0", 
-    TRUE ~ "1" )
-## unimproved roof all options except metal,wood,ceramic tiles, cement, roofing shingles/sheets
-datalist[["main"]]$dwe03_cat<- dplyr::case_when( 
-    (datalist[["main"]]$DWE03=="8" |
-     datalist[["main"]]$DWE03=="9" | 
-     datalist[["main"]]$DWE03=="10" | 
-     datalist[["main"]]$DWE03=="11" |
-     datalist[["main"]]$DWE03=="12" | 
-     datalist[["main"]]$DWE03=="13" ) ~ "1" , 
-    TRUE ~ "0")
-
-## improved wall: cement,stone,bricks,cement blocks, covered adobe, wood planks
-datalist[["main"]]$dwe04_cat<- dplyr::case_when( 
-    (datalist[["main"]]$DWE04=="10"| 
-    datalist[["main"]]$DWE04=="11"| 
-    datalist[["main"]]$DWE04=="12"| 
-    datalist[["main"]]$DWE04=="13"| 
-    datalist[["main"]]$DWE04=="14"| 
-    datalist[["main"]]$DWE04=="15") ~ "1",
-    TRUE ~ "0")
-
-## Calculate crowding index - overcrowded when more than 3 persons
-datalist[["main"]]$crowding <- as.numeric(datalist[["main"]]$HH01) / 
-     as.numeric(datalist[["main"]]$DWE05)
-
-datalist[["main"]]$dwe05_cat<- dplyr::case_when( ##if crowding <= 3, not overcrowded 
-    datalist[["main"]]$crowding <= 3 ~ "1", 
-    TRUE ~ "0")
+  datalist[["main"]]$dwe01_cat <- 
+    dplyr::case_when(
+      ( as.integer(datalist[["main"]]$DWE01) == 1 | 
+        as.integer(datalist[["main"]]$DWE01) == 2) ~ 1, 
+      TRUE ~ 0 )
+  ## unimproved floor when earth,sand,clay,mud, dung or other
+  datalist[["main"]]$dwe02_cat<- dplyr::case_when( 
+      (as.integer(datalist[["main"]]$DWE02) == 1 | 
+       as.integer(datalist[["main"]]$DWE02) == 2 | 
+       as.integer(datalist[["main"]]$DWE02) == 96) ~ 0, 
+      TRUE ~ 1 )
+  ## unimproved roof all options except metal,wood,ceramic tiles, cement, roofing shingles/sheets
+  datalist[["main"]]$dwe03_cat<- dplyr::case_when( 
+      (as.integer(datalist[["main"]]$DWE03) == 8 |
+       as.integer(datalist[["main"]]$DWE03) == 9 | 
+       as.integer(datalist[["main"]]$DWE03) == 10 | 
+       as.integer(datalist[["main"]]$DWE03) == 11 |
+       as.integer(datalist[["main"]]$DWE03) == 12 | 
+       as.integer(datalist[["main"]]$DWE03) == 13 ) ~ 1 , 
+      TRUE ~ 0)
   
-####Calculate if all 5 conditions are met for adequate shelter
-##dwe01_cat / dwe02_cat / dwe03_cat / dwe04_cat / dwe05_cat
-
-datalist[["main"]]$shelter<- dplyr::case_when(
-    datalist[["main"]]$dwe01_cat=="0" | 
-    datalist[["main"]]$dwe02_cat=="0" | 
-    datalist[["main"]]$dwe03_cat=="0" | 
-    datalist[["main"]]$dwe04_cat=="0" | 
-    datalist[["main"]]$dwe05_cat=="0"  ~ "0", 
-    
-    datalist[["main"]]$dwe01_cat=="1" & 
-    datalist[["main"]]$dwe02_cat=="1" & 
-    datalist[["main"]]$dwe03_cat=="1" & 
-    datalist[["main"]]$dwe04_cat=="1" & 
-    datalist[["main"]]$dwe05_cat=="1" ~ "1")
-
-datalist[["main"]]$shelter <- labelled::labelled(  datalist[["main"]]$shelter,
-                            labels = c('Yes' = "1", 'No' = "0" ),
-                    label = "Access to adequate shelter") 
+  ## improved wall: cement,stone,bricks,cement blocks, covered adobe, wood planks
+  datalist[["main"]]$dwe04_cat<- dplyr::case_when( 
+      (as.integer(datalist[["main"]]$DWE04) == 10| 
+      as.integer(datalist[["main"]]$DWE04) == 11 | 
+      as.integer(datalist[["main"]]$DWE04) == 12 | 
+      as.integer(datalist[["main"]]$DWE04) == 13 | 
+      as.integer(datalist[["main"]]$DWE04) == 14 | 
+      as.integer(datalist[["main"]]$DWE04) == 15 ) ~ 1,
+      TRUE ~ 0)
+  
+  ## Calculate crowding index - overcrowded when more than 3 persons
+  datalist[["main"]]$crowding <- as.numeric(datalist[["main"]]$HH01) / 
+       as.numeric(datalist[["main"]]$DWE05)
+  
+  datalist[["main"]]$dwe05_cat<- dplyr::case_when( ##if crowding <= 3, not overcrowded 
+      datalist[["main"]]$crowding <= 3 ~ 1, 
+      TRUE ~ 0)
+  
+  ####Calculate if all 5 conditions are met for adequate shelter
+  ##dwe01_cat / dwe02_cat / dwe03_cat / dwe04_cat / dwe05_cat
+  
+  datalist[["main"]]$shelter<- dplyr::case_when(
+      as.integer(datalist[["main"]]$dwe01_cat) == 0 | 
+      as.integer(datalist[["main"]]$dwe02_cat) == 0 | 
+      as.integer(datalist[["main"]]$dwe03_cat) == 0 | 
+      as.integer(datalist[["main"]]$dwe04_cat) == 0 | 
+      as.integer(datalist[["main"]]$dwe05_cat) == 0  ~  0, 
+      
+      as.integer(datalist[["main"]]$dwe01_cat)  == 1 & 
+      as.integer(datalist[["main"]]$dwe02_cat)  == 1 & 
+      as.integer(datalist[["main"]]$dwe03_cat)  == 1 & 
+      as.integer(datalist[["main"]]$dwe04_cat)  == 1 & 
+      as.integer(datalist[["main"]]$dwe05_cat)  == 1 ~  1)
+  
+  datalist[["main"]]$shelter <- labelled::labelled(  datalist[["main"]]$shelter,
+                              labels = c('Yes' = 1, 'No' = 0 ),
+                      label = "Access to adequate shelter") 
 
   ## Compile alll ####
 datalist[["main"]]$impact2_2 <- dplyr::case_when(
-    datalist[["main"]]$shelter=="0" | 
-    datalist[["main"]]$electricity=="0" | 
-    datalist[["main"]]$drinkingwater=="0" | 
-    datalist[["main"]]$healthcare=="0" ~ "0",
+    as.integer(datalist[["main"]]$shelter) == 0 | 
+    as.integer(datalist[["main"]]$electricity) == 0 | 
+    as.integer(datalist[["main"]]$drinkingwater) == 0 | 
+    as.integer(datalist[["main"]]$healthcare) == 0 ~  0,
     
-    datalist[["main"]]$shelter=="1" & 
-    datalist[["main"]]$electricity=="1" & 
-    datalist[["main"]]$drinkingwater=="1" & 
-    datalist[["main"]]$healthcare=="1" ~ "1")
+    as.integer(datalist[["main"]]$shelter) == 1 & 
+    as.integer(datalist[["main"]]$electricity) == 1 & 
+    as.integer(datalist[["main"]]$drinkingwater) == 1 & 
+    as.integer(datalist[["main"]]$healthcare) == 1 ~  1)
 
 datalist[["main"]]$impact2_2 <- labelled::labelled(
   datalist[["main"]]$impact2_2,
                             labels =c(
-                              "Yes"="1",
-                              "No"="0"
+                              "Yes" = 1,
+                              "No" = 0
                             ),
     label = "Proportion of PoCs residing in physically safe and secure settlements with access to basic facilities") 
 
@@ -353,11 +406,14 @@ datalist[["main"]]$impact2_2 <- labelled::labelled(
 }
 ```
   
-```{r example-impact_2_2}
-datalist <- kobocruncher::kobo_data( system.file(#"demo_data.xlsx", 
-                                                 "test.xlsx", 
+```{r example-impact_2_2, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
-datalist <-  impact_2_2(datalist, mapper)
+## Apply calculation
+datalist <-  impact_2_2(datalist)
+
+table(datalist[["main"]]$impact2_2, useNA = "ifany")
 
 fct_plot_indic_donut(indicator = datalist[["main"]]$impact2_2,
                      iconunicode = "f140") 
@@ -444,11 +500,7 @@ test_that("impact2_2 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
+#'                                           
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -458,118 +510,101 @@ test_that("impact2_2 works", {
 #' @export
 impact2_3 <- function(datalist ){
   
-  # Mapper , 
-    mapper = list(
-            hierarchy = "ind",
-            variablemap = data.frame(
-              label = c(
-                "In the past 3 months, did ${name_individual} need to see a health professional for any reason?",
-                "In the past 3 months, did you receive medical care when needed for the reason above?",
-     "Why have you been unable to access a medical care in the past 3 months? - 1	Health facility too far",
-     "Why have you been unable to access a medical care in the past 3 months? - 2	Medicine or health facility too expensive",
-     "Why have you been unable to access a medical care in the past 3 months? - 3	No treatment exists/ Not necessary",
-     "Why have you been unable to access a medical care in the past 3 months? - 4	Don't know where to go",
-     "Why have you been unable to access a medical care in the past 3 months? - 5	No time
-6	Prefer other options",
-     "Why have you been unable to access a medical care in the past 3 months? - 7	Health facility does not accept new patients",
-     "Why have you been unable to access a medical care in the past 3 months? - 8	Don't trust modern medicine",
-     "Why have you been unable to access a medical care in the past 3 months? - 9	Don't trust doctors",
-     "Why have you been unable to access a medical care in the past 3 months? - 10	Administrative/documentation issues (certificates, service cards etc.)",
-     "Why have you been unable to access a medical care in the past 3 months? - 96	Other (Specify) "
-     
-     ),
-              variable = c("HACC01", 
-                           "HACC03", 
-                           "HACC04_1", 
-                           "HACC04_2", 
-                           "HACC04_3", 
-                           "HACC04_4", 
-                           "HACC04_5", 
-                           "HACC04_6", 
-                           "HACC04_7", 
-                           "HACC04_8", 
-                           "HACC04_9", 
-                           "HACC04_10", 
-                           "HACC04_96") ),
-            modalitymap = data.frame(
-              variable = c( "HACC01", "HACC03" ,
-                           "HACC04_1", 
-                           "HACC04_2", 
-                           "HACC04_3", 
-                           "HACC04_4", 
-                           "HACC04_5", 
-                           "HACC04_6", 
-                           "HACC04_7", 
-                           "HACC04_8", 
-                           "HACC04_9", 
-                           "HACC04_10", 
-                           "HACC04_96"),
-              label = c( "yes", "yes",
-                         "yes", "yes", "yes", "yes", "yes", "yes", "yes",
-                          "yes", "yes", "yes", "yes"),
-              standard = c( "1","1" ,
-                            "1","1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1" ,"1","1"   ))) 
-  
-  ## So first we check that we have what we need in the data set based on the mapper
-  check_map <- fct_check_map(datalist = datalist,
-                             mapper = mapper)
-  if (! isTRUE(check_map )) {
-   cat( "There are missing data requirement to calculate Indicator Impact 2.3")
-  } else {
- 
- 
-datalist[["ind"]]$health_NOacc <- dplyr::case_when(
-    datalist[["ind"]]$HACC03 == "1" & 
-      (datalist[["ind"]]$HACC04_7 == "1" | 
-       datalist[["ind"]]$HACC04_8 == "1" | 
-       datalist[["ind"]]$HACC04_96 == "1" ) ~ "0",
-    
-    datalist[["ind"]]$HACC03 == "1" & 
-     (datalist[["ind"]]$HACC04_1 == "1" | 
-      datalist[["ind"]]$HACC04_2 == "1" | 
-      datalist[["ind"]]$HACC04_3 == "1" | 
-      datalist[["ind"]]$HACC04_4 == "1" |
-      datalist[["ind"]]$HACC04_5 == "1" | 
-      datalist[["ind"]]$HACC04_6 == "1" | 
-      datalist[["ind"]]$HACC04_9 == "1" | 
-      datalist[["ind"]]$HACC04_10 == "1") ~ "1", 
-    
-    TRUE ~ "0")
-# table(datalist[["ind"]]$health_NOacc, useNA = "ifany")
- 
-datalist[["ind"]]$health_NOacc <- as.numeric(datalist[["ind"]]$health_NOacc)
-datalist[["ind"]]$HACC01 <- as.numeric(datalist[["ind"]]$HACC01)
-
-
- ## Add up who needed services ( both who accessed and did not access)
-datalist[["ind"]]$HACC_need <- datalist[["ind"]]$HACC01 + datalist[["ind"]]$health_NOacc
-
-datalist[["ind"]]$impact2_3 <- datalist[["ind"]]$HACC01 / datalist[["ind"]]$HACC_need 
-
-datalist[["ind"]]$impact2_3 <- dplyr::case_when(
-    datalist[["ind"]]$impact2_3 == 1   ~ 1, 
-    datalist[["ind"]]$impact2_3 == 0.5 ~ 0,
-    datalist[["ind"]]$impact2_3 == 0   ~ 0, 
-    TRUE ~ NA_real_ )
-
-datalist[["ind"]]$impact2_3  <- labelled::labelled( datalist[["ind"]]$impact2_3,
-                            labels =c( "Yes"=1,   "No"=0 ),
-                            label = "Proportion of PoC with access to health services")
-   }
-   return(datalist)
+#   # Mapper , 
+# mapper = list(
+#            hierarchy = "ind",
+#           variablemap = data.frame(
+#             label = 
+# c("1. During the past 30 days, has ${name_individual} consulted a health practitioner, dentist, traditional healer, or pharmacist, or visited a health center?", 
+# "2. For what reason(s) did ${name_individual} seek consultation?", 
+# "3. During the past 30 days, has ${name_individual} needed health services that’s/he could not have access to?", 
+# "4. Why has ${name_individual} been unable to access a medical treatment in the past 30 days?"
+# )
+#               ,
+#             variable =  
+# c("HACC01", "HACC02", "HACC03", "HACC04")
+#               ),
+#           modalitymap = data.frame(
+#             variable =  
+# c("HACC01", "HACC01", "HACC02", "HACC02", "HACC02", "HACC02", 
+# "HACC02", "HACC02", "HACC03", "HACC03", "HACC04", "HACC04", "HACC04", 
+# "HACC04", "HACC04", "HACC04", "HACC04", "HACC04", "HACC04", "HACC04", 
+# "HACC04")
+#                ,
+#             label =  
+# c("Yes", "No", "Illness", "Injury", "General check-up (not for pregnancy)", 
+# "Pre/Postnatal check-up", "Giving birth", "Other (Specify)", 
+# "Yes", "No", "Lack of money", "No medical personnel available", 
+# "Turned away because facility was full", "Turned away because facility was closed", 
+# "Hospital/Clinic not having enough supplies or tests", "Health facility is too far", 
+# "Fear of contracting a communicable disease (e.g. COVID-19)", 
+# "Lockdown/Travel restrictions", "Too Far/transport issues", "Health facility is destroyed", 
+# "Other (Specify)")
+#                ,
+#             standard =  
+# c("1", "0", "1", "2", "3", "4", "5", "96", "1", "0", "1", "2", 
+# "3", "4", "5", "6", "7", "8", "9", "10", "96")
+#               ))
+#   ## So first we check that we have what we need in the data set based on the mapper
+#   check_map <- fct_check_map(datalist = datalist,
+#                              mapper = mapper)
+#   if ( check_map == FALSE) {
+#    cat( "There are missing data requirement to calculate Indicator Impact 2.3")
+#   } else {
+#  
+#  
+#   datalist[["ind"]]$health_NOacc <- dplyr::case_when(
+#     as.integer(datalist[["ind"]]$HACC03) ==  1 & 
+#       (as.integer(datalist[["ind"]]$HACC04_7) ==  1 | 
+#        as.integer(datalist[["ind"]]$HACC04_8) ==  1 | 
+#        as.integer(datalist[["ind"]]$HACC04_96) ==  1 ) ~  0,
+#     
+#     as.integer(datalist[["ind"]]$HACC03) ==  1 & 
+#      (as.integer(datalist[["ind"]]$HACC04_1) ==  1 | 
+#       as.integer(datalist[["ind"]]$HACC04_2) ==  1 | 
+#       as.integer(datalist[["ind"]]$HACC04_3) ==  1 | 
+#       as.integer(datalist[["ind"]]$HACC04_4) ==  1 |
+#       as.integer(datalist[["ind"]]$HACC04_5) ==  1 | 
+#       as.integer(datalist[["ind"]]$HACC04_6) ==  1 | 
+#       as.integer(datalist[["ind"]]$HACC04_9) ==  1 | 
+#       as.integer(datalist[["ind"]]$HACC04_10) ==  1) ~  1, 
+#     
+#     TRUE ~  0)
+# # table(datalist[["ind"]]$health_NOacc, useNA = "ifany")
+#  
+# datalist[["ind"]]$health_NOacc <- as.numeric(datalist[["ind"]]$health_NOacc)
+# datalist[["ind"]]$HACC01 <- as.numeric(datalist[["ind"]]$HACC01)
+# 
+# 
+#  ## Add up who needed services ( both who accessed and did not access)
+# datalist[["ind"]]$HACC_need <- datalist[["ind"]]$HACC01 + datalist[["ind"]]$health_NOacc
+# 
+# datalist[["ind"]]$impact2_3 <- datalist[["ind"]]$HACC01 / datalist[["ind"]]$HACC_need 
+# 
+# datalist[["ind"]]$impact2_3 <- dplyr::case_when(
+#     datalist[["ind"]]$impact2_3 == 1   ~ 1, 
+#     datalist[["ind"]]$impact2_3 == 0.5 ~ 0,
+#     datalist[["ind"]]$impact2_3 == 0   ~ 0, 
+#     TRUE ~ NA_real_ )
+# 
+# datalist[["ind"]]$impact2_3  <- labelled::labelled( datalist[["ind"]]$impact2_3,
+#    labels =c( "Yes"=1,   "No"=0 ),
+#    label = "Proportion of PoC with access to health services")
+#    }
+#    return(datalist)
 }
 ```
   
-```{r example-impact2_3}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
-                                                 package = "IndicatorCalc"))
-## Apply indicator function on datalist
-datalist <- impact2_3(datalist )
-
-## Visualise value
-fct_plot_indic_donut(indicator = datalist[["ind"]]$impact2_3,
-                     iconunicode = "f140") 
+```{r example-impact2_3, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+# datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
+#                                                  package = "IndicatorCalc"))
+# ## Apply calculation
+# datalist <- impact2_3(datalist )
+# 
+# ## Visualise value
+# fct_plot_indic_donut(indicator = datalist[["ind"]]$impact2_3,
+#                      iconunicode = "f140") 
 
 ```
   
@@ -626,13 +661,6 @@ test_that("impact2_3 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -643,23 +671,23 @@ test_that("impact2_3 works", {
 impact3_2a <- function(datalist ){
 
   ## Mapper 
-  
 mapper = list(
            hierarchy = "ind",
           variablemap = data.frame(
             label = 
-c("1. Has ${name_individual} ever attended school?", "2. Did ${name_individual} attend school or pre-school at any time during current school year?", 
-"3. During this/that school year , what level is (was) ${name_individual} attending?", 
-"4. What type of school?")
+c("1. Has ${child_edu_name} ever attended school?", "2. Did ${child_edu_name} attend school or pre-school at any time during current school year?", 
+"3. During this/that school year , what level is (was) ${child_edu_name} attending?", 
+"4. What type of school?", "6. Can you estimate how old is ${HH02}?"
+)
               ,
             variable =  
-c("EDU01", "EDU02", "EDU03", "EDU04")
+c("EDU01", "EDU02", "EDU03", "EDU04", "HH07")
               ),
           modalitymap = data.frame(
             variable =  
 c("EDU01", "EDU01", "EDU02", "EDU02", "EDU03", "EDU03", "EDU03", 
 "EDU03", "EDU03", "EDU03", "EDU03", "EDU04", "EDU04", "EDU04", 
-"EDU04", "EDU04", "EDU04", "EDU04")
+"EDU04", "EDU04", "EDU04", "EDU04", "HH07")
                ,
             label =  
 c("Yes", "No", "Yes", "No", "Early Childhood Education or Pre-primary", 
@@ -667,54 +695,52 @@ c("Yes", "No", "Yes", "No", "Early Childhood Education or Pre-primary",
 "Post-secondary - Technical and Vocational Education and Training (TVET)", 
 "Tertiary", "Don’t know", "Government or public", "UN or NGO (non-governmental organization)", 
 "Religious or faith-based organization", "Community", "Private", 
-"Other (specify)", "Don’t know")
+"Other (specify)", "Don’t know", NA)
                ,
             standard =  
 c("1", "0", "1", "0", "1", "2", "3", "4", "5", "6", "98", "1", 
-"2", "3", "4", "5", "96", "98")
+"2", "3", "4", "5", "96", "98", NA)
               ))
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Impact 3.2.a")
   } else {
 
 datalist[["ind"]]$edu_primary<- dplyr::case_when(
-    datalist[["ind"]]$EDU01 == 1 & 
-    datalist[["ind"]]$EDU02 == 1 & 
-    datalist[["ind"]]$EDU03==2 ~ 1, 
+    as.integer(datalist[["ind"]]$EDU01) == 1 & 
+    as.integer(datalist[["ind"]]$EDU02) == 1 & 
+    as.integer(datalist[["ind"]]$EDU03) == 2 ~ 1, 
     
-    datalist[["ind"]]$EDU01 == 0 | 
-    datalist[["ind"]]$EDU02== 0 ~ 0, 
+    as.integer(datalist[["ind"]]$EDU01) == 0 | 
+    as.integer(datalist[["ind"]]$EDU02) == 0 ~ 0, 
     
     TRUE ~ 0)
 
 #Adjust age group for primary school  enrollment --> this to go in function var...
 datalist[["ind"]]$age_primary<- dplyr::case_when(
-    datalist[["ind"]]$HH07 >= 6 &
-    datalist[["ind"]]$HH07 <= 10 ~ 1, 
+    as.integer(datalist[["ind"]]$HH07) >= 6 &
+    as.integer(datalist[["ind"]]$HH07) <= 10 ~ 1, 
     TRUE ~ NA_real_) 
 
 datalist[["ind"]]$impact3_2a <- sum(datalist[["ind"]]$edu_primary, na.rm = TRUE) /
                                 sum(datalist[["ind"]]$age_primary, na.rm = TRUE)
 
 datalist[["ind"]]$impact3_2a  <- labelled::labelled(datalist[["ind"]]$impact3_2a,
-                            labels = c('Yes' = "1", 'No' = "0" ),
-                      label = "Proportion of persons of concern enrolled 
-                      in primary education")
+  labels = c('Yes' = 1, 'No' = 0 ),
+  label = "Proportion of persons of concern enrolled in primary education")
 
    }
    return(datalist)
 }
 ```
   
-```{r example-impact3_2a}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-impact3_2a, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
-
-## Apply indicator function on datalist
+## Apply calculation
 datalist <- impact3_2a(datalist  )
 
 ## Visualise value
@@ -776,13 +802,6 @@ test_that("impact3_2a works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -796,18 +815,19 @@ mapper = list(
            hierarchy = "ind",
           variablemap = data.frame(
             label = 
-c("1. Has ${name_individual} ever attended school?", "2. Did ${name_individual} attend school or pre-school at any time during current school year?", 
-"3. During this/that school year , what level is (was) ${name_individual} attending?", 
-"4. What type of school?")
+c("1. Has ${child_edu_name} ever attended school?", "2. Did ${child_edu_name} attend school or pre-school at any time during current school year?", 
+"3. During this/that school year , what level is (was) ${child_edu_name} attending?", 
+"4. What type of school?", "6. Can you estimate how old is ${HH02}?"
+)
               ,
             variable =  
-c("EDU01", "EDU02", "EDU03", "EDU04")
+c("EDU01", "EDU02", "EDU03", "EDU04", "HH07")
               ),
           modalitymap = data.frame(
             variable =  
 c("EDU01", "EDU01", "EDU02", "EDU02", "EDU03", "EDU03", "EDU03", 
 "EDU03", "EDU03", "EDU03", "EDU03", "EDU04", "EDU04", "EDU04", 
-"EDU04", "EDU04", "EDU04", "EDU04")
+"EDU04", "EDU04", "EDU04", "EDU04", "HH07")
                ,
             label =  
 c("Yes", "No", "Yes", "No", "Early Childhood Education or Pre-primary", 
@@ -815,28 +835,27 @@ c("Yes", "No", "Yes", "No", "Early Childhood Education or Pre-primary",
 "Post-secondary - Technical and Vocational Education and Training (TVET)", 
 "Tertiary", "Don’t know", "Government or public", "UN or NGO (non-governmental organization)", 
 "Religious or faith-based organization", "Community", "Private", 
-"Other (specify)", "Don’t know")
+"Other (specify)", "Don’t know", NA)
                ,
             standard =  
 c("1", "0", "1", "0", "1", "2", "3", "4", "5", "6", "98", "1", 
-"2", "3", "4", "5", "96", "98")
+"2", "3", "4", "5", "96", "98", NA)
               ))
-
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Impact 3.2.b")
   } else {
   
 datalist[["ind"]]$edu_secondary<- dplyr::case_when(
-    datalist[["ind"]]$EDU01 == 1 & 
-    datalist[["ind"]]$EDU02 == 1 & 
-     ( datalist[["ind"]]$EDU03 == 3 | 
-       datalist[["ind"]]$EDU03 == 4) ~ 1, 
+    as.integer(datalist[["ind"]]$EDU01) == 1 & 
+    as.integer(datalist[["ind"]]$EDU02) == 1 & 
+     ( as.integer(datalist[["ind"]]$EDU03) == 3 | 
+       as.integer(datalist[["ind"]]$EDU03) == 4) ~ 1, 
     
-    datalist[["ind"]]$EDU01 == 0 | 
-    datalist[["ind"]]$EDU02== 0 ~ 0, 
+    as.integer(datalist[["ind"]]$EDU01) == 0 | 
+    as.integer(datalist[["ind"]]$EDU02) == 0 ~ 0, 
     TRUE ~ 0)
 
 
@@ -844,8 +863,8 @@ datalist[["ind"]]$edu_secondary<- dplyr::case_when(
 ##calculated as 11 to 18 above  --> put as function variable...
 
 datalist[["ind"]]$age_secondary<- dplyr::case_when(
-    datalist[["ind"]]$HH07 >= 11 & 
-    datalist[["ind"]]$HH07 <= 18 ~ 1, 
+    as.integer(datalist[["ind"]]$HH07) >= 11 & 
+    as.integer(datalist[["ind"]]$HH07) <= 18 ~ 1, 
     TRUE ~ NA_real_)
     
 datalist[["ind"]]$impact3_2b <- sum(datalist[["ind"]]$edu_secondary, na.rm= TRUE) / 
@@ -860,12 +879,11 @@ datalist[["ind"]]$impact3_2b  <- labelled::labelled(datalist[["ind"]]$impact3_2b
 }
 ```
   
-```{r example-impact3_2b}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-impact3_2b, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
-
-## Apply indicator function on datalist
+## Apply calculation
 datalist <- impact3_2b(datalist )
 
 ## Visualise value
@@ -915,13 +933,6 @@ test_that("impact3_2b works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -932,11 +943,11 @@ test_that("impact3_2b works", {
 impact3_3 <- function(datalist ){
   
   # Mapper 
-  mapper = list(
+mapper = list(
            hierarchy = "main",
           variablemap = data.frame(
             label = 
-"1. How safe do you feel walking alone in your neighbourhood after dark?"
+"1. How safe does ${name_selectedadult18} feel walking alone in your area/neighbourhood after dark?"
               ,
             variable =  
 "SAF01"
@@ -946,7 +957,7 @@ impact3_3 <- function(datalist ){
 c("SAF01", "SAF01", "SAF01", "SAF01", "SAF01", "SAF01")
                ,
             label =  
-c("Very safe", "Safe", "Unsafe", "Very unsafe", "Don’t know", 
+c("Very safe", "Fairly safe", "Bit unsafe", "Very unsafe", "Don’t know", 
 "Prefer not to respond")
                ,
             standard =  
@@ -956,35 +967,36 @@ c("1", "2", "3", "4", "98", "99")
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper) 
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Impact 3.3")
   } else {
   
 datalist[["main"]]$impact3_3 <- dplyr::case_when(
-     datalist[["main"]]$SAF01 == 1 | datalist[["main"]]$SAF01 == 2 ~ 1,
-     datalist[["main"]]$SAF01 == 3 | datalist[["main"]]$SAF01 == 4 ~ 0 , 
-     datalist[["main"]]$SAF01 == 98 | datalist[["main"]]$SAF01 == 99 ~ NA_real_) 
+     as.integer(datalist[["main"]]$SAF01) == 1 | 
+     as.integer(datalist[["main"]]$SAF01) == 2 ~ 1,
+     as.integer(datalist[["main"]]$SAF01) == 3 | 
+     as.integer(datalist[["main"]]$SAF01) == 4 ~ 0 , 
+     as.integer(datalist[["main"]]$SAF01) == 98 | 
+     as.integer(datalist[["main"]]$SAF01) == 99 ~ NA_real_) 
 
 datalist[["main"]]$impact3_3  <- labelled::labelled(datalist[["main"]]$impact3_3,
-                            labels = c('Yes' = 1, 'No' = 0 ),
-                     label = "Proportion of population that feel safe walking 
-                     alone in their neighbourhood") 
+   labels = c('Yes' = 1, 'No' = 0 ),
+   label = "Proportion of population that feel safe walking alone in their neighbourhood") 
 
    }
    return(datalist)
 }
 ```
   
-```{r example-impact3_3}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
-                                                 package = "IndicatorCalc")) 
-
-## Apply indicator function on datalist
+```{r example-impact3_3, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
+                                                 package = "IndicatorCalc"))
+## Apply calculation
 datalist <- impact3_3(datalist)
 
 ## Visualise value
-fct_plot_indic_donut(indicator = datalist[["ind"]]$impact3_3,
+fct_plot_indic_donut(indicator = datalist[["main"]]$impact3_3,
                      iconunicode = "f140")   
 ```
   
@@ -1048,13 +1060,6 @@ test_that("impact3_3 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -1064,121 +1069,104 @@ test_that("impact3_3 works", {
 #' @export
 outcome1_2 <- function(datalist){
   ## mapper
-  mapper = list(
-                         hierarchy = "ind",
-                         variablemap = data.frame(
-                           label =
-                             c(
-                               "3. Does ${name_individual} have a birth certificate?",
-                               "4. Has ${name_individual}'s birth been registered with civil authorities?",
-                               "5. Does ${name_individual} have the documents below?",
-                               "6. Does ${name_individual} have any other document that establishes your legal identity?"
-                             )
-                           ,
-                           variable =
-                             c("REG03", "REG04", "REG05", "REG06")
-                         ),
-                         modalitymap = data.frame(
-                           variable =
-                             c(
-                               "REG03",
-                               "REG03",
-                               "REG03",
-                               "REG04",
-                               "REG04",
-                               "REG04",
-                               "REG04",
-                               "REG05",
-                               "REG05",
-                               "REG05",
-                               "REG06",
-                               "REG06",
-                               "REG06"
-                             )
-                           ,
-                           label =
-                             c(
-                               "Yes",
-                               "No",
-                               "Don't know",
-                               "Yes",
-                               "No",
-                               "Don't know",
-                               "Prefer not to say",
-                               "Yes",
-                               "No",
-                               "Prefer not to respond",
-                               "Yes",
-                               "No",
-                               "Prefer not to respond"
-                             )
-                           ,
-                           standard =
-                             c("1", "0", "98", "1", "0", "98", "99", "1", "0", "99", "1",
-                               "0", "99")
-                         )
-                       )
+mapper = list(
+  hierarchy = "ind",
+  variablemap = data.frame(
+    label =
+      c("3. Does ${name_individual} have a birth certificate?", "4. Has ${name_individual}'s birth been registered with civil authorities?",
+        "6. Can you estimate how old is ${HH02}?")
+    ,
+    variable =
+      c("REG03", "REG04", "HH07")
+  ),
+  modalitymap = data.frame(
+    variable =
+      c("REG03", "REG03", "REG03", "REG04", "REG04", "REG04", "REG04",
+        "HH07")
+    ,
+    label =
+      c("Yes", "No", "Don't know", "Yes", "No", "Don't know", "Prefer not to say",
+        NA)
+    ,
+    standard =
+      c("1", "0", "98", "1", "0", "98", "99", NA)
+  ))
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper) 
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 1.2")
   } else {
   
   ##Calculate children who has a birth certificate
-  datalist[["ind"]]$birthCertificate<- dplyr::case_when(
-      datalist[["ind"]]$REG03== 0 | 
-      datalist[["ind"]]$REG03 == 98 ~ 0, 
-      
-      datalist[["ind"]]$REG03 == 1 ~ 1)
+  datalist[["ind"]]$birthCertificate <- dplyr::case_when(
+      as.integer(datalist[["ind"]]$REG03) == 0 | 
+      as.integer(datalist[["ind"]]$REG03) == 98 ~ 0, 
+      as.integer(datalist[["ind"]]$REG03) == 1 ~ 1)
 
   datalist[["ind"]]$birthCertificate  <- labelled::labelled(datalist[["ind"]]$birthCertificate,
-                      labels = c('Yes' = 1, 'No' = 0 ),
-                      label = "Children under 5 with a birth 
-                            certificate")
+   labels = c('Yes' = 1, 'No' = 0 ),
+   label = "Children with a birth certificate")
   
   ##Calculate children who has been registered with civil authorities
-datalist[["ind"]]$birthRegistered<- dplyr::case_when(
-      datalist[["ind"]]$REG04 == 0 | 
-      datalist[["ind"]]$REG04 == 98 ~ 0, 
-      datalist[["ind"]]$REG04 == 1 ~ 1, 
-      datalist[["ind"]]$REG04 == 99 ~ NA_real_)
-
-datalist[["ind"]]$birthRegistered  <- labelled::labelled(datalist[["ind"]]$birthRegistered,
-                        labels = c('Yes' = 1, 'No' = 0 ),
-                        label = "Children under 5 birth registered 
-                            with civil authorities")
+  datalist[["ind"]]$birthRegistered <- dplyr::case_when(
+      as.integer(datalist[["ind"]]$REG04) == 0 | 
+      as.integer(datalist[["ind"]]$REG04) == 98 ~ 0, 
+      as.integer(datalist[["ind"]]$REG04) == 1 ~ 1, 
+      as.integer(datalist[["ind"]]$REG04) == 99 ~ NA_real_)
   
+   datalist[["ind"]]$birthRegistered  <- labelled::labelled(datalist[["ind"]]$birthRegistered,
+    labels = c('Yes' = 1, 'No' = 0 ),
+    label = "Children with birth registered with civil authorities")
+  
+   ## less than 5
+  datalist[["ind"]]$less_than_5 <- dplyr::case_when(
+       as.numeric(datalist[["ind"]]$HH07) <  5  ~ 1, 
+       TRUE ~ 0)
+  datalist[["ind"]]$less_than_5  <- labelled::labelled(datalist[["ind"]]$less_than_5,
+    labels = c('Yes' = 1, 'No' = 0 ),
+    label = "Is a Children")
   
   ##if the birth is registered or child has a birth certificate
-datalist[["ind"]]$outcome1_2<- dplyr::case_when(
+  datalist[["ind"]]$outcome1_2 <- dplyr::case_when(
       (datalist[["ind"]]$birthRegistered == 1 | 
        datalist[["ind"]]$birthCertificate == 1) & 
-        datalist[["ind"]]$HH07 <5 ~ 1, 
+        as.integer(datalist[["ind"]]$HH07) <  5 ~ 1, 
       
-      (datalist[["ind"]]$birthRegistered== 0 & 
-       datalist[["ind"]]$birthCertificate== 0) & 
-        datalist[["ind"]]$HH07 <5 ~ 0)
+      (datalist[["ind"]]$birthRegistered == 0 & 
+       datalist[["ind"]]$birthCertificate == 0) & 
+        as.integer(datalist[["ind"]]$HH07) < 5 ~ 0, 
+      
+      TRUE ~ NA_real_ )
 
-datalist[["ind"]]$outcome1_2  <- labelled::labelled(datalist[["ind"]]$outcome1_2,
-                            labels = c('Yes' = 1, 'No' = 0 ),
-                     label = "Proportion of children under 5 years of age whose
-                     births have been registered with a civil authority")
+    datalist[["ind"]]$outcome1_2  <- labelled::labelled(datalist[["ind"]]$outcome1_2,
+      labels = c('Yes' = 1, 'No' = 0 ),
+      label = "Proportion of children under 5 years of age whose births have been registered with a civil authority")
 
   }
    return(datalist) 
 }
 ```
   
-```{r example-outcome1_2}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome1_2, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
+
 ## Apply indicator function on datalist
 datalist <- outcome1_2(datalist)
-
+table(datalist[["ind"]]$outcome1_2, useNA = "ifany")
+table(datalist[["ind"]]$less_than_5, useNA = "ifany")
+table(datalist[["ind"]]$HH07, useNA = "ifany")
+barplot(as.integer(datalist[["ind"]]$HH07))
+table(datalist[["ind"]]$birthCertificate, useNA = "ifany")
+table(datalist[["ind"]]$birthRegistered, useNA = "ifany")
 ## Visualise value
-fct_plot_indic_donut(indicator = datalist[["main"]]$outcome1_2,
+fct_plot_indic_donut(indicator = datalist[["ind"]]$outcome1_2,
+                     iconunicode = "f140")   
+fct_plot_indic_donut(indicator = datalist[["ind"]]$birthCertificate,
+                     iconunicode = "f140")   
+fct_plot_indic_donut(indicator = datalist[["ind"]]$birthRegistered,
                      iconunicode = "f140")   
 ```
   
@@ -1234,13 +1222,6 @@ test_that("outcome1_2 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -1250,65 +1231,88 @@ test_that("outcome1_2 works", {
 #' @export
 outcome1_3 <- function(datalist){
   ## Mapper
-         mapper = list(
-  hierarchy = "main",
-  variablemap = data.frame(
-    label =
-      c(
-        "1. Does ${name_individual} have the documents below?",
-        "2. Does ${name_individual} have any other document that establishes his/her legal identity?"
-      )
-    ,
-    variable =
-      c("REG01", "REG02")
-  ),
-  modalitymap = data.frame(
-    variable =
-      c("REG01", "REG01", "REG01", "REG02", "REG02", "REG02")
-    ,
-    label =
-      c(
-        "Yes",
-        "No",
-        "Prefer not to respond",
-        "Yes",
-        "No",
-        "Prefer not to respond"
-      )
-    ,
-    standard =
-      c("1", "0", "99", "1", "0", "99")
-  )
-) 
+mapper = list(
+           hierarchy = "ind",
+          variablemap = data.frame(
+            label = 
+c("Passport?", "Birth certificate?", "Civil/government-issued ID card ?", 
+"Residency permit (both temporary and permanent)?", "Statelessness documentation?", 
+"Household card of address / family book/ marriage certificate?", 
+"Social security card?", "2. Does ${name_individual} have any other document that establishes his/her legal identity?", 
+"3. Does ${name_individual} have a birth certificate?", "Passport?", 
+"Civil/government-issued ID card ?", "Residency permit (both temporary and permanent)?", 
+"Statelessness documentation?", "Household card of address / family book/ marriage certificate?", 
+"Social security card?", "6. Does ${name_individual} have any other document that establishes your legal identity?"
+)
+              ,
+            variable =  
+c("REG01a", "REG01b", "REG01c", "REG01d", "REG01e", "REG01f", 
+"REG01g", "REG02", "REG03", "REG05a", "REG05b", "REG05c", "REG05d", 
+"REG05e", "REG05f", "REG06")
+              ),
+          modalitymap = data.frame(
+            variable =  
+c("REG01a", "REG01a", "REG01a", "REG01b", "REG01b", "REG01b", 
+"REG01c", "REG01c", "REG01c", "REG01d", "REG01d", "REG01d", "REG01e", 
+"REG01e", "REG01e", "REG01f", "REG01f", "REG01f", "REG01g", "REG01g", 
+"REG01g", "REG02", "REG02", "REG02", "REG03", "REG03", "REG03", 
+"REG05a", "REG05a", "REG05a", "REG05b", "REG05b", "REG05b", "REG05c", 
+"REG05c", "REG05c", "REG05d", "REG05d", "REG05d", "REG05e", "REG05e", 
+"REG05e", "REG05f", "REG05f", "REG05f", "REG06", "REG06", "REG06"
+)
+               ,
+            label =  
+c("Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Don't know", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond"
+)
+               ,
+            standard =  
+c("1", "0", "99", "1", "0", "99", "1", "0", "99", "1", "0", "99", 
+"1", "0", "99", "1", "0", "99", "1", "0", "99", "1", "0", "99", 
+"1", "0", "98", "1", "0", "99", "1", "0", "99", "1", "0", "99", 
+"1", "0", "99", "1", "0", "99", "1", "0", "99", "1", "0", "99"
+)
+              ))
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper) 
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 1.3")
   } else {
   
   
-datalist[["ind"]]$document_under5<- dplyr::case_when(
-      datalist[["ind"]]$REG05a == 1 | 
-      datalist[["ind"]]$REG05b == 1 | 
-      datalist[["ind"]]$REG05c == 1 | 
-      datalist[["ind"]]$REG05d == 1 | 
-      datalist[["ind"]]$REG05e == 1 | 
-      datalist[["ind"]]$REG05f == 1 |
-      datalist[["ind"]]$REG06 == 1 | 
-      datalist[["ind"]]$REG03 == 1 ~ 1, 
+datalist[["ind"]]$document_under5 <- dplyr::case_when(
+      as.integer(datalist[["ind"]]$REG05a) == 1 | 
+      as.integer(datalist[["ind"]]$REG05b) == 1 | 
+      as.integer(datalist[["ind"]]$REG05c) == 1 | 
+      as.integer(datalist[["ind"]]$REG05d) == 1 | 
+      as.integer(datalist[["ind"]]$REG05e) == 1 | 
+      as.integer(datalist[["ind"]]$REG05f) == 1 |
+      as.integer(datalist[["ind"]]$REG06) == 1 | 
+      as.integer(datalist[["ind"]]$REG03) == 1 ~ 1, 
       
-      datalist[["ind"]]$REG05a != 1 &
-      datalist[["ind"]]$REG05b != 1 & 
-      datalist[["ind"]]$REG05c != 1 & 
-      datalist[["ind"]]$REG05d != 1 & 
-      datalist[["ind"]]$REG05e != 1 & 
-      datalist[["ind"]]$REG05f != 1 & 
-      datalist[["ind"]]$REG06 != 1 & 
-      datalist[["ind"]]$REG03 != 1 ~ 0, 
+      as.integer(datalist[["ind"]]$REG05a) != 1 &
+      as.integer(datalist[["ind"]]$REG05b) != 1 & 
+      as.integer(datalist[["ind"]]$REG05c) != 1 & 
+      as.integer(datalist[["ind"]]$REG05d) != 1 & 
+      as.integer(datalist[["ind"]]$REG05e) != 1 & 
+      as.integer(datalist[["ind"]]$REG05f) != 1 & 
+      as.integer(datalist[["ind"]]$REG06) != 1 & 
+      as.integer(datalist[["ind"]]$REG03) != 1 ~ 0, 
       
       TRUE ~ NA_real_   )
+
+datalist[["ind"]]$document_under5  <- labelled::labelled(datalist[["ind"]]$document_under5,
+                            labels = c('Yes' = 1, 'No' = 0 ),
+                      label = "Proportion of Persons above 5 with legally
+                      recognized identity documents or credentials")
   
   ###Calculate  valid identity documents for above 5 with REG01 and REG02 variables
   #ind$REG01a # passport
@@ -1322,26 +1326,31 @@ datalist[["ind"]]$document_under5<- dplyr::case_when(
 
 #Make sure to delete REG01e below from the script if you don't have any stateless   
 
-datalist[["ind"]]$document_above5<- dplyr::case_when(
-      datalist[["ind"]]$REG01a == 1 | 
-      datalist[["ind"]]$REG01b == 1 | 
-      datalist[["ind"]]$REG01c == 1 | 
-      datalist[["ind"]]$REG01d == 1 | 
-      datalist[["ind"]]$REG01e == 1 | 
-      datalist[["ind"]]$REG01f == 1 | 
-      datalist[["ind"]]$REG01g == 1 |
-      datalist[["ind"]]$REG02 == 1 ~ 1,
+datalist[["ind"]]$document_above5 <- dplyr::case_when(
+      as.integer(datalist[["ind"]]$REG01a) == 1 | 
+      as.integer(datalist[["ind"]]$REG01b) == 1 | 
+      as.integer(datalist[["ind"]]$REG01c) == 1 | 
+      as.integer(datalist[["ind"]]$REG01d) == 1 | 
+      as.integer(datalist[["ind"]]$REG01e) == 1 | 
+      as.integer(datalist[["ind"]]$REG01f) == 1 | 
+      as.integer(datalist[["ind"]]$REG01g) == 1 |
+      as.integer(datalist[["ind"]]$REG02) == 1 ~ 1,
       
-      datalist[["ind"]]$REG01a != 1 & 
-      datalist[["ind"]]$REG01b != 1 & 
-      datalist[["ind"]]$REG01c != 1 & 
-      datalist[["ind"]]$REG01d != 1 & 
-      datalist[["ind"]]$REG01e != 1 & 
-      datalist[["ind"]]$REG01f != 1 & 
-      datalist[["ind"]]$REG01g != 1 & 
-      datalist[["ind"]]$REG02 != 1 ~ 0, 
+      as.integer(datalist[["ind"]]$REG01a) != 1 & 
+      as.integer(datalist[["ind"]]$REG01b) != 1 & 
+      as.integer(datalist[["ind"]]$REG01c) != 1 & 
+      as.integer(datalist[["ind"]]$REG01d) != 1 & 
+      as.integer(datalist[["ind"]]$REG01e) != 1 & 
+      as.integer(datalist[["ind"]]$REG01f) != 1 & 
+      as.integer(datalist[["ind"]]$REG01g) != 1 & 
+      as.integer(datalist[["ind"]]$REG02) != 1 ~ 0, 
       
       TRUE ~ NA_real_)
+
+datalist[["ind"]]$document_above5  <- labelled::labelled(datalist[["ind"]]$document_above5,
+                            labels = c('Yes' = 1, 'No' = 0 ),
+                      label = "Proportion of Persons above 5 with legally
+                      recognized identity documents or credentials")
       
   ##Combine both age groups
 datalist[["ind"]]$outcome1_3<- dplyr::case_when(
@@ -1353,7 +1362,7 @@ datalist[["ind"]]$outcome1_3<- dplyr::case_when(
 
 datalist[["ind"]]$outcome1_3  <- labelled::labelled(datalist[["ind"]]$outcome1_3,
                             labels = c('Yes' = 1, 'No' = 0 ),
-                      label = "Proportion of Persons of Concern with legally
+                      label = "Proportion of Persons with legally
                       recognized identity documents or credentials")
   
   }
@@ -1361,19 +1370,21 @@ datalist[["ind"]]$outcome1_3  <- labelled::labelled(datalist[["ind"]]$outcome1_3
 }
 ```
   
-```{r example-outcome1_3}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome1_3, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
-
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome1_3(datalist, mapper )
+datalist <- outcome1_3(datalist)
 
 ## Visualise value
-fct_plot_indic_donut(indicator = datalist[["main"]]$outcome1_3,
+fct_plot_indic_donut(indicator = datalist[["ind"]]$outcome1_3,
+                     iconunicode = "f140")    
+
+fct_plot_indic_donut(indicator = datalist[["ind"]]$document_above5,
+                     iconunicode = "f140")    
+
+fct_plot_indic_donut(indicator = datalist[["ind"]]$document_under5,
                      iconunicode = "f140")    
 ```
   
@@ -1424,13 +1435,6 @@ test_that("outcome1_3 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -1441,39 +1445,41 @@ test_that("outcome1_3 works", {
 outcome4_1 <- function(datalist){
   
   # mapper , 
-                       mapper = list(
+mapper = list(
            hierarchy = "main",
           variablemap = data.frame(
             label = 
-c("2. If someone in your community is subject to gender-based violence and asks for your help, would you be able to tell this person about the following services in this area?", 
-"Health services", "Psycho-social services and Case management services", 
-"Safety and security services? (police, safe shelters)", "Legal assistance")  ,
+c("Health services", "Psycho-social services", "Safety and security services? (police, safe shelters)", 
+"Legal assistance")
+              ,
             variable =  
-c("GBV01_note", "GBV01a", "GBV01b", "GBV01c", "GBV01d")          ),
+c("GBV01a", "GBV01b", "GBV01c", "GBV01d")
+              ),
           modalitymap = data.frame(
             variable =  
-c("GBV01_note", "GBV01a", "GBV01a", "GBV01a", "GBV01b", "GBV01b", 
-"GBV01b", "GBV01c", "GBV01c", "GBV01c", "GBV01d", "GBV01d", "GBV01d") ,
+c("GBV01a", "GBV01a", "GBV01a", "GBV01b", "GBV01b", "GBV01b", 
+"GBV01c", "GBV01c", "GBV01c", "GBV01d", "GBV01d", "GBV01d")
+               ,
             label =  
-c(NA, "Yes", "No", "Don't know", "Yes", "No", "Don't know", "Yes", 
-"No", "Don't know", "Yes", "No", "Don't know") ,
+c("Yes", "No", "Don't know", "Yes", "No", "Don't know", "Yes", 
+"No", "Don't know", "Yes", "No", "Don't know")
+               ,
             standard =  
-c(NA, "1", "0", "98", "1", "0", "98", "1", "0", "98", "1", "0", 
-"98")
-              ))     
-
+c("1", "0", "98", "1", "0", "98", "1", "0", "98", "1", "0", "98"
+)
+              ))
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper) 
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 4.1")
   } else {
   
 datalist[["main"]]$outcome4_1 <- dplyr::case_when(
-      datalist[["main"]]$GBV01a== 1 |  
-      datalist[["main"]]$GBV01b== 1 |  
-      datalist[["main"]]$GBV01c== 1 |  
-      datalist[["main"]]$GBV01d== 1 ~ 1,
+      as.integer(datalist[["main"]]$GBV01a) == 1 |  
+      as.integer(datalist[["main"]]$GBV01b) == 1 |  
+      as.integer(datalist[["main"]]$GBV01c) == 1 |  
+      as.integer(datalist[["main"]]$GBV01d) == 1 ~ 1,
       TRUE ~ 0)
     
 datalist[["main"]]$outcome4_1  <- labelled::labelled(datalist[["main"]]$outcome4_1,
@@ -1485,13 +1491,12 @@ datalist[["main"]]$outcome4_1  <- labelled::labelled(datalist[["main"]]$outcome4
 }
 ```
   
-```{r example-outcome4_1}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome4_1, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
-
 ## Apply indicator function on datalist
-datalist <- outcome1_4(datalist )
+datalist <- outcome4_1(datalist )
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome1_4,
@@ -1557,13 +1562,6 @@ test_that("outcome4_1 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -1573,54 +1571,52 @@ test_that("outcome4_1 works", {
 #' @export
 outcome4_2 <- function(datalist ){
   # Mapper , 
- mapper = list(
+mapper = list(
            hierarchy = "main",
           variablemap = data.frame(
             label = 
-c("In your opinion, is a husband justified in hitting or beating his wife in the following situations:", 
-"If she goes out without telling him?", "If she neglects the children?", 
+c("If she goes out without telling him?", "If she neglects the children?", 
 "If she argues with him?", "If she refuses to have sex with him?", 
 "If she burns the food?")
               ,
             variable =  
-c("VAW01_note", "VAW01a", "VAW01b", "VAW01c", "VAW01d", "VAW01e"
-)
+c("VAW01a", "VAW01b", "VAW01c", "VAW01d", "VAW01e")
               ),
           modalitymap = data.frame(
             variable =  
-c("VAW01_note", "VAW01a", "VAW01a", "VAW01a", "VAW01b", "VAW01b", 
-"VAW01b", "VAW01c", "VAW01c", "VAW01c", "VAW01d", "VAW01d", "VAW01d", 
-"VAW01e", "VAW01e", "VAW01e")
+c("VAW01a", "VAW01a", "VAW01a", "VAW01b", "VAW01b", "VAW01b", 
+"VAW01c", "VAW01c", "VAW01c", "VAW01d", "VAW01d", "VAW01d", "VAW01e", 
+"VAW01e", "VAW01e")
                ,
             label =  
-c(NA, "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
+c("Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
 "Yes", "No", "Prefer not to respond")
                ,
             standard =  
-c(NA, "1", "0", "99", "1", "0", "99", "1", "0", "99", "1", "0", 
-"99", "1", "0", "99")
-              )) 
+c("1", "0", "99", "1", "0", "99", "1", "0", "99", "1", "0", "99", 
+"1", "0", "99")
+              ))
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 4.2")
   } else {
 
 datalist[["main"]]$outcome4_2<- dplyr::case_when(
-     datalist[["main"]]$VAW01a== 1 | 
-     datalist[["main"]]$VAW01b== 1 |  
-     datalist[["main"]]$VAW01c== 1 |  
-     datalist[["main"]]$VAW01d== 1 | 
-     datalist[["main"]]$VAW01e== 1 ~ 0,
+     as.integer(datalist[["main"]]$VAW01a) == 1 | 
+     as.integer(datalist[["main"]]$VAW01b) == 1 |  
+     as.integer(datalist[["main"]]$VAW01c) == 1 |  
+     as.integer(datalist[["main"]]$VAW01d) == 1 | 
+     as.integer(datalist[["main"]]$VAW01e) == 1 ~ 0,
      
-     datalist[["main"]]$VAW01a== 0 & 
-     datalist[["main"]]$VAW01b== 0 &  
-     datalist[["main"]]$VAW01c== 0 &  
-     datalist[["main"]]$VAW01d== 0 & 
-     datalist[["main"]]$VAW01e== 0 ~ 1,
+     as.integer(datalist[["main"]]$VAW01a) == 0 & 
+     as.integer(datalist[["main"]]$VAW01b) == 0 &  
+     as.integer(datalist[["main"]]$VAW01c) == 0 &  
+     as.integer(datalist[["main"]]$VAW01d) == 0 & 
+     as.integer(datalist[["main"]]$VAW01e) == 0 ~ 1,
      
      TRUE ~ NA_real_)
 
@@ -1633,11 +1629,10 @@ datalist[["main"]]$outcome4_2  <- labelled::labelled(datalist[["main"]]$outcome4
 }
 ```
   
-```{r example-outcome4_2}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome4_2, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
-
 ## Apply indicator function on datalist
 datalist <- outcome4_2(datalist)
 
@@ -1681,13 +1676,6 @@ test_that("outcome4_2 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -1697,12 +1685,12 @@ test_that("outcome4_2 works", {
 #' @export
 outcome5_2 <- function(datalist){
   ## Mapper , 
-   mapper = list(
+mapper = list(
            hierarchy = "ind",
           variablemap = data.frame(
             label = 
-c("1. Has ${name_individual} participated in sports, arts, cultural activities or other after-school programmes for children outside the home in the last month?", 
-"2. In the past month, how many times did ${name_individual} participate in these activities?", 
+c("1. Has ${child_edu_name} participated in sports, arts, cultural activities or other after-school programmes for children outside the home in the last month?", 
+"2. In the past month, how many times did ${child_edu_name} participate in these activities?", 
 "3. Were they in a physically safe area while participating in the activity?", 
 "4. Were there adults supervising the activities?")
               ,
@@ -1720,28 +1708,28 @@ c("Yes", "No", NA, "Yes", "No", "Don't know", "Yes", "No", "Don't know"
                ,
             standard =  
 c("1", "0", NA, "1", "0", "98", "1", "0", "98")
-              )) 
+              ))
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper) 
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 5.2")
   } else {
   
 datalist[["ind"]]$outcome5_2<- dplyr::case_when(
-     ( datalist[["ind"]]$COMM01 == 1 & 
-       datalist[["ind"]]$COMM02 >= 2 & 
-       datalist[["ind"]]$COMM03 == 1 & 
-       datalist[["ind"]]$COMM04 == 1) ~ 1,
+     ( as.integer(datalist[["ind"]]$COMM01) == 1 & 
+       as.integer(datalist[["ind"]]$COMM02) >= 2 & 
+       as.integer(datalist[["ind"]]$COMM03) == 1 & 
+       as.integer(datalist[["ind"]]$COMM04) == 1) ~ 1,
      
-     ( datalist[["ind"]]$COMM01 == 0 | 
-     ( datalist[["ind"]]$COMM02 < 2 | 
-       datalist[["ind"]]$COMM02 == 98 ) | 
-      ( datalist[["ind"]]$COMM03== 0 | 
-        datalist[["ind"]]$COMM03 == 98) |
-       ( datalist[["ind"]]$COMM04== 0 | 
-         datalist[["ind"]]$COMM04==98)) ~ 0, 
+     ( as.integer(datalist[["ind"]]$COMM01) == 0 | 
+     ( as.integer(datalist[["ind"]]$COMM02) < 2 | 
+       as.integer(datalist[["ind"]]$COMM02) == 98 ) | 
+      ( as.integer(datalist[["ind"]]$COMM03) == 0 | 
+        as.integer(datalist[["ind"]]$COMM03) == 98) |
+       ( as.integer(datalist[["ind"]]$COMM04) == 0 | 
+         as.integer(datalist[["ind"]]$COMM04) == 98)) ~ 0, 
      
      TRUE ~ NA_real_)
 
@@ -1754,15 +1742,15 @@ datalist[["ind"]]$outcome5_2  <- labelled::labelled(datalist[["ind"]]$outcome5_2
 }
 ```
   
-```{r example-outcome5_2}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome5_2, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
 ## Apply indicator function on datalist
 datalist <- outcome5_2(datalist  )
 
 ## Visualise value
-fct_plot_indic_donut(indicator = datalist[["main"]]$outcome5_2,
+fct_plot_indic_donut(indicator = datalist[["ind"]]$outcome5_2,
                      iconunicode = "f140")   
 ```
   
@@ -1804,13 +1792,6 @@ test_that("outcome5_2 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -1819,8 +1800,8 @@ test_that("outcome5_2 works", {
 #' 
 #' @export
 outcome8_2 <- function(datalist){
-  # Mapper , 
-    mapper = list(
+mapper = list(
+           hierarchy = "ind",
            hierarchy = "main",
           variablemap = data.frame(
             label = 
@@ -1838,48 +1819,52 @@ c("COOK01", "COOK01", "COOK02", "COOK02", "COOK02", "COOK02",
 "COOK02", "COOK02", "COOK02", "COOK02", "COOK02", "COOK02", "COOK02", 
 "COOK03", "COOK03", "COOK03", "COOK03", "COOK03", "COOK03", "COOK03", 
 "COOK03", "COOK03", "COOK03", "COOK03", "COOK03", "COOK03", "COOK03", 
+"COOK03", "COOK03", "COOK03", "COOK03", "COOK03", "COOK03", "COOK03", 
 "COOK03")
                ,
             label =  
 c("Yes", "No", "Solar cooker (thermal energy from the sun, not solar panels)", 
 "Electric stove", "Piped natural gas stove", "Biogas stove", 
-"Liquefied petroleum gas (LPG)/ cooking gas stove", "Manufactured solid fuel stove", 
-"Traditional solid fuel stove (non-manufactured)", "Moveable firepan", 
-"Three stone stove/open fire", "Liquid fuel stove", "Other, specify", 
-"Alcohol/ethanol", "Gasoline/diesel (not in generator)", "Kerosene/paraffin", 
-"Coal/lignite unprocessed", "Coal/lignite briquettes/pellets", 
-"Charcoal unprocessed", "Charcoal briquettes/pellets", "Wood", 
-"Agricultural or crop residue/grass/ straw/ shrubs/ corn cobs", 
+"Liquefied petroleum gas (LPG)/ cooking gas stove", "Liquid fuel stove", 
+"Manufactured solid fuel stove", "Traditional solid fuel stove (non-manufactured)", 
+"Moveable firepan", "Three stone stove/open fire", "Other, specify", 
+"Alcohol/ethanol", "Liquefied petroleum gas", "Biogas", "Electricity from the national grid", 
+"Electricity from solar mini-grid", "Electricity from diesel generator", 
+"Electricity from hybrid mini-grid (i.e., solar+ diesel, solar+ national grid, etc..)", 
+"Gasoline/diesel (not in generator)", "Kerosene/paraffin", "Coal/lignite unprocessed", 
+"Coal/lignite briquettes/pellets", "Charcoal unprocessed", "Charcoal briquettes/pellets", 
+"Wood (collected)", "Wood (distributed/purchased)", "Agricultural or crop residue/grass/ straw/ shrubs/ corn cobs", 
 "Animal waste/dung", "Processed biomass pellets/briquettes", 
 "Woodchips", "Garbage/plastic", "Sawdust", "Other, specify")
                ,
             standard =  
 c("1", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", 
 "96", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", 
-"12", "13", "14", "96")
-              ))  
+"12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "96"
+)
+              ))
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 8.2")
   } else {
      
 datalist[["main"]]$outcome8_2 <- dplyr::case_when(
-       ( datalist[["main"]]$COOK01 == 1 & 
+       ( as.integer(datalist[["main"]]$COOK01) == 1 & 
            (datalist[["main"]]$COOK02 %in% c("1", "2", "3", "4", "5")) |
            (datalist[["main"]]$COOK02 %in% c("6") & 
-            datalist[["main"]]$COOK03 %in% c("1", "3")) ) ~ "1",
+            datalist[["main"]]$COOK03 %in% c("1", "3")) ) ~  1,
        
-       (datalist[["main"]]$COOK01 == 1 & 
+       ( as.integer(datalist[["main"]]$COOK01) == 1 & 
           (datalist[["main"]]$COOK02 %in% c("7", "8", "9", "10", "96")) |
           ((datalist[["main"]]$COOK02 %in% c("6") &
-              !(datalist[["main"]]$COOK03 %in% c("1", "3") )))) ~ "0" ,
+              !(datalist[["main"]]$COOK03 %in% c("1", "3") )))) ~  0 ,
        TRUE ~ NA_real_ )
 
 datalist[["main"]]$outcome8_2  <- labelled::labelled(datalist[["main"]]$outcome8_2,
-                            labels = c('Yes' = "1", 'No' = "0" ),
+                            labels = c('Yes' = 1, 'No' = 0 ),
                     label = "Proportion of Persons of Concern with
                     primary reliance on clean (cooking) fuels and technology")
   }
@@ -1888,11 +1873,10 @@ datalist[["main"]]$outcome8_2  <- labelled::labelled(datalist[["main"]]$outcome8
 }
 ```
   
-```{r example-outcome8_2}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome8_2, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
-
 ## Apply indicator function on datalist
 datalist <- outcome8_2(datalist )
 
@@ -1946,13 +1930,6 @@ test_that("outcome8_2 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -1962,67 +1939,79 @@ test_that("outcome8_2 works", {
 #' @export
 outcome9_1 <- function(datalist){
   # Mapper , 
-    mapper = list(
+mapper = list(
            hierarchy = "main",
           variablemap = data.frame(
             label = 
-c("1.What type of dwelling does the household live in?", "2. Please observe if the door is lockable ?", 
-"3. Please observe if windows are lockable ?", "4. Please observe if shelter collapsed or partially collapsed ?", 
-"5. Please observe if the roof is damaged?", "6. Please observe if windows/doors are sealed to natural elements ?", 
-"7. Please observe if there is a leakage /rottenness in the walls / floors?", 
-"10. How many separate rooms do the members of your household occupy?", 
-"7. Does your household pay any rent?", "8. Can your household generally afford to pay the rent without any major financial distress?"
+c("1.What type of dwelling does the household live in?", "2. Main material of the dwelling floor", 
+"3. Main material of the roof.", "4. Main material of the exterior walls", 
+"5. How many separate rooms do the members of your household occupy?", 
+"8. Does your household pay any rent?", "9. Can your household generally afford to pay the rent without any major financial distress?", 
+"What is the total number of persons in this household ? (including the respondent)"
 )
               ,
             variable =  
-c("DWE01", "SHEL01", "SHEL02", "SHEL03", "SHEL04", "SHEL05", 
-"SHEL06", "DWE05", "DWE08", "DWE09")
+c("DWE01", "DWE02", "DWE03", "DWE04", "DWE05", "DWE08", "DWE09", 
+"HH01")
               ),
           modalitymap = data.frame(
             variable =  
 c("DWE01", "DWE01", "DWE01", "DWE01", "DWE01", "DWE01", "DWE01", 
-"DWE01", "DWE01", "SHEL01", "SHEL01", "SHEL01", "SHEL02", "SHEL02", 
-"SHEL02", "SHEL03", "SHEL03", "SHEL03", "SHEL04", "SHEL04", "SHEL04", 
-"SHEL05", "SHEL05", "SHEL05", "SHEL06", "SHEL06", "SHEL06", "DWE05", 
-"DWE08", "DWE08", "DWE09", "DWE09", "DWE09", "DWE09")
+"DWE01", "DWE01", "DWE01", "DWE02", "DWE02", "DWE02", "DWE02", 
+"DWE02", "DWE02", "DWE02", "DWE02", "DWE02", "DWE02", "DWE03", 
+"DWE03", "DWE03", "DWE03", "DWE03", "DWE03", "DWE03", "DWE03", 
+"DWE03", "DWE03", "DWE03", "DWE03", "DWE03", "DWE03", "DWE04", 
+"DWE04", "DWE04", "DWE04", "DWE04", "DWE04", "DWE04", "DWE04", 
+"DWE04", "DWE04", "DWE04", "DWE04", "DWE04", "DWE04", "DWE04", 
+"DWE04", "DWE05", "DWE08", "DWE08", "DWE09", "DWE09", "DWE09", 
+"DWE09", "HH01")
                ,
             label =  
-c("House", "Tent", "Caravan", "Collective Center", "Worksite/Unfinished Home/ Abandoned Building", 
-"Farm Building", "School, mosque, church or other religious building", 
-"Garage, shop, workshop, or other structure not meant as residential space", 
-"Other (Specify)", "Yes", "No", "Not possible to observe", "Yes", 
-"No", "Not possible to observe", "Yes", "No", "Not possible to observe", 
-"Yes", "No", "Not possible to observe", "Yes", "No", "Not possible to observe", 
-"Yes", "No", "Not possible to observe", NA, "Yes", "No", "Always", 
-"Often", "Sometimes", "Never")
+c("Apartment", "House", "Tent", "Caravan", "Collective Center", 
+"Worksite/Unfinished Home/ Abandoned Building", "Farm Building", 
+"School, mosque, church or other religious building", "Garage, shop, workshop, or other structure not meant as residential space", 
+"Other (Specify)", "Earth/sand", "Dung", "Wood planks", "Palm/bamboo", 
+"Parquet or polished wood", "Vinyl or asphalt strips", "Ceramic tiles", 
+"Cement", "Carpet", "Other (Specify)", "No roof", "Thatch/Palm leaf", 
+"Sod", "Rustic mat", "Palm/bamboo", "Wood planks", "Cardboard", 
+"Metal/tin", "Wood", "Calamine/Cement fibre", "Ceramic tiles", 
+"Cement", "Roofing shingles", "Other (Specify)", "No walls", 
+"Cane/Palm/ Trunks", "Dirt", "Bamboo with mud", "Stone with mud", 
+"Uncovered adobe", "Plywood", "Cardboard", "Reused wood", "Cement", 
+"Stone with lime/ cement", "Bricks", "Cement blocks", "Covered adobe", 
+"Wood planks/shingles", "Other (Specify)", NA, "Yes", "No", "Always", 
+"Often", "Sometimes", "Never", NA)
                ,
             standard =  
-c("2", "3", "4", "5", "6", "7", "8", "9", "96", "1", "0", "98", 
-"1", "0", "98", "1", "0", "98", "1", "0", "98", "1", "0", "98", 
-"1", "0", "98", NA, "1", "0", "1", "2", "3", "4")
-              )) 
+c("1", "2", "3", "4", "5", "6", "7", "8", "9", "96", "1", "2", 
+"3", "4", "5", "6", "7", "8", "9", "96", "1", "2", "3", "4", 
+"5", "6", "7", "8", "9", "10", "11", "12", "13", "96", "1", "2", 
+"3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", 
+"15", "96", NA, "1", "0", "1", "2", "3", "4", NA)
+              ))
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 9.1")
   } else {
   
  #Only apartment and house
 datalist[["main"]]$dwe01_cat<- dplyr::case_when(
-         (datalist[["main"]]$DWE01 == 1 | 
-          datalist[["main"]]$DWE01 == 2) ~ 1, 
+         (as.integer(datalist[["main"]]$DWE01) == 1 | 
+          as.integer(datalist[["main"]]$DWE01) == 2) ~ 1, 
          TRUE ~ 0 )
+
 datalist[["main"]]$dwe01_cat <- labelled::labelled(datalist[["main"]]$dwe01_cat,
                         labels = c('Yes' = 1, 'No' = 0 ),
            label = "Proportion of apartment and house")
 
 #unimproved floor when not earth,sand,clay,mud, dung or other
 datalist[["main"]]$dwe02_cat<- dplyr::case_when( 
-    (datalist[["main"]]$DWE02 == 1 | 
-     datalist[["main"]]$DWE02 == 2 | 
-     datalist[["main"]]$DWE02 == 96) ~ 0, 
+    (as.integer(datalist[["main"]]$DWE02) == 1 | 
+     as.integer(datalist[["main"]]$DWE02) == 2 | 
+     as.integer(datalist[["main"]]$DWE02) == 96) ~ 0, 
     TRUE ~ 1 )
 datalist[["main"]]$dwe02_cat <- labelled::labelled(datalist[["main"]]$dwe02_cat,
                         labels = c('Yes' = 1, 'No' = 0 ),
@@ -2031,12 +2020,12 @@ datalist[["main"]]$dwe02_cat <- labelled::labelled(datalist[["main"]]$dwe02_cat,
 
 #unimproved roof all options except metal,wood,ceramic tiles, cement, roofing shingles/sheets
 datalist[["main"]]$dwe03_cat<- dplyr::case_when( 
-    (datalist[["main"]]$DWE03 == 8 |
-     datalist[["main"]]$DWE03 == 9 | 
-     datalist[["main"]]$DWE03 == 10 | 
-     datalist[["main"]]$DWE03 == 11 |
-     datalist[["main"]]$DWE03 == 12 | 
-     datalist[["main"]]$DWE03 == 13 ) ~ 1 , 
+    (as.integer(datalist[["main"]]$DWE03) == 8 |
+     as.integer(datalist[["main"]]$DWE03) == 9 | 
+     as.integer(datalist[["main"]]$DWE03) == 10 | 
+     as.integer(datalist[["main"]]$DWE03) == 11 |
+     as.integer(datalist[["main"]]$DWE03) == 12 | 
+     as.integer(datalist[["main"]]$DWE03) == 13 ) ~ 1 , 
     TRUE ~ 0)
 datalist[["main"]]$dwe03_cat <- labelled::labelled(datalist[["main"]]$dwe03_cat,
                         labels = c('Yes' = 1, 'No' = 0 ),
@@ -2045,12 +2034,12 @@ datalist[["main"]]$dwe03_cat <- labelled::labelled(datalist[["main"]]$dwe03_cat,
 
 #improved wall: cement,stone,bricks,cement blocks, covered adobe, wood planks
 datalist[["main"]]$dwe04_cat<- dplyr::case_when( 
-    (datalist[["main"]]$DWE04 == 10| 
-     datalist[["main"]]$DWE04 == 11| 
-     datalist[["main"]]$DWE04 == 12| 
-     datalist[["main"]]$DWE04 == 13| 
-     datalist[["main"]]$DWE04 == 14| 
-     datalist[["main"]]$DWE04 == 15) ~ 1,
+    ( as.integer(datalist[["main"]]$DWE04) == 10 | 
+      as.integer(datalist[["main"]]$DWE04) == 11 | 
+      as.integer(datalist[["main"]]$DWE04) == 12 | 
+      as.integer(datalist[["main"]]$DWE04) == 13 | 
+      as.integer(datalist[["main"]]$DWE04) == 14 | 
+      as.integer(datalist[["main"]]$DWE04) == 15) ~ 1,
   TRUE ~ 0) 
 datalist[["main"]]$dwe04_cat <- labelled::labelled(datalist[["main"]]$dwe04_cat,
                         labels = c('Yes' = 1, 'No' = 0 ),
@@ -2059,8 +2048,8 @@ datalist[["main"]]$dwe04_cat <- labelled::labelled(datalist[["main"]]$dwe04_cat,
 
 ####Calculate crowding index - overcrowded when more than 3 persons
 
-datalist[["main"]]$crowding <- datalist[["main"]]$HH01/
-                               datalist[["main"]]$DWE05
+datalist[["main"]]$crowding <- as.integer(datalist[["main"]]$HH01) /
+                               as.integer(datalist[["main"]]$DWE05)
 ##if crowding <= 3, not overcrowded 
 datalist[["main"]]$dwe05_cat <- dplyr::case_when( 
     datalist[["main"]]$crowding <= 3 ~ 1, 
@@ -2075,53 +2064,52 @@ datalist[["main"]]$dwe05_cat <- labelled::labelled(datalist[["main"]]$dwe05_cat,
 
 #affordable if HH pays rent and often and always without financial distress
 datalist[["main"]]$dwe09_cat <-  dplyr::case_when( 
-  (datalist[["main"]]$DWE08 == 1 &
-     (datalist[["main"]]$DWE09 == 1 | 
-      datalist[["main"]]$DWE09 == 2 ) ) ~ 1,
+  (as.integer(datalist[["main"]]$DWE08) == 1 &
+     (as.integer(datalist[["main"]]$DWE09) == 1 | 
+      as.integer(datalist[["main"]]$DWE09) == 2 ) ) ~ 1,
   
-  (datalist[["main"]]$DWE08 == 1 &
-     (datalist[["main"]]$DWE09 == 3 | 
-      datalist[["main"]]$DWE09 == 4 ) ) ~ 0,  
+  (as.integer(datalist[["main"]]$DWE08) == 1 &
+     (as.integer(datalist[["main"]]$DWE09) == 3 | 
+      as.integer(datalist[["main"]]$DWE09) == 4 ) ) ~ 0,  
   
   datalist[["main"]]$DWE08== 0 ~ 1)
 
 datalist[["main"]]$dwe09_cat <- labelled::labelled(datalist[["main"]]$dwe09_cat,
                         labels = c('Yes' = 1, 'No' = 0 ),
-           label = "Proportion of affordable sheters - HH pays rent and often and always without financial distress")
+   label = "Proportion of affordable sheters - HH pays rent and often and always without financial distress")
       
 ####Combine all shelter indicators 
 
 ##dwe01_cat / dwe02_cat / dwe03_cat / dwe04_cat / dwe05_cat / dwe09_cat
 
 
-datalist[["main"]]$outcome9_1 < dplyr::case_when(
-    datalist[["main"]]$dwe01_cat== 0 | 
-    datalist[["main"]]$dwe02_cat== 0 | 
-    datalist[["main"]]$dwe03_cat== 0 | 
-    datalist[["main"]]$dwe04_cat== 0 | 
-    datalist[["main"]]$dwe05_cat== 0 | 
-    datalist[["main"]]$dwe09_cat== 0  ~ 0,
+datalist[["main"]]$outcome9_1 <- dplyr::case_when(
+    datalist[["main"]]$dwe01_cat == 0 | 
+    datalist[["main"]]$dwe02_cat == 0 | 
+    datalist[["main"]]$dwe03_cat == 0 | 
+    datalist[["main"]]$dwe04_cat == 0 | 
+    datalist[["main"]]$dwe05_cat == 0 | 
+    datalist[["main"]]$dwe09_cat == 0  ~ 0,
     
-    datalist[["main"]]$dwe01_cat== 1 & 
-    datalist[["main"]]$dwe02_cat== 1 & 
-    datalist[["main"]]$dwe03_cat== 1 & 
-    datalist[["main"]]$dwe04_cat== 1 & 
-    datalist[["main"]]$dwe05_cat== 1 & 
-    datalist[["main"]]$dwe09_cat== 1 ~ 1)
+    datalist[["main"]]$dwe01_cat == 1 & 
+    datalist[["main"]]$dwe02_cat == 1 & 
+    datalist[["main"]]$dwe03_cat == 1 & 
+    datalist[["main"]]$dwe04_cat == 1 & 
+    datalist[["main"]]$dwe05_cat == 1 & 
+    datalist[["main"]]$dwe09_cat == 1 ~ 1)
 
 datalist[["main"]]$outcome9_1  <- labelled::labelled(datalist[["main"]]$outcome9_1,
                         labels = c('Yes' = 1, 'No' = 0 ),
-           label = "Proportion of PoCs living in habitable
-                            and affordable housing")
+   label = "Proportion of PoCs living in habitable and affordable housing")
 
   }
    return(datalist) 
 }
 ```
   
-```{r example-outcome9_1}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome9_1, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
 ## Apply indicator function on datalist
 datalist <- outcome9_1(datalist)
@@ -2171,13 +2159,6 @@ test_that("outcome9_1 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -2187,7 +2168,7 @@ test_that("outcome9_1 works", {
 #' @export
 outcome9_2 <- function(datalist ){
    # Mapper , 
-   mapper = list(
+mapper = list(
            hierarchy = "main",
           variablemap = data.frame(
             label = 
@@ -2202,57 +2183,56 @@ c("LIGHT01", "LIGHT02", "LIGHT03")
             variable =  
 c("LIGHT01", "LIGHT01", "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", 
 "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", 
-"LIGHT02", "LIGHT02", "LIGHT02", "LIGHT03", "LIGHT03", "LIGHT03", 
+"LIGHT02", "LIGHT02", "LIGHT02", "LIGHT02", "LIGHT03", "LIGHT03", 
 "LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", "LIGHT03", 
-"LIGHT03")
+"LIGHT03", "LIGHT03")
                ,
             label =  
 c("Yes", "No", "Electricity (including solar mini-grids, hybrid mini-grids and national grid)", 
-"Solar home system", "Solar-powered lantern or flashlight", "Rechargeable flashlight, mobile, torch or lantern", 
-"Battery powered flashlight, torch or lantern", "Biogas lamp", 
-"LPG lamp", "Gasoline lamp", "Kerosene or paraffin lamp", "Oil lamp", 
-"Candle", "Open fire", "Other, specify", "No electricity in household", 
+"Electricity (from diesel generator)", "Solar home system", "Solar-powered lantern or flashlight", 
+"Rechargeable flashlight, mobile, torch or lantern", "Battery powered flashlight, torch or lantern", 
+"Biogas lamp", "LPG lamp", "Gasoline lamp", "Kerosene or paraffin lamp", 
+"Oil lamp", "Candle", "Open fire", "Other, specify", "No electricity in household", 
 "National grid connection from [COMPANY]", "Local mini grid", 
 "Solar home system", "Solar lantern", "Electric generator", "Rechargeable battery", 
 "Dry cell battery / torch", "Other, specify", "Don't know")
                ,
             standard =  
 c("1", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", 
-"11", "12", "96", "0", "1", "2", "3", "4", "5", "6", "7", "96", 
-"98")
-              )) 
+"11", "12", "13", "96", "1", "2", "3", "4", "5", "6", "7", "8", 
+"96", "98")
+              ))
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper) 
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 9.2")
   } else {
     
 datalist[["main"]]$outcome9_2 <- dplyr::case_when(
-  datalist[["main"]]$LIGHT01 == 1 & 
-     (datalist[["main"]]$LIGHT02 == 1 |
-      datalist[["main"]]$LIGHT02 == 3 | 
-      datalist[["main"]]$LIGHT02 == 4 | 
-      datalist[["main"]]$LIGHT02 == 5 |
-      datalist[["main"]]$LIGHT02 == 6 |
-      datalist[["main"]]$LIGHT02 == 7 |
-      datalist[["main"]]$LIGHT02 == 8 )  ~ 1, 
+  as.integer(datalist[["main"]]$LIGHT01) == 1 & 
+     (as.integer(datalist[["main"]]$LIGHT02) == 1 |
+      as.integer(datalist[["main"]]$LIGHT02) == 3 | 
+      as.integer(datalist[["main"]]$LIGHT02) == 4 | 
+      as.integer(datalist[["main"]]$LIGHT02) == 5 |
+      as.integer(datalist[["main"]]$LIGHT02) == 6 |
+      as.integer(datalist[["main"]]$LIGHT02) == 7 |
+      as.integer(datalist[["main"]]$LIGHT02) == 8 )  ~ 1, 
      TRUE ~ 0)
 
 datalist[["main"]]$outcome9_2  <- labelled::labelled(datalist[["main"]]$outcome9_2,
                             labels = c('Yes' = 1, 'No' = 0 ),
-                    label = "Proportion of PoC that have energy to 
-                    ensure lighting")
+  label = "Proportion of PoC that have energy to ensure lighting")
 
 }
    return(datalist)
 }
 ```
   
-```{r example-outcome9_2}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome9_2, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
 ## Apply indicator function on datalist
 datalist <- outcome9_2(datalist )
@@ -2300,13 +2280,6 @@ test_that("outcome9_2 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -2316,65 +2289,58 @@ test_that("outcome9_2 works", {
 #' @export
 outcome10_1 <- function(datalist){
   # Mapper , 
-  mapper = list(
+mapper = list(
            hierarchy = "ind",
           variablemap = data.frame(
             label = 
-c("1. Do you have a *[National Child Immunisation Record]*, immunisation records from a private health provider or any other document where ${name_individual}’s vaccinations are written down?", 
-"2. Did you ever have a [National Child Immunisation Record] or immunisation records from a private health provider for ${name_individual}?", 
-"3. Has ${name_individual} ever received a measles containing vaccine(i.e. measles, MR or MMR)? That is a shot at the age of 9 months or older - to prevent (him/her) from getting measles", 
-"4. How many times was the measles vaccine received?")
+"3. Has ${indiv_05Less_name} ever received a measles containing vaccine(i.e. measles, MR or MMR)? That is a shot at the age of 9 months or older - to prevent (him/her) from getting measles"
               ,
             variable =  
-c("MMR01", "MMR02", "MMR03", "MMR04")
+"MMR03"
               ),
           modalitymap = data.frame(
             variable =  
-c("MMR01", "MMR01", "MMR01", "MMR01", "MMR02", "MMR02", "MMR02", 
-"MMR03", "MMR03", "MMR03", "MMR04")
+c("MMR03", "MMR03", "MMR03")
                ,
             label =  
-c("Yes, has only card(s)", "Yes, has only other document", "Yes, has a card(s) and another document", 
-"No, has no cards and no other document", "Yes", "No", "Don't know", 
-"Yes", "No", "Don't know", NA)
+c("Yes", "No", "Don't know")
                ,
             standard =  
-c("1", "2", "3", "4", "1", "0", "98", "1", "0", "98", NA)
-              ))  
+c("1", "0", "98")
+              ))
   
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper) 
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 10.1")
   } else {
   
   
-datalist[["ind"]]$outcome10_1<- dplyr::case_when(
-    datalist[["ind"]]$MMR03 == 1 ~ 1, 
+datalist[["ind"]]$outcome10_1 <- dplyr::case_when(
+    as.integer(datalist[["ind"]]$MMR03) == 1 ~ 1, 
     
-    datalist[["ind"]]$MMR03 == 0  |
-    datalist[["ind"]]$MMR03 == 98 ~ 0)
+    as.integer(datalist[["ind"]]$MMR03) == 0  |
+    as.integer(datalist[["ind"]]$MMR03) == 98 ~ 0)
 
 datalist[["ind"]]$outcome10_1  <- labelled::labelled(datalist[["ind"]]$outcome10_1,
                             labels = c('Yes' = 1, 'No' = 0 ),
-                                label = "Proportion of children aged 9 months 
-                            to five years who have received measles vaccination")
+     label = "Proportion of children aged 9 months to five years who have received measles vaccination")
 }
    return(datalist)
 }
 ```
   
-```{r example-outcome10_1}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome10_1, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## Apply indicator function on datalist
 datalist <- outcome10_1(datalist)
 
 ## Visualise value
-fct_plot_indic_donut(indicator = datalist[["main"]]$outcome10_1,
+fct_plot_indic_donut(indicator = datalist[["ind"]]$outcome10_1,
                      iconunicode = "f140")   
 ```
   
@@ -2420,13 +2386,6 @@ test_that("outcome10_1 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -2436,7 +2395,7 @@ test_that("outcome10_1 works", {
 #' @export
 outcome10_2 <- function(datalist){
   ## Mapper , 
-  mapper = list(
+mapper = list(
            hierarchy = "main",
           variablemap = data.frame(
             label = 
@@ -2464,34 +2423,34 @@ c("Yes", "No", "Yes", "No", "Health professional", "Doctor",
             standard =  
 c("1", "0", "1", "0", "1", "2", "3", "4", "5", "6", "96", "98", 
 "1", "2", "3", "96")
-              )) 
+              ))
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 10.2")
   } else {
     
 datalist[["main"]]$outcome10_2 <- dplyr::case_when( 
-    (datalist[["main"]]$BIR01 == 1 | 
-     datalist[["main"]]$BIR02 == 1) &
-    (datalist[["main"]]$BIR03 == 1 |
-     datalist[["main"]]$BIR03 == 2 |
-     datalist[["main"]]$BIR03 == 3 )   ~ "1",
+    ( as.integer(datalist[["main"]]$BIR01) == 1 | 
+     as.integer(datalist[["main"]]$BIR02) == 1) &
+    (as.integer(datalist[["main"]]$BIR03) == 1 |
+     as.integer(datalist[["main"]]$BIR03) == 2 |
+     as.integer(datalist[["main"]]$BIR03) == 3 )   ~ 1,
     
-    (datalist[["main"]]$BIR01 == 1 | 
-     datalist[["main"]]$BIR02 == 1) & (
-     datalist[["main"]]$BIR03 == 4 | 
-     datalist[["main"]]$BIR03 == 5 | 
-     datalist[["main"]]$BIR03 == 6 | 
-     datalist[["main"]]$BIR03 == 96| 
-     datalist[["main"]]$BIR03 == 98) ~ "0", 
+    (as.integer(datalist[["main"]]$BIR01) == 1 | 
+     as.integer(datalist[["main"]]$BIR02) == 1) & (
+     as.integer(datalist[["main"]]$BIR03) == 4 | 
+     as.integer(datalist[["main"]]$BIR03) == 5 | 
+     as.integer(datalist[["main"]]$BIR03) == 6 | 
+     as.integer(datalist[["main"]]$BIR03) == 96| 
+     as.integer(datalist[["main"]]$BIR03) == 98) ~ 0, 
     
     TRUE ~ NA_real_)
 
 datalist[["main"]]$outcome10_2  <- labelled::labelled(datalist[["main"]]$outcome10_2,
-                            labels = c('Yes' = "1", 'No' = "0" ),
+                            labels = c('Yes' = 1, 'No' = 0 ),
                                  label = "Proportion of births attended
                             by skilled health personnel")
 }
@@ -2499,9 +2458,9 @@ datalist[["main"]]$outcome10_2  <- labelled::labelled(datalist[["main"]]$outcome
 }
 ```
   
-```{r example-outcome10_2}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome10_2, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
 ## Apply indicator function on datalist
 datalist <- outcome10_2(datalist  )
@@ -2554,13 +2513,6 @@ test_that("outcome10_2 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -2570,24 +2522,24 @@ test_that("outcome10_2 works", {
 #' @export
 outcome12_1 <- function(datalist ){
   # Mapper , 
-    mapper = list(
+mapper = list(
            hierarchy = "main",
           variablemap = data.frame(
             label = 
 c("1. What is the main source of drinking water for this household?", 
-"2. Where is this ${source} - ${source2} located?", "3. How long does it take to go there, get water, and come back, including waiting time?", 
+"2. Where is this ${source} - ${source2} located?", "Unit", "Time", 
 "4. In the last 30 days, has there been any time when your household did not have sufficient quantities of drinking water when needed?"
 )
               ,
             variable =  
-c("DWA01", "DWA02", "DWA03", "DWA04")
+c("DWA01", "DWA02", "DWA03a", "DWA03b", "DWA04")
               ),
           modalitymap = data.frame(
             variable =  
 c("DWA01", "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", 
 "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", "DWA01", 
 "DWA01", "DWA01", "DWA01", "DWA01", "DWA02", "DWA02", "DWA02", 
-"DWA03", "DWA04", "DWA04")
+"DWA03a", "DWA03a", "DWA03b", "DWA04", "DWA04")
                ,
             label =  
 c("Piped Into Dwelling", "Piped Into Yard/Plot", "Piped To Neighbor", 
@@ -2596,92 +2548,90 @@ c("Piped Into Dwelling", "Piped Into Yard/Plot", "Piped To Neighbor",
 "Rain Water Collection", "Tanker Truck/Water Vendor", "Cart With Small Tank/Drum", 
 "Surface Water (River, Stream, Pond, Dam, Canal)", "Bottled Water", 
 "Sachet Water", "Water Kiosk", "Other (Specify)", "Don't Know", 
-"In Own Dwelling", "In Own Yard/Plot", "Elsewhere", NA, "Yes", 
-"No")
+"In Own Dwelling", "In Own Yard/Plot", "Elsewhere", "Minutes", 
+"Hours", NA, "Yes", "No")
                ,
             standard =  
 c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", 
-"13", "14", "15", "16", "96", "98", "1", "2", "3", NA, "1", "0"
-)
-              )) 
-
+"13", "14", "15", "16", "96", "98", "1", "2", "3", "1", "2", 
+NA, "1", "0")
+              ))
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper) 
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 12.1")
   } else {
   
   #convert hour into minutes
 datalist[["main"]]$time_DWA <- dplyr::case_when(
-    datalist[["main"]]$DWA03a == 1 ~ 1, 
-    datalist[["main"]]$DWA03a == 2 ~ 60)
+    as.integer(datalist[["main"]]$DWA03a) == 1 ~ 1, 
+    as.integer(datalist[["main"]]$DWA03a) == 2 ~ 60)
 
-datalist[["main"]]$time_tot <- datalist[["main"]]$time_DWA * datalist[["main"]]$DWA03b
+datalist[["main"]]$time_tot <- datalist[["main"]]$time_DWA * 
+                                as.integer(datalist[["main"]]$DWA03b)
 
 # reachable under 30 minutes
 datalist[["main"]]$reachableU30 <- dplyr::case_when( 
-  datalist[["main"]]$time_tot > 30 ~ "0",
-  TRUE ~ "1") 
+  datalist[["main"]]$time_tot > 30 ~ 0,
+  TRUE ~ 1) 
 
 # improved source
 datalist[["main"]]$dwa_cond1 <- dplyr::case_when(
-  datalist[["main"]]$DWA01!="7" |
-  datalist[["main"]]$DWA01 !="9" |
-  datalist[["main"]]$DWA01 != "13" | 
-  datalist[["main"]]$DWA01 != "96" |
-  datalist[["main"]]$DWA01 !="98" ~ "1",
+  as.integer(datalist[["main"]]$DWA01) != 7 |
+  as.integer(datalist[["main"]]$DWA01) != 9 |
+  as.integer(datalist[["main"]]$DWA01) != 13 | 
+  as.integer(datalist[["main"]]$DWA01) != 96 |
+  as.integer(datalist[["main"]]$DWA01) != 98 ~ 1,
   
-  TRUE ~ "0") 
+  TRUE ~ 0) 
 
-datalist[["main"]]$dwa_cond1  <- labelled::labelled(dwa_cond1 ,
-                            labels = c('Yes' = "1", 'No' = "0" ),
+datalist[["main"]]$dwa_cond1  <- labelled::labelled(datalist[["main"]]$dwa_cond1 ,
+                            labels = c('Yes' = 1, 'No' = 0 ),
                             label = "Water: improved source") 
 
 ## Second condition
 
 datalist[["main"]]$dwa_cond2 <- dplyr::case_when( 
   
-  datalist[["main"]]$DWA02 == "3"   ~ "1", 
+  as.integer(datalist[["main"]]$DWA02) == 3   ~ 1, 
   
   #UNDER30 MIN
-  datalist[["main"]]$reachableU30 == "1" & 
+  as.integer(datalist[["main"]]$reachableU30) == 1 & 
   # NOT UNDER30 MIN
-  datalist[["main"]]$reachableU30 == "0" & 
-  datalist[["main"]]$DWA02 == "3" ~ "0", 
+  as.integer(datalist[["main"]]$reachableU30) == 0 & 
+  as.integer(datalist[["main"]]$DWA02) == 3 ~ 0, 
   
   # in the dwelling/yard/plot
-  datalist[["main"]]$DWA02 == "1" | 
-  datalist[["main"]]$DWA02 == "2" ~ "1", 
+  as.integer(datalist[["main"]]$DWA02) == 1 | 
+  as.integer(datalist[["main"]]$DWA02) == 2 ~ 1, 
   
-  TRUE ~ NA_character_ ) 
+  TRUE ~ NA ) 
 
-datalist[["main"]]$dwa_cond2  <- labelled::labelled(dwa_cond2 ,
-                            labels = c('Yes' = "1", 'No' = "0" ),
+datalist[["main"]]$dwa_cond2  <- labelled::labelled(datalist[["main"]]$dwa_cond2 ,
+                            labels = c('Yes' = 1, 'No' = 0 ),
                             label = "Water accessible") 
 
 
 ## Composite
 datalist[["main"]]$outcome12_1 <- dplyr::case_when(
-    (datalist[["main"]]$dwa_cond1=="1" & 
-      datalist[["main"]]$dwa_cond2=="1" ) ~ "1", 
-    TRUE ~ "0")
+     (datalist[["main"]]$dwa_cond1 == 1 & 
+      datalist[["main"]]$dwa_cond2 == 1 ) ~ 1, 
+    TRUE ~ 0)
 
-datalist[["main"]]$outcome12_1  <- labelled::labelled(outcome12_1 ,
-                            labels = c('Yes' = "1", 'No' = "0" ),
-                            label = "Proportion of PoC using at 
-                            least basic drinking water services") 
+datalist[["main"]]$outcome12_1  <- labelled::labelled(datalist[["main"]]$outcome12_1,
+                            labels = c('Yes' = 1, 'No' = 0 ),
+          label = "Proportion of PoC using at least basic drinking water services") 
 
    }
    return(datalist)
 }
 ```
   
-```{r example-outcome12_1}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome12_1, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
-
 ## Apply indicator function on datalist
 datalist <- outcome12_1(datalist  )
 
@@ -2725,13 +2675,6 @@ test_that("outcome12_1 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -2741,9 +2684,9 @@ test_that("outcome12_1 works", {
 #' @export
 outcome12_2 <- function(datalist ){
   ## mapper, 
-  
-mapper = list(
+  mapper = list(
            hierarchy = "main",
+           hierarchy = "ind",
           variablemap = data.frame(
             label = 
 c("1. What is the MAIN type of toilet facility used by your household?", 
@@ -2785,51 +2728,51 @@ c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12",
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper) 
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 12.2")
   } else {
   
     
 datalist[["main"]]$toi_cond1 <- dplyr::case_when(
-  datalist[["main"]]$TOI01 == 1 |
-  datalist[["main"]]$TOI01 == 2 | 
-  datalist[["main"]]$TOI01 == 3 | 
-  datalist[["main"]]$TOI01 == 4 |
-  datalist[["main"]]$TOI01 == 5 |
-  datalist[["main"]]$TOI01 == 6 | 
-  datalist[["main"]]$TOI01 == 7 | 
-  datalist[["main"]]$TOI01 == 9 ~ 1,
+  as.integer(datalist[["main"]]$TOI01) == 1 |
+  as.integer(datalist[["main"]]$TOI01) == 2 | 
+  as.integer(datalist[["main"]]$TOI01) == 3 | 
+  as.integer(datalist[["main"]]$TOI01) == 4 |
+  as.integer(datalist[["main"]]$TOI01) == 5 |
+  as.integer(datalist[["main"]]$TOI01) == 6 | 
+  as.integer(datalist[["main"]]$TOI01) == 7 | 
+  as.integer(datalist[["main"]]$TOI01) == 9 ~ 1,
   
-  datalist[["main"]]$TOI01 == 8 | 
-  datalist[["main"]]$TOI01 == 10 | 
-  datalist[["main"]]$TOI01 == 11 | 
-  datalist[["main"]]$TOI01 == 12 | 
-  datalist[["main"]]$TOI01 == 96 ~ 0,
+  as.integer(datalist[["main"]]$TOI01) == 8 | 
+  as.integer(datalist[["main"]]$TOI01) == 10 | 
+  as.integer(datalist[["main"]]$TOI01) == 11 | 
+  as.integer(datalist[["main"]]$TOI01) == 12 | 
+  as.integer(datalist[["main"]]$TOI01) == 96 ~ 0,
   
   TRUE ~ NA_real_)
 
 #Unsafe disposal
 datalist[["main"]]$toi_cond2 <- dplyr::case_when(
  
-    datalist[["main"]]$TOI02 == 1 & 
-    ( datalist[["main"]]$TOI03 == 1 |
-      datalist[["main"]]$TOI03 == 2 |
-      datalist[["main"]]$TOI03 == 3 |
-      datalist[["main"]]$TOI03 == 4 ) ~ 1, 
+    as.integer(datalist[["main"]]$TOI02) == 1 & 
+    ( as.integer(datalist[["main"]]$TOI03) == 1 |
+      as.integer(datalist[["main"]]$TOI03) == 2 |
+      as.integer(datalist[["main"]]$TOI03) == 3 |
+      as.integer(datalist[["main"]]$TOI03) == 4 ) ~ 1, 
     
-    datalist[["main"]]$TOI02 == 1 & 
-      (datalist[["main"]]$TOI03 ==5 |
-       datalist[["main"]]$TOI03 == 96 | 
-       datalist[["main"]]$TOI03 == 98) ~ 0, 
+    as.integer(datalist[["main"]]$TOI02) == 1 & 
+      (as.integer(datalist[["main"]]$TOI03) ==5 |
+       as.integer(datalist[["main"]]$TOI03) == 96 | 
+       as.integer(datalist[["main"]]$TOI03) == 98) ~ 0, 
   
-  datalist[["main"]]$TOI02 == 2 ~  0, 
-  datalist[["main"]]$TOI02 == 98 ~ 0, 
+  as.integer(datalist[["main"]]$TOI02) == 2 ~  0, 
+  as.integer(datalist[["main"]]$TOI02) == 98 ~ 0, 
   TRUE ~ NA_real_)
 
  # toilet not shared with other households
 datalist[["main"]]$toi_cond3<- dplyr::case_when(
-    datalist[["main"]]$TOI05 == 1 ~ 0, 
-    datalist[["main"]]$TOI05 == 0 ~ 1) 
+    as.integer(datalist[["main"]]$TOI05) == 1 ~ 0, 
+    as.integer(datalist[["main"]]$TOI05) == 0 ~ 1) 
 
 
 ###Combine all three conditions below
@@ -2852,12 +2795,10 @@ datalist[["main"]]$outcome12_2  <- labelled::labelled(datalist[["main"]]$outcome
 }
 ```
   
-```{r example-outcome12_2}
-
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome12_2, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
-
 ## Apply indicator function on datalist
 datalist <- outcome12_2(datalist)
 
@@ -2872,7 +2813,7 @@ test_that("outcome12_2 works", {
 })
 ```
 
-## outcome13_1 - Financial Inclusion
+## outcome13_1 
     
 ```{r function-outcome13_1}
 #' outcome13_1
@@ -2901,13 +2842,6 @@ test_that("outcome12_2 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -2943,25 +2877,24 @@ c("Yes", "No", "Yes", "No", "Yes", "No", "Yes", "No", "Yes",
                ,
             standard =  
 c("1", "0", "1", "0", "1", "0", "1", "0", "1", "0")
-              ))  
-
+              ))
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 13.1")
   } else {
   
 datalist[["main"]]$outcome13_1 <- dplyr::case_when(
-      datalist[["main"]]$BANK01 == 1 | 
-      datalist[["main"]]$BANK02 == 1 | 
-      datalist[["main"]]$BANK03 == 1 |
-      datalist[["main"]]$BANK05 == 1 ~ 1,
+      as.integer(datalist[["main"]]$BANK01) == 1 | 
+      as.integer(datalist[["main"]]$BANK02) == 1 | 
+      as.integer(datalist[["main"]]$BANK03) == 1 |
+      as.integer(datalist[["main"]]$BANK05) == 1 ~ 1,
       
-      datalist[["main"]]$BANK01 == 0 & 
-      datalist[["main"]]$BANK02 == 0 & 
-      datalist[["main"]]$BANK03 == 0 & 
-      datalist[["main"]]$BANK05 == 0 ~ 0,
+      as.integer(datalist[["main"]]$BANK01) == 0 & 
+      as.integer(datalist[["main"]]$BANK02) == 0 & 
+      as.integer(datalist[["main"]]$BANK03) == 0 & 
+      as.integer(datalist[["main"]]$BANK05) == 0 ~ 0,
       TRUE ~ 0)
 
 datalist[["main"]]$outcome13_1  <- labelled::labelled(datalist[["main"]]$outcome13_1,
@@ -2974,11 +2907,10 @@ datalist[["main"]]$outcome13_1  <- labelled::labelled(datalist[["main"]]$outcome
 }
 ```
   
-```{r example-outcome13_1}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome13_1, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
-
 ## Apply indicator function on datalist
 datalist <- outcome13_1(datalist )
 
@@ -3020,13 +2952,6 @@ test_that("outcome13_1 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -3040,58 +2965,49 @@ mapper = list(
            hierarchy = "main",
           variablemap = data.frame(
             label = 
-c("11. Compared to this time last year, has your income increased, remained the same, or decreased?", 
-"12. Compared to last year at this time, do you feel you can afford more things, the same, or fewer things in terms of goods and services?"
-)
+"11. Compared to this time last year, do you think you can now afford more goods and services, the same, or fewer goods and services?"
               ,
             variable =  
-c("INC01", "INC02")
+"INC01"
               ),
           modalitymap = data.frame(
             variable =  
-c("INC01", "INC01", "INC01", "INC01", "INC02", "INC02", "INC02", 
-"INC02")
+c("INC01", "INC01", "INC01", "INC01")
                ,
             label =  
-c("Increased compared to previous year", "Been the same compared to previous year", 
-"Decreased compared to previous year", "Don't know ", "More ", 
-"The same ", "Fewer ", "Don't know ")
+c("More", "The same", "Fewer", "Don't know")
                ,
             standard =  
-c("1", "2", "3", "98", "1", "2", "3", "98")
-              ))  
-  
-
+c("1", "2", "3", "98")
+              ))
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 13.2")
   } else {
   
 datalist[["main"]]$outcome13_2<- dplyr::case_when(
   
-    datalist[["main"]]$INC01 == 1 ~ 1,
+    as.integer(datalist[["main"]]$INC01) == 1 ~ 1,
     
-    datalist[["main"]]$INC01 == 2 |
-    datalist[["main"]]$INC01 == 3 |
-    datalist[["main"]]$INC01 == 98 ~ 0 )
+    as.integer(datalist[["main"]]$INC01) == 2 |
+    as.integer(datalist[["main"]]$INC01) == 3 |
+    as.integer(datalist[["main"]]$INC01) == 98 ~ 0 )
 
 datalist[["main"]]$outcome13_2  <- labelled::labelled(datalist[["main"]]$outcome13_2,
                             labels = c('Yes' = 1, 'No' = 0 ),
-                    label = "Proportion of PoC who self-report positive changes 
-                    in their income compared to previous year")
+    label = "Proportion of PoC who self-report positive changes in their income compared to previous year")
 
 }
  return(datalist)
 }
 ```
   
-```{r example-outcome13_2}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome13_2, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
-
 ## Apply indicator function on datalist
 datalist <- outcome13_2(datalist)
 
@@ -3137,13 +3053,6 @@ test_that("outcome13_2 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -3153,19 +3062,22 @@ test_that("outcome13_2 works", {
 #' @export
 outcome13_3 <- function(datalist ){
   # mapper , 
-     mapper = list(
+
+mapper = list(
            hierarchy = "main",
           variablemap = data.frame(
             label = 
-c("1. During the past 7 days, did you work for someone else for pay, for one or more hours?", 
-"2. During the past 7 days, did you run or do any kind of business, farming, or other activity to generate income?", 
-"3. During the past 7 days, did you help in a family business or farm?", 
-"4. Even though you did not work, during the past 7 days, did he/she have a paid job from which he/she was temporarily absent?", 
-"5. Even though you did not work, during the past 7 days, did he/she have a business or a helper job in a family business/farm from which he/she was temporarily absent?", 
-"6. Last week, did you do any work in…?", "7. Was this work that you mentioned in...?", 
+c("1. During the past 7 days, did ${name_selectedadult18} work for someone else for pay, for one or more hours?", 
+"2. During the past 7 days, did ${name_selectedadult18} run or do any kind of business, farming, or other activity to generate income?", 
+"3. During the past 7 days, did ${name_selectedadult18} help in a family business or farm?", 
+"4. Even though ${name_selectedadult18} did not work, during the past 7 days, did he/she have a paid job from which he/she was temporarily absent?", 
+"5. Even though ${name_selectedadult18} did not work, during the past 7 days, did he/she have a business or a helper job in a family business/farm from which he/she was temporarily absent?", 
+"6. Last week, did ${name_selectedadult18} do any work in…?", 
+"7. Was this work that  ${name_selectedadult18} mentioned in...?", 
 "8. Thinking about this work, are the products intended...?", 
-"9. During the last 30 days, did you do anything to find a paid job or try to start a business?", 
-"10. Could you start working within the next two weeks?")
+"9. During the last 30 days, did ${name_selectedadult18} do anything to find a paid job or try to start a business?", 
+"10. Could ${name_selectedadult18} start working within the next two weeks?"
+)
               ,
             variable =  
 c("UNEM01", "UNEM02", "UNEM03", "UNEM04", "UNEM05", "UNEM06", 
@@ -3188,70 +3100,91 @@ c("Yes", "No", "Yes", "No", "Yes", "No", "Yes", "No", "Yes",
             standard =  
 c("1", "0", "1", "0", "1", "0", "1", "0", "1", "0", "1", "2", 
 "3", "1", "2", "3", "1", "2", "3", "4", "1", "0", "1", "0")
-              )) 
+              ))
 
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper) 
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 13.23")
   } else {
   
 
-datalist[["main"]]$employed<- dplyr::case_when(
+datalist[["main"]]$employed <- dplyr::case_when(
   
-    datalist[["main"]]$UNEM01 == 1 ~ 1,
+    as.integer(datalist[["main"]]$UNEM01) == 1 ~ 1,
     
-    datalist[["main"]]$UNEM02 == 1 & 
-    datalist[["main"]]$UNEM07 == 3 ~ 1,
+    as.integer(datalist[["main"]]$UNEM02) == 1 & 
+    as.integer(datalist[["main"]]$UNEM07) == 3 ~ 1,
     
-    datalist[["main"]]$UNEM04 == 1 ~ 1,
+    as.integer(datalist[["main"]]$UNEM04) == 1 ~ 1,
     
-    datalist[["main"]]$UNEM02 == 1 & 
-    datalist[["main"]]$UNEM07 == 1 & 
-      (datalist[["main"]]$UNEM08 == 1 | 
-       datalist[["main"]]$UNEM08 == 2) ~ 1,
+    as.integer(datalist[["main"]]$UNEM02) == 1 & 
+    as.integer(datalist[["main"]]$UNEM07) == 1 & 
+      (as.integer(datalist[["main"]]$UNEM08) == 1 | 
+       as.integer(datalist[["main"]]$UNEM08) == 2) ~ 1,
     
-    datalist[["main"]]$UNEM05 == 1 & 
-    datalist[["main"]]$UNEM06 == 3 ~ 1,
-    datalist[["main"]]$UNEM05== 1 & 
-     ( datalist[["main"]]$UNEM06 == 1 | 
-       datalist[["main"]]$UNEM06 == 2) & 
-     ( datalist[["main"]]$UNEM08 == 1 | 
-       datalist[["main"]]$UNEM08 == 2) ~ 1,
+    as.integer(datalist[["main"]]$UNEM05) == 1 & 
+    as.integer(datalist[["main"]]$UNEM06) == 3 ~ 1,
+    as.integer(datalist[["main"]]$UNEM05) == 1 & 
+     ( as.integer(datalist[["main"]]$UNEM06) == 1 | 
+       as.integer(datalist[["main"]]$UNEM06) == 2) & 
+     ( as.integer(datalist[["main"]]$UNEM08) == 1 | 
+       as.integer(datalist[["main"]]$UNEM08) == 2) ~ 1,
     TRUE ~ 0)
+
+
+datalist[["main"]]$employed  <- labelled::labelled(datalist[["main"]]$employed,
+                            labels = c('Yes' = 1, 'No' = 0 ),
+      label = "Proportion employed")
+
 
 datalist[["main"]]$unemployed<- dplyr::case_when(
-    datalist[["main"]]$employed == 0 & 
-    datalist[["main"]]$UNEM09 == 1 & 
-    datalist[["main"]]$UNEM10 == 1 ~ 1,
+    as.integer(datalist[["main"]]$employed) == 0 & 
+    as.integer(datalist[["main"]]$UNEM09) == 1 & 
+    as.integer(datalist[["main"]]$UNEM10) == 1 ~ 1,
     TRUE ~ 0)
 
-datalist[["main"]]$labour_force<- dplyr::case_when(
-    datalist[["main"]]$employed== 1 | 
-    datalist[["main"]]$unemployed== 1 ~ 1)
+
+datalist[["main"]]$unemployed  <- labelled::labelled(datalist[["main"]]$unemployed,
+                            labels = c('Yes' = 1, 'No' = 0 ),
+      label = "Proportion unemployed")
+
+datalist[["main"]]$labour_force <- dplyr::case_when(
+    datalist[["main"]]$employed == 1 | 
+    datalist[["main"]]$unemployed == 1 ~ 1)
 
 
-datalist[["main"]]$outcome13_3 <- 
-  datalist[["main"]]$unemployed/ 
-  datalist[["main"]]$labour_force
+datalist[["main"]]$labour_force  <- labelled::labelled(datalist[["main"]]$labour_force,
+                            labels = c('Yes' = 1, 'No' = 0 ),
+      label = "Proportion forming labour force")
+
+datalist[["main"]]$outcome13_3 <- dplyr::case_when(
+  (datalist[["main"]]$unemployed == 1 &  
+  datalist[["main"]]$labour_force == 1)  ~ 1,
+  (datalist[["main"]]$employed == 1 &  
+  datalist[["main"]]$labour_force == 1)  ~ 0,
+      TRUE ~ NA_real_   )
+  
+
+datalist[["main"]]$outcome13_3  <- labelled::labelled(datalist[["main"]]$outcome13_3,
+                            labels = c('Yes' = 1, 'No' = 0 ),
+      label = "Proportion of unemployed while being part of labour force")
+
   }
  return(datalist)
     
 }
 ```
   
-```{r example-outcome13_3}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome13_3, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
-
-## mapper
-mapper <-  list("")
-
 ## Apply indicator function on datalist
-datalist <- outcome13_3(datalist, mapper )
+datalist <- outcome13_3(datalist )
 
+table( datalist[["main"]]$outcome13_3, useNA = "ifany")
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome13_3,
                      iconunicode = "f140")   
@@ -3294,13 +3227,6 @@ test_that("outcome13_3 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -3310,60 +3236,81 @@ test_that("outcome13_3 works", {
 #' @export
 outcome14_1 <- function(datalist ){
   ## Mapper , 
-       mapper = list(
+
+mapper = list(
            hierarchy = "ind",
           variablemap = data.frame(
             label = 
-c("1. Does ${name_individual} have the documents below?", "2. Does ${name_individual} have any other document that establishes his/her legal identity?", 
+c("Passport?", "Birth certificate?", "Civil/government-issued ID card ?", 
+"Residency permit (both temporary and permanent)?", "Statelessness documentation?", 
+"Household card of address / family book/ marriage certificate?", 
+"Social security card?", "2. Does ${name_individual} have any other document that establishes his/her legal identity?", 
 "3. Does ${name_individual} have a birth certificate?", "4. Has ${name_individual}'s birth been registered with civil authorities?", 
-"5. Does ${name_individual} have the documents below?", "6. Does ${name_individual} have any other document that establishes your legal identity?"
+"Passport?", "Civil/government-issued ID card ?", "Residency permit (both temporary and permanent)?", 
+"Statelessness documentation?", "Household card of address / family book/ marriage certificate?", 
+"Social security card?", "6. Does ${name_individual} have any other document that establishes your legal identity?"
 )
               ,
             variable =  
-c("REG01", "REG02", "REG03", "REG04", "REG05", "REG06")
+c("REG01a", "REG01b", "REG01c", "REG01d", "REG01e", "REG01f", 
+"REG01g", "REG02", "REG03", "REG04", "REG05a", "REG05b", "REG05c", 
+"REG05d", "REG05e", "REG05f", "REG06")
               ),
           modalitymap = data.frame(
             variable =  
-c("REG01", "REG01", "REG01", "REG02", "REG02", "REG02", "REG03", 
-"REG03", "REG03", "REG04", "REG04", "REG04", "REG04", "REG05", 
-"REG05", "REG05", "REG06", "REG06", "REG06")
+c("REG01a", "REG01a", "REG01a", "REG01b", "REG01b", "REG01b", 
+"REG01c", "REG01c", "REG01c", "REG01d", "REG01d", "REG01d", "REG01e", 
+"REG01e", "REG01e", "REG01f", "REG01f", "REG01f", "REG01g", "REG01g", 
+"REG01g", "REG02", "REG02", "REG02", "REG03", "REG03", "REG03", 
+"REG04", "REG04", "REG04", "REG04", "REG05a", "REG05a", "REG05a", 
+"REG05b", "REG05b", "REG05b", "REG05c", "REG05c", "REG05c", "REG05d", 
+"REG05d", "REG05d", "REG05e", "REG05e", "REG05e", "REG05f", "REG05f", 
+"REG05f", "REG06", "REG06", "REG06")
                ,
             label =  
 c("Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
 "Yes", "No", "Don't know", "Yes", "No", "Don't know", "Prefer not to say", 
-"Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond"
-)
+"Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Prefer not to respond")
                ,
             standard =  
-c("1", "0", "99", "1", "0", "99", "1", "0", "98", "1", "0", "98", 
-"99", "1", "0", "99", "1", "0", "99")
+c("1", "0", "99", "1", "0", "99", "1", "0", "99", "1", "0", "99", 
+"1", "0", "99", "1", "0", "99", "1", "0", "99", "1", "0", "99", 
+"1", "0", "98", "1", "0", "98", "99", "1", "0", "99", "1", "0", 
+"99", "1", "0", "99", "1", "0", "99", "1", "0", "99", "1", "0", 
+"99", "1", "0", "99")
               ))
        
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 14.1")
   } else {
 
 datalist[["ind"]]$document_under5 <- dplyr::case_when(
-      datalist[["ind"]]$REG05a == 1 |  #ind$REG05a - passport
-      datalist[["ind"]]$REG05b == 1 |  #ind$REG05b - civil/government issued ID
-      datalist[["ind"]]$REG05c == 1 |  #ind$REG05c - residency permit
-      datalist[["ind"]]$REG05d == 1 |  #ind$REG05d - statelessness documentation
-      datalist[["ind"]]$REG05e == 1 |  #ind$REG05e - household card of address/family book
-      datalist[["ind"]]$REG05f == 1 |  #ind$REG05f - social security card
-      datalist[["ind"]]$REG06  == 1 | #ind$REG06 - any other document establishes identity
-      datalist[["ind"]]$REG03  == 1   #add birth certificate as additional document from REG03
+      as.integer(datalist[["ind"]]$REG05a) == 1 |  #ind$REG05a - passport
+      as.integer(datalist[["ind"]]$REG05b) == 1 |  #ind$REG05b - civil/government issued ID
+      as.integer(datalist[["ind"]]$REG05c) == 1 |  #ind$REG05c - residency permit
+      as.integer(datalist[["ind"]]$REG05d) == 1 |  #ind$REG05d - statelessness documentation
+      as.integer(datalist[["ind"]]$REG05e) == 1 |  #ind$REG05e - household card of address/family book
+      as.integer(datalist[["ind"]]$REG05f) == 1 |  #ind$REG05f - social security card
+      as.integer(datalist[["ind"]]$REG06)  == 1 | #ind$REG06 - any other document establishes identity
+      as.integer(datalist[["ind"]]$REG03)  == 1   #add birth certificate as additional document from REG03
            ~ 1,
-      datalist[["ind"]]$REG05a == 0 & 
-      datalist[["ind"]]$REG05b == 0 & 
-      datalist[["ind"]]$REG05c == 0 & 
-      datalist[["ind"]]$REG05d == 0 & 
-      datalist[["ind"]]$REG05e == 0 & 
-      datalist[["ind"]]$REG05f == 0 & 
-      datalist[["ind"]]$REG06 == 0 & 
-      datalist[["ind"]]$REG03 == 0 ~ 0, 
+      as.integer(datalist[["ind"]]$REG05a) == 0 & 
+      as.integer(datalist[["ind"]]$REG05b) == 0 & 
+      as.integer(datalist[["ind"]]$REG05c) == 0 & 
+      as.integer(datalist[["ind"]]$REG05d) == 0 & 
+      as.integer(datalist[["ind"]]$REG05e) == 0 & 
+      as.integer(datalist[["ind"]]$REG05f) == 0 & 
+      as.integer(datalist[["ind"]]$REG06) == 0 & 
+      as.integer(datalist[["ind"]]$REG03) == 0 ~ 0, 
       TRUE ~ NA_real_ )
   
   ###Calculate  valid identity documents for above 5 with REG01 and REG02 variables
@@ -3379,23 +3326,23 @@ datalist[["ind"]]$document_under5 <- dplyr::case_when(
   #ind$REG02 # any other document establishes identity
   
 datalist[["ind"]]$document_above5 <- dplyr::case_when(
-      datalist[["ind"]]$REG01a == 1 | 
-      datalist[["ind"]]$REG01b == 1 | 
-      datalist[["ind"]]$REG01c == 1 | 
-      datalist[["ind"]]$REG01d == 1 | 
-      datalist[["ind"]]$REG01e == 1 | 
-      datalist[["ind"]]$REG01f == 1 | 
-      datalist[["ind"]]$REG01g == 1 |
-      datalist[["ind"]]$REG02 == 1 ~ 1,
+      as.integer(datalist[["ind"]]$REG01a) == 1 | 
+      as.integer(datalist[["ind"]]$REG01b) == 1 | 
+      as.integer(datalist[["ind"]]$REG01c) == 1 | 
+      as.integer(datalist[["ind"]]$REG01d) == 1 | 
+      as.integer(datalist[["ind"]]$REG01e) == 1 | 
+      as.integer(datalist[["ind"]]$REG01f) == 1 | 
+      as.integer(datalist[["ind"]]$REG01g) == 1 |
+      as.integer(datalist[["ind"]]$REG02) == 1 ~ 1,
       
-      datalist[["ind"]]$REG01a == 0 & 
-      datalist[["ind"]]$REG01b == 0 & 
-      datalist[["ind"]]$REG01c == 0 & 
-      datalist[["ind"]]$REG01d == 0 & 
-      datalist[["ind"]]$REG01e == 0 & 
-      datalist[["ind"]]$REG01f == 0 & 
-      datalist[["ind"]]$REG01g == 0 & 
-      datalist[["ind"]]$REG02 == 0 ~ 0, 
+      as.integer(datalist[["ind"]]$REG01a) == 0 & 
+      as.integer(datalist[["ind"]]$REG01b) == 0 & 
+      as.integer(datalist[["ind"]]$REG01c) == 0 & 
+      as.integer(datalist[["ind"]]$REG01d) == 0 & 
+      as.integer(datalist[["ind"]]$REG01e) == 0 & 
+      as.integer(datalist[["ind"]]$REG01f) == 0 & 
+      as.integer(datalist[["ind"]]$REG01g) == 0 & 
+      as.integer(datalist[["ind"]]$REG02) == 0 ~ 0, 
       
       TRUE ~ NA_real_)
       
@@ -3416,16 +3363,16 @@ datalist[["ind"]]$outcome14_1  <- labelled::labelled(datalist[["ind"]]$outcome14
 }
 ```
   
-```{r example-outcome14_1}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome14_1, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
 
 ## Apply indicator function on datalist
 datalist <- outcome14_1(datalist )
 
 ## Visualise value
-fct_plot_indic_donut(indicator = datalist[["main"]]$outcome14_1,
+fct_plot_indic_donut(indicator = datalist[["ind"]]$outcome14_1,
                      iconunicode = "f140")   
 ```
   
@@ -3468,13 +3415,6 @@ test_that("outcome14_1 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -3484,120 +3424,105 @@ test_that("outcome14_1 works", {
 #' @export
 outcome16_1 <- function(datalist ){
   # Mapper , 
-   
+
 mapper = list(
            hierarchy = "main",
           variablemap = data.frame(
             label = 
-c("1. Who owns the **land** that you currently live in?", "2. Do you have official documentation (legally, customarily or otherwise recognized by relevant authorities) for who owns the **land** that your current housing is built on?", 
-"3. What type of documents does your household have for the **land** you currently live in?   ", 
-"4. Who owns the **housing** that you currently live in?", "5. Do you have official documentation (legally, customarily or otherwise recognized by relevant authorities) for who owns the **housing**?", 
-"6. What type of documents does your household have for the **housing** you currently live in?   ", 
-"9. In the next 12 months, how likely or unlikely is it that you could lose your right to this housing and/or land, against your will?"
+c("6. Who owns the dwelling that you currently live in?", "7. Who owns the land that your current dwelling is built on?", 
+"10. What type of documents does your household have for the housing you live in?", 
+"11. In the next 12 months, how likely or unlikely is it that you could lose your right to this housing and/or land, against your will?"
 )
               ,
             variable =  
-c("DWE06_land", "DWE06a_land", "DWE07_land", "DWE06_housing", 
-"DWE06a_housing", "DWE07_housing", "DWE10")
+c("DWE06", "DWE07", "DWE10", "DWE11")
               ),
           modalitymap = data.frame(
             variable =  
-c("DWE06_land", "DWE06_land", "DWE06_land", "DWE06_land", "DWE06_land", 
-"DWE06_land", "DWE06_land", "DWE06_land", "DWE06_land", "DWE06_land", 
-"DWE06_land", "DWE06_land", "DWE06a_land", "DWE06a_land", "DWE06a_land", 
-"DWE07_land", "DWE07_land", "DWE07_land", "DWE07_land", "DWE07_land", 
-"DWE07_land", "DWE07_land", "DWE06_housing", "DWE06_housing", 
-"DWE06_housing", "DWE06_housing", "DWE06_housing", "DWE06_housing", 
-"DWE06_housing", "DWE06_housing", "DWE06_housing", "DWE06_housing", 
-"DWE06_housing", "DWE06_housing", "DWE06a_housing", "DWE06a_housing", 
-"DWE06a_housing", "DWE07_housing", "DWE07_housing", "DWE07_housing", 
-"DWE07_housing", "DWE07_housing", "DWE07_housing", "DWE07_housing", 
-"DWE10", "DWE10", "DWE10", "DWE10", "DWE10")
+c("DWE06", "DWE06", "DWE06", "DWE06", "DWE06", "DWE06", "DWE06", 
+"DWE06", "DWE06", "DWE06", "DWE06", "DWE06", "DWE07", "DWE07", 
+"DWE07", "DWE07", "DWE07", "DWE07", "DWE07", "DWE07", "DWE07", 
+"DWE07", "DWE07", "DWE07", "DWE07", "DWE07", "DWE10", "DWE10", 
+"DWE10", "DWE10", "DWE10", "DWE10", "DWE10", "DWE11", "DWE11", 
+"DWE11", "DWE11", "DWE11")
                ,
             label =  
 c("Respondent or another HH member", "Unrelated Person", "Friend Or Relative", 
 "Ngo/Non-Religious Charity", "Government Agency Or Municipality", 
 "UNHCR", "Religious Organization/ Charity", "Foreign Government", 
-"Unowned/Squatting", "Other (Specify) |____|", "Don't know", 
-"Prefer not to respond", "Yes", "No", "Don't know", "Title deed", 
-"Certificate of customary ownership ", "Certificate of occupancy  ", 
-"Certificate of hereditary acquisition listed in registry ", 
-"Rental contract  ", "Lease registered", "Other (Specify) |_____|", 
+"Unowned/Squatting", "Other (Specify)", "Don't know", "Prefer not to respond", 
 "Respondent or another HH member", "Unrelated Person", "Friend Or Relative", 
 "Ngo/Non-Religious Charity", "Government Agency Or Municipality", 
 "UNHCR", "Religious Organization/ Charity", "Foreign Government", 
-"Unowned/Squatting", "Other (Specify) |____|", "Don't know", 
-"Prefer not to respond", "Yes", "No", "Don't know", "Title deed", 
-"Certificate of customary ownership ", "Certificate of occupancy  ", 
-"Certificate of hereditary acquisition listed in registry ", 
-"Rental contract  ", "Lease registered", "Other (Specify) |_____|", 
-"Very unlikely", "Somewhat unlikely", "Somewhat likely", "Very likely", 
-"Don't Know")
+"Unowned/Squatting", "Apartment Building", "Community", "Other(Specify)", 
+"Don't know", "Prefer not to respond", "Title deed", "Certificate of customary ownership", 
+"Certificate of occupancy", "Certificate of hereditary acquisition listed in registry", 
+"Rental contract", "Lease registered", "Other (Specify)", "Very unlikely", 
+"Somewhat unlikely", "Somewhat likely", "Very likely", "Don't Know"
+)
                ,
             standard =  
 c("1", "2", "3", "4", "5", "6", "7", "8", "9", "96", "98", "99", 
-"1", "0", "98", "1", "2", "3", "4", "5", "6", "96", "1", "2", 
-"3", "4", "5", "6", "7", "8", "9", "96", "98", "99", "1", "0", 
-"98", "1", "2", "3", "4", "5", "6", "96", "1", "2", "3", "4", 
-"99")
+"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "96", 
+"98", "99", "1", "2", "3", "4", "5", "6", "96", "1", "2", "3", 
+"4", "99")
               ))
-
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper) 
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 16.1")
   } else {
   
   # likelihood of losing right for housing is unlikely
   datalist[["main"]]$housing_cond1<- dplyr::case_when(
-         (datalist[["main"]]$DWE11 == 1 | 
-          datalist[["main"]]$DWE11 == 2 ) ~ 1, 
+         (as.integer(datalist[["main"]]$DWE11) == 1 | 
+          as.integer(datalist[["main"]]$DWE11) == 2 ) ~ 1, 
          TRUE ~ 0)
 # have official documents to proof residency
   datalist[["main"]]$housing_cond2 <- dplyr::case_when(
-    datalist[["main"]]$DWE10 == 96 ~ 0, 
-    datalist[["main"]]$DWE10 == 1 | 
-    datalist[["main"]]$DWE10 == 2 |  
-    datalist[["main"]]$DWE10 == 3 | 
-    datalist[["main"]]$DWE10 == 4 | 
-    datalist[["main"]]$DWE10 == 5 | 
-    datalist[["main"]]$DWE10 == 6 ~ 1)
+    as.integer(datalist[["main"]]$DWE10) == 96 ~ 0, 
+    as.integer(datalist[["main"]]$DWE10) == 1 | 
+    as.integer(datalist[["main"]]$DWE10) == 2 |  
+    as.integer(datalist[["main"]]$DWE10) == 3 | 
+    as.integer(datalist[["main"]]$DWE10) == 4 | 
+    as.integer(datalist[["main"]]$DWE10) == 5 | 
+    as.integer(datalist[["main"]]$DWE10) == 6 ~ 1)
   
 # not un-owned or not squatting
-  datalist[["main"]]$housing_cond3<- dplyr::case_when(
-    datalist[["main"]]$DWE06 == 9 | 
-    datalist[["main"]]$DWE06 == 96 | 
-    datalist[["main"]]$DWE06 == 98 | 
-    datalist[["main"]]$DWE06 == 99 | 
-    datalist[["main"]]$DWE07 == 9 | 
-    datalist[["main"]]$DWE07 == 96 | 
-    datalist[["main"]]$DWE07 == 98 | 
-    datalist[["main"]]$DWE07 == 99 ~ 0, 
+  datalist[["main"]]$housing_cond3 <- dplyr::case_when(
+    as.integer(datalist[["main"]]$DWE06) == 9 | 
+    as.integer(datalist[["main"]]$DWE06) == 96 | 
+    as.integer(datalist[["main"]]$DWE06) == 98 | 
+    as.integer(datalist[["main"]]$DWE06) == 99 | 
+    as.integer(datalist[["main"]]$DWE07) == 9 | 
+    as.integer(datalist[["main"]]$DWE07) == 96 | 
+    as.integer(datalist[["main"]]$DWE07) == 98 | 
+    as.integer(datalist[["main"]]$DWE07) == 99 ~ 0, 
     TRUE ~ 1)
   
 datalist[["main"]]$outcome16_1<- dplyr::case_when(
-    datalist[["main"]]$housing_cond1 == 1 & 
-    datalist[["main"]]$housing_cond2 == 1 & 
-    datalist[["main"]]$housing_cond3 == 1 ~ 1,
+    as.integer(datalist[["main"]]$housing_cond1) == 1 & 
+    as.integer(datalist[["main"]]$housing_cond2) == 1 & 
+    as.integer(datalist[["main"]]$housing_cond3) == 1 ~ 1,
     
-    datalist[["main"]]$housing_cond1 == 0 | 
-    datalist[["main"]]$housing_cond2 == 0 | 
-    datalist[["main"]]$housing_cond3 == 0 ~ 0)
+    as.integer(datalist[["main"]]$housing_cond1) == 0 | 
+    as.integer(datalist[["main"]]$housing_cond2) == 0 | 
+    as.integer(datalist[["main"]]$housing_cond3) == 0 ~ 0)
 
-datalist[["main"]]$utcome16_1  <- labelled::labelled(datalist[["main"]]$outcome16_1,
-                            labels = c('Yes' = 1, 'No' = 0 ),
-          label = "Proportion of PoC with secure tenure rights and/or property
-          rights to housing and/or land")
+datalist[["main"]]$outcome16_1  <- labelled::labelled(datalist[["main"]]$outcome16_1,
+      labels = c('Yes' = 1, 'No' = 0 ),
+      label = "Proportion of PoC with secure tenure rights and/or property rights to housing and/or land")
   }
    return(datalist)
 }
 ```
   
-```{r example-outcome16_1}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome16_1, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
+
 ## Apply indicator function on datalist
 datalist <- outcome16_1(datalist )
 
@@ -3643,13 +3568,6 @@ test_that("outcome16_1 works", {
 #' @param datalist A list with all hierarchical data frame for a survey data set.
 #'    format is expected to match the Excel export synchronized from kobo to RILD
 #'    and loaded with  kobocruncher::kobo_data() 
-#'                    
-#' @param mapper a list providing the mapping of the variables used for the 
-#' calculation - this mapper is potentially to be adjusted in relation with deviation
-#' between the the standard XlsForm and the contextualized dataset
-#'                       
-#' @param chain Boolean TRUE/FALSE to tell whether the function should return
-#'               the dataset expanded with the variable or a single factor
 #' 
 #' @importFrom dplyr mutate case_when
 #' @importFrom labelled labelled
@@ -3659,35 +3577,46 @@ test_that("outcome16_1 works", {
 #' @export
 outcome16_2 <- function(datalist ){
    # Mapper , 
-       
+
 mapper = list(
            hierarchy = "main",
           variablemap = data.frame(
             label = 
-"1. In the last 12 months, have you or any member of your household received any payment from ${countryname} national or local government from the following sources?"
+c("Social protection cash benefit", "Parental benefit", "Disability benefit", 
+"Unemployment benefit", "Employment injury benefit", "Old-age pension", 
+"Other vulnerability benefit", "Social assistance cash benefit"
+)
               ,
             variable =  
-"SPF01"
+c("SPF01a", "SPF01b", "SPF01c", "SPF01d", "SPF01e", "SPF01f", 
+"SPF01g", "SPF01h")
               ),
           modalitymap = data.frame(
             variable =  
-"SPF01"
+c("SPF01a", "SPF01a", "SPF01a", "SPF01b", "SPF01b", "SPF01b", 
+"SPF01c", "SPF01c", "SPF01c", "SPF01d", "SPF01d", "SPF01d", "SPF01e", 
+"SPF01e", "SPF01e", "SPF01f", "SPF01f", "SPF01f", "SPF01g", "SPF01g", 
+"SPF01g", "SPF01h", "SPF01h", "SPF01h")
                ,
             label =  
-NA_character_
+c("Yes", "No", "Don't know", "Yes", "No", "Don't know", "Yes", 
+"No", "Don't know", "Yes", "No", "Don't know", "Yes", "No", "Don't know", 
+"Yes", "No", "Don't know", "Yes", "No", "Don't know", "Yes", 
+"No", "Don't know")
                ,
             standard =  
-NA_character_
-              )) 
-
+c("1", "0", "98", "1", "0", "98", "1", "0", "98", "1", "0", "98", 
+"1", "0", "98", "1", "0", "98", "1", "0", "98", "1", "0", "98"
+)
+              ))
   ## So first we check that we have what we need in the data set based on the mapper
   check_map <- fct_check_map(datalist = datalist,
                              mapper = mapper)
-  if (! isTRUE(check_map )) {
+  if ( check_map == FALSE) {
    cat( "There are missing data requirement to calculate Indicator Outcome 16.2")
   } else {
   
-datalist[["main"]]$outcome16_2<- dplyr::case_when(
+datalist[["main"]]$outcome16_2 <- dplyr::case_when(
     datalist[["main"]]$SPF01a == 1 |
     datalist[["main"]]$SPF01b == 1 |
     datalist[["main"]]$SPF01c == 1 |
@@ -3698,22 +3627,24 @@ datalist[["main"]]$outcome16_2<- dplyr::case_when(
     datalist[["main"]]$SPF01h == 1 ~ 1, 
     TRUE ~ 0)
 
-datalist[["main"]]$outcome16_2  <- labelled::labelled(datalist[["main"]]$outcome16_2,
+  datalist[["main"]]$outcome16_2  <- labelled::labelled(datalist[["main"]]$outcome16_2,
                             labels = c('Yes' = 1, 'No' = 0 ),
    label = "Proportion of Persons of Concern covered by social protection 
    floors/systems")
+  
   }
    return(datalist)
 }
 ```
   
-```{r example-outcome16_2}
-## data
-datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 
+```{r example-outcome16_2, message=TRUE, warning=FALSE}
+## data, cf example  fct_re_map()
+datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx", 
                                                  package = "IndicatorCalc"))
 ## Apply indicator function on datalist
 datalist <- outcome16_2(datalist)
 
+table( datalist[["main"]]$outcome16_2, useNA = "ifany")
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["main"]]$outcome16_2,
                      iconunicode = "f140")   
@@ -3731,7 +3662,7 @@ test_that("outcome16_2 works", {
 ```{r development-inflate, eval=FALSE}
 # Keep eval=FALSE to avoid infinite loop in case you hit the knit button
 # Execute in the console directly
-fusen::inflate(flat_file = "dev/indicators.Rmd", vignette_name = "Development")
+fusen::inflate(flat_file = "dev/indicators.Rmd", vignette_name = "Indicators calculation functions")
 ```
 
  

@@ -16,34 +16,34 @@ calculation - this mapper is potentially to be adjusted in relation with deviati
 between the the standard XlsForm and the contextualized dataset}
 }
 \value{
-TRUE or FALSE
+boolean flag TRUE or FALSE indicating if we can go forward for the indicator calculation
 }
 \description{
-This check if the standard variables and modalities included in the mapper are
+This functions checks if the standard variables and modalities included in the mapper are
 actually present in the datalist with the same exact name - this is actually
-usually not the case as the standard format to save kobodatset in xlsx includes
-group in the variable name
+usually not the case as the standard format to save kobo dataset in xlsx includes
+group in the variable name.
+This function is used internally in each indicator function as an eror catcher before
+performing calculations...
 }
 \examples{
-
+## below is the mapper to chck if we have the variables to calculate the 
+# electricity subindicators within impact 2.2
 mapper = list(
             hierarchy = "main",
             variablemap = data.frame(
-              label = c("Does this household use anything for lighting?",
-                        "What source of electricity is used most of the time in this household?"),
+              label = c(
+"Does this household use anything for lighting?",
+"What source of electricity is used most of the time in this household?"),
               variable = c("LIGHT01", 
-                           "LIGHT03"),
-              mappattern = c("LIGHT01", 
                            "LIGHT03") ),
             modalitymap = data.frame(
               variable = c( "LIGHT01", 
                             "LIGHT03", "LIGHT03", "LIGHT03"),
               label = c( "yes",
-                        "No electricity in household", "Other, specify", "Don't know"),
+          "No electricity in household", "Other, specify", "Don't know"),
               standard = c( "1",
-                           "1", "96", "98"),
-              map = c("1",
-                      "1", "96", "98")
+                           "1", "96", "98")
             )
           )
 
@@ -52,19 +52,22 @@ data <- list(main = data.frame(
                 LIGHT01 = c("1",  "1",  "0", "1",  "1",  "0", "1",  "1",  "1"),
                 LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
              )
-fct_check_map(datalist = data, mapper = mapper )
+check <- fct_check_map(datalist = data, mapper = mapper )
+check
 
 ## One variable is not correctly 
 data <- list(main = data.frame(
                 LIGHT01 = c("1",  "1",  "0", "1",  "1",  "0", "1",  "1",  "1"),
                 LIGH03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
              )
-fct_check_map(datalist = data, mapper = mapper )
+check <- fct_check_map(datalist = data, mapper = mapper )
+check 
 
 ## The first variable does not include a single 1...
 data <- list(main = data.frame(
                 LIGHT01 = c("0",  "0",  "0", "0",  "0",  "0", "0",  "0",  "0"),
                 LIGHT03 = c("1", "96", "98", "1", "96", "98", "0", "96", "98"))
              )
-fct_check_map(datalist = data, mapper = mapper )
+check <- fct_check_map(datalist = data, mapper = mapper )
+check 
 }

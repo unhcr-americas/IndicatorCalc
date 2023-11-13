@@ -41,7 +41,9 @@ and output an excel document in the same folder with the correct
 format for import into COMPASS.
 
 \if{html}{\out{<div class="sourceCode">}}\preformatted{         The function assumes you have already calculated the indicators and
-         have a datalist object with all the correct calculation inside
+         have a datalist object with all the correct calculation inside.
+         
+         The output can conveniently be upoaded as an indicator ressource in ridl
 }\if{html}{\out{</div>}}
 }
 \examples{

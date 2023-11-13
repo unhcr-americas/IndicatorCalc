@@ -15,6 +15,8 @@
 #' @importFrom tibble tibble as_tibble_col
 #' @importFrom tidyr unnest
 #' 
+#' @keywords internal
+#' 
 #' @export
 #' @examples
 #' datalist <- kobocruncher::kobo_data( system.file("demo_data.xlsx", #"test.xlsx", 

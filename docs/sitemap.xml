@@ -19,6 +19,9 @@
     <loc>/articles/index.html</loc>
   </url>
   <url>
+    <loc>/articles/indicators-calculation-functions.html</loc>
+  </url>
+  <url>
     <loc>/articles/utilities.html</loc>
   </url>
   <url>
@@ -29,6 +32,12 @@
   </url>
   <url>
     <loc>/news/index.html</loc>
+  </url>
+  <url>
+    <loc>/reference/fct_build_map.html</loc>
+  </url>
+  <url>
+    <loc>/reference/fct_build_requirement.html</loc>
   </url>
   <url>
     <loc>/reference/fct_check_map.html</loc>
@@ -52,7 +61,22 @@
     <loc>/reference/fct_re_map.html</loc>
   </url>
   <url>
+    <loc>/reference/fct_require.html</loc>
+  </url>
+  <url>
     <loc>/reference/fct_var_mapping.html</loc>
+  </url>
+  <url>
+    <loc>/reference/impact2_3.html</loc>
+  </url>
+  <url>
+    <loc>/reference/impact3_2a.html</loc>
+  </url>
+  <url>
+    <loc>/reference/impact3_2b.html</loc>
+  </url>
+  <url>
+    <loc>/reference/impact3_3.html</loc>
   </url>
   <url>
     <loc>/reference/impact_2_2.html</loc>
@@ -71,6 +95,60 @@
   </url>
   <url>
     <loc>/reference/inter_shelter.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome10_1.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome10_2.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome12_1.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome12_2.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome13_1.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome13_2.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome13_3.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome14_1.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome16_1.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome16_2.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome1_2.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome1_3.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome4_1.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome4_2.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome5_2.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome8_2.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome9_1.html</loc>
+  </url>
+  <url>
+    <loc>/reference/outcome9_2.html</loc>
   </url>
   <url>
     <loc>/reference/run_app.html</loc>

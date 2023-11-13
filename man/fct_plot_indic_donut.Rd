@@ -15,9 +15,9 @@ fct_plot_indic_donut(
 \arguments{
 \item{indicator}{vector}
 
-\item{subtitle_chart}{}
+\item{subtitle_chart}{subtitle for the chart}
 
-\item{caption_chart}{}
+\item{caption_chart}{caption for the chart}
 
 \item{ordered_threhold}{vector with the different threshold
 (green, orange, red)}
@@ -37,10 +37,19 @@ test <- data.frame(
   shelter = rbinom(20, 1, 0.5)) |> 
   dplyr::mutate( shelter = 
   labelled::labelled( shelter,
-                      labels = c( "Yes" = 1, "No" = 0),
-                      label = "Access to adequate shelter")) 
+    labels = c( "Yes" = 1, "No" = 0),
+label = "Access to adequate shelter also testing a long title to see if it wraps well")) 
   
 fct_plot_indic_donut(indicator = test$shelter,
+                     subtitle_chart = NULL,
+                     caption_chart = NULL,
+                     ordered_threhold = NULL,
+                     iconunicode = "e54f") 
+
+## test no value
+test2 <- NULL
+
+fct_plot_indic_donut(indicator = test2,
                      subtitle_chart = NULL,
                      caption_chart = NULL,
                      ordered_threhold = NULL,

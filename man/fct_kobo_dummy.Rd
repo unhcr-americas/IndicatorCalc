@@ -11,7 +11,7 @@ fct_kobo_dummy(form, n = 384, file)
 
 \item{n}{number of main records to be generated}
 
-\item{file}{file as xlsx where to save to the}
+\item{file}{file as xlsx where to save the resulting data}
 
 \item{nrepeat}{max random number of repeat records to be generated
 when repeat_count is not mentionned}
@@ -41,12 +41,31 @@ https://docs.ropensci.org/charlatan/
 }
 }
 \examples{
-form <- system.file("RMSCAPI.xlsx", package = "IndicatorCalc")
+## generate dummy dataset for different form version
+
+## CAPI
+form <- system.file("RMS_CAPI_v2.xlsx", package = "IndicatorCalc")
 datalist <- fct_kobo_dummy(form,
                        n = 384,
                        file = NULL)
+# openxlsx::write.xlsx(datalist, here::here("inst", "dummy_RMS_CAPI_v2.xlsx"))
 
-## Save this to use it for testing the package...
+form <- system.file("RMS_CAPI_v3.xlsx", package = "IndicatorCalc")
+datalist <- fct_kobo_dummy(form,
+                       n = 384,
+                       file = NULL)
+# openxlsx::write.xlsx(datalist, here::here("inst", "dummy_RMS_CAPI_v3.xlsx"))
 
-openxlsx::write.xlsx(datalist, here::here("inst", "demo_data.xlsx"))
+## CATI
+form <- system.file("RMS_CATI_v0.xlsx", package = "IndicatorCalc")
+datalist <- fct_kobo_dummy(form,
+                       n = 384,
+                       file = NULL)
+# openxlsx::write.xlsx(datalist, here::here("inst", "dummy_RMS_CATI_v0.xlsx"))
+
+form <- system.file("RMS_CATI_v3.xlsx", package = "IndicatorCalc")
+datalist <- fct_kobo_dummy(form,
+                       n = 384,
+                       file = NULL)
+# openxlsx::write.xlsx(datalist, here::here("inst", "dummy_RMS_CATI_v3.xlsx"))
 }

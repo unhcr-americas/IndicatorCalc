@@ -6,7 +6,9 @@
 #'              format for import into COMPASS.
 #'
 #'              The function assumes you have already calculated the indicators and
-#'              have a datalist object with all the correct calculation inside
+#'              have a datalist object with all the correct calculation inside.
+#'              
+#'              The output can conveniently be upoaded as an indicator ressource in ridl
 #'
 #' @param country iso3 code for the country (easier to recall than the M49 used in the API)
 #' @param operation operation name

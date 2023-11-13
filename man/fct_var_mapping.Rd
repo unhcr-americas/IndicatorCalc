@@ -4,10 +4,12 @@
 \alias{fct_var_mapping}
 \title{fct_var_mapping}
 \usage{
-fct_var_mapping(xlsformpath)
+fct_var_mapping(xlsformpath, IndicatorRequirementFile, mappingfile_out)
 }
 \arguments{
 \item{xlsformpath}{path to the xlsform}
+
+\item{IndicatorRequirementFile}{path to the file where the standard mapping is depending on form version}
 
 \item{mappingfile_out}{path to file to out the mapping}
 }
@@ -16,10 +18,24 @@ a list with the best mapping...
 }
 \description{
 Create a diff to identify the mapping between expected variables / modalities and
-what is has been configured in a specific xlsform
+what is has been configured in a specific xlsform. The function use a fuzzy matching
+process to identify the best and second best match process...
+It generates an excel file ready for manual review and that can be used as an input
+for the next function in the pipeline fct_build_map()
+
+When you open the excel, filter for all match where the matching_index_best is different than 0
+
+If you can confirm the match, manually set it to 0 so that the matching can be confirmed.
+If the matching is not the expected one you may take the second best match, and if correct,
+paste it and set the index to 0
 }
 \examples{
-
-form <- system.file("RMSCAPI.xlsx", package = "IndicatorCalc")
-#fct_var_mapping(xlsformpath = form)
+# Test the function
+form <- system.file("RMS_CAPI_v2.xlsx", package = "IndicatorCalc")
+IndicatorRequirementFile <- system.file("RMS_CAPI_v2_mapper.xlsx", package = "IndicatorCalc")
+# Get the map to revise
+mapper <- fct_var_mapping(xlsformpath = form,
+                          IndicatorRequirementFile = IndicatorRequirementFile,
+                       mappingfile_out = tempfile())
+                         #      here::here("inst", "RMS_CAPI_v2_mapping.xlsx"))
 }

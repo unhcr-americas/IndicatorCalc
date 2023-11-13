@@ -3,26 +3,218 @@
 #' fct_var_mapping
 #' 
 #' Create a diff to identify the mapping between expected variables / modalities and 
-#' what is has been configured in a specific xlsform
+#' what is has been configured in a specific xlsform. The function use a fuzzy matching
+#'  process to identify the best and second best match process... 
+#'  It generates an excel file ready for manual review and that can be used as an input 
+#'  for the next function in the pipeline fct_build_map()
+#'  
+#'  When you open the excel, filter for all match where the matching_index_best is different than 0
+#'  
+#'  If you can confirm the match, manually set it to 0 so that the matching can be confirmed.
+#'  If the matching is not the expected one you may take the second best match, and if correct,
+#'  paste it and set the index to 0
 #' 
 #' @param xlsformpath path to the xlsform
+#' @param IndicatorRequirementFile path to the file where the standard mapping is depending on form version
 #' @param mappingfile_out path to file to out the mapping
+#' 
+#' @import stringdist
+#' @import dplyr
 #' 
 #' @return a list with the best mapping...
 #' 
 #' @export
 #' @examples
-#'
-#' form <- system.file("RMSCAPI.xlsx", package = "IndicatorCalc")
-#' #fct_var_mapping(xlsformpath = form)
-fct_var_mapping <- function(xlsformpath){
+#' # Test the function
+#' form <- system.file("RMS_CAPI_v2.xlsx", package = "IndicatorCalc")
+#' IndicatorRequirementFile <- system.file("RMS_CAPI_v2_mapper.xlsx", package = "IndicatorCalc")
+#' # Get the map to revise
+#' mapper <- fct_var_mapping(xlsformpath = form,
+#'                           IndicatorRequirementFile = IndicatorRequirementFile,
+#'                        mappingfile_out = tempfile())
+#'                          #      here::here("inst", "RMS_CAPI_v2_mapping.xlsx"))
+fct_var_mapping <- function(xlsformpath,
+                            IndicatorRequirementFile,
+                            mappingfile_out){
+  ## Pulling Comparison base ######
+  IndicMap <- readxl::read_excel(IndicatorRequirementFile )
+  dico <- kobocruncher::kobo_dico(xlsformpath) 
   
-  IndicMap <- readxl::read_excel( system.file("IndicMap.xlsx", package = "IndicatorCalc"))
-  dico <- kobocruncher::kobo_dico(xlsformpath)
+ # Comparing variables ##########
+ # names(IndicMap)
+  varMapIndic <- IndicMap |>
+    dplyr::select(QuestionVar, label, type) |>
+    dplyr::distinct() |>
+     tibble::as_tibble()
+  ## Comparing based on variable name          
+  vec1 <- varMapIndic$QuestionVar
   
-  ## Map variable
+  ## Now taking the form...
+   varMapForm <- dico[["variables"]] |>
+      # names(varMapForm)
+     # levels(as.factor(varMapForm$type))
+    dplyr::select(name, name_or, type, label) |>
+    dplyr::filter(type %in% c("integer","multiple", "select_multiple", "select_one")) |>
+    dplyr::distinct() |>
+     tibble::as_tibble()
+  ## Comparing based on variable name 
+  vec2 <- varMapForm$name_or
   
-  
-  ## Map modalities
+  # Initialize an empty dataframe to store the results
+  result_match <- data.frame(
+    Indic = character(),
+    best_match = character(),
+    matching_index_best = integer(),
+    second_best = character(),
+    matching_index_second_best = integer(),
+    stringsAsFactors = FALSE
+  )
+  # Loop through each element in the first vector
+  for (i in seq_along(vec1)) {
+    #i <- 1
+    # Calculate Levenshtein distances between the current element and all elements in the second vector
+    distances <- stringdist::stringdistmatrix(vec1[i], vec2)
     
+    # Find the index of the minimum distance (best match)
+    best_match_index <- which.min(distances)
+    
+    # Sort distances to find the second best match
+    sorted_distances <- sort(distances)
+    second_best_match_index <- which(distances == sorted_distances[2])
+    thismatch <- data.frame(
+        Indic = vec1[i],
+        best_match = vec2[best_match_index],
+        matching_index_best = distances[best_match_index],
+        second_best = vec2[second_best_match_index[1]],
+        matching_index_second_best = sorted_distances[2]
+      )
+    # Append the results to the dataframe
+    result_match <- rbind( result_match, thismatch )
+  }
+  ## merge this with type and label
+  result_matchInd <- varMapIndic |>
+                  dplyr::left_join(result_match, by = c("QuestionVar"="Indic" )) |>
+                  dplyr::left_join(varMapForm |>
+                                   dplyr::rename( best_name = "name", 
+                                                    best_type = "type", 
+                                                    best_label = "label"), 
+                                   by = c("best_match"="name_or" ))  |>
+                  dplyr::left_join(varMapForm |>
+                                   dplyr::rename( second_name = "name", 
+                                                    second_type = "type", 
+                                                    second_label = "label"), 
+                                   by = c("second_best"="name_or" ))  |>
+    dplyr::select(QuestionVar, label, type, 
+                  best_match, matching_index_best, best_name, best_type, best_label,
+                  second_best, matching_index_second_best, 
+                  second_name, second_type, second_label)
+  
+ # Comparing modalities ##########
+ # names(IndicMap)
+  varMapMod <- IndicMap |>
+    dplyr::select(QuestionVar, list_name, name_mod, label_mod) |>
+    dplyr::mutate( mod = paste0(QuestionVar, ".", name_mod)) |>
+    dplyr::distinct() |>
+     tibble::as_tibble()
+  ## Comparing based on variable name          
+  vec1 <- varMapMod$mod
+  
+  ## Now taking the form...
+   varMapFormMod1 <- 
+      dico[["variables"]] |>
+      dplyr::filter(type %in% c( "select_multiple", "select_one")) |>
+      dplyr::select( name_or, type, list_name) |>
+      dplyr::rename(name_var = "name_or") |>
+     ## retain only modalities from the var matching
+     dplyr::filter( name_var %in% result_match$best_match |
+                      name_var %in% result_match$second_best )
+   
+    varMapFormMod2 <- dico[["modalities"]] |>
+      # names(varMapFormMod)
+     # levels(as.factor(varMapForm$type))
+    dplyr::select(list_name, name, label)|>
+     ## retain only modalities from the var matching
+     dplyr::filter( list_name %in%  varMapFormMod1$list_name )
+   
+   varMapFormMod3 <- varMapFormMod2 |>
+    dplyr::left_join(  varMapFormMod1  ,
+      by = c( "list_name"), 
+      relationship  = "many-to-many") |>
+    dplyr::mutate( mod = paste0(name_var, ".", name)) |>
+    dplyr::distinct() |>
+     tibble::as_tibble()
+  ## Comparing based on variable name 
+  vec2 <- varMapFormMod3$mod
+  
+  # Initialize an empty dataframe to store the results
+  result_match <- data.frame(
+    Indic = character(),
+    best_match = character(),
+    matching_index_best = integer(),
+    second_best = character(),
+    matching_index_second_best = integer(),
+    stringsAsFactors = FALSE
+  )
+  # Loop through each element in the first vector
+  for (i in seq_along(vec1)) {
+    #i <- 1
+    # Calculate Levenshtein distances between the current element and all elements in the second vector
+    distances <- stringdist::stringdistmatrix(vec1[i], vec2)
+    
+    # Find the index of the minimum distance (best match)
+    best_match_index <- which.min(distances)
+    
+    # Sort distances to find the second best match
+    sorted_distances <- sort(distances)
+    second_best_match_index <- which(distances == sorted_distances[2])
+    thismatch <- data.frame(
+        Indic = vec1[i],
+        best_match = vec2[best_match_index],
+        matching_index_best = distances[best_match_index],
+        second_best = vec2[second_best_match_index[1]],
+        matching_index_second_best = sorted_distances[2]
+      )
+    # Append the results to the dataframe
+    result_match <- rbind( result_match, thismatch )
+  }
+  ## merge this with type and label
+  result_matchMod <- varMapMod |>
+                  dplyr::left_join(result_match, by = c("mod"="Indic" )) |>
+                  dplyr::left_join(varMapFormMod3 |>
+                                   dplyr::rename( best_name = "name", 
+                                                    best_type = "type", 
+                                                    best_list_name = "list_name", 
+                                                    best_label = "label"), 
+                                   by = c("best_match"="mod" ))  |>
+                  dplyr::left_join(varMapFormMod3 |>
+                                   dplyr::rename( second_name = "name", 
+                                                  second_type = "type", 
+                                                  second_list_name = "list_name", 
+                                                  second_label = "label"), 
+                                   by = c("second_best"="mod" ))  |>
+    # dput( names(result_matchMod))
+    dplyr::select(QuestionVar, list_name, name_mod, label_mod, mod, 
+                  best_match, matching_index_best,
+                  best_list_name, best_name, best_label, best_type,
+                  second_best, matching_index_second_best, 
+                  second_list_name, second_name, second_label, second_type)                 
+  results <- list(
+    result_matchInd = result_matchInd,
+    result_matchMod = result_matchMod
+    
+  )
+  
+  ## Return the excel file
+  if(!(is.null(mappingfile_out))){
+    openxlsx2::write_xlsx(results,
+                      file = mappingfile_out, 
+                      overwrite = T,
+                      na.strings = "")
+  }
+  
+  
+  # Return the results
+  return(results)
 }
+
+

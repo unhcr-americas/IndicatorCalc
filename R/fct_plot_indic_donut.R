@@ -6,17 +6,17 @@
 #'  and interpretation threshold if available
 #'  
 #' @param indicator vector
-#' @param  subtitle_chart  
-#' @param   caption_chart  
-#' @param    ordered_threhold  vector with the different threshold 
+#' @param subtitle_chart  subtitle for the chart
+#' @param caption_chart  caption for the chart
+#' @param ordered_threhold  vector with the different threshold 
 #'    (green, orange, red)
-#' @param   iconunicode  unicode value for fontawesome --- 
+#' @param iconunicode  unicode value for fontawesome --- 
 #'              see https://fontawesome.com/search?o=r&m=free
 #' 
 #' 
 #' @return ggplot2 object 
 #' 
-#' @importFrom ggplot2 ggplot labs aes expansion
+#' @import ggplot2 
 #' @importFrom  unhcrthemes scale_fill_unhcr_d theme_unhcr
 #' @importFrom ggforce geom_arc_bar
 #' @importFrom ggtext geom_richtext
@@ -27,10 +27,19 @@
 #'   shelter = rbinom(20, 1, 0.5)) |> 
 #'   dplyr::mutate( shelter = 
 #'   labelled::labelled( shelter,
-#'                       labels = c( "Yes" = 1, "No" = 0),
-#'                       label = "Access to adequate shelter")) 
+#'     labels = c( "Yes" = 1, "No" = 0),
+#' label = "Access to adequate shelter also testing a long title to see if it wraps well")) 
 #'   
 #' fct_plot_indic_donut(indicator = test$shelter,
+#'                      subtitle_chart = NULL,
+#'                      caption_chart = NULL,
+#'                      ordered_threhold = NULL,
+#'                      iconunicode = "e54f") 
+#'
+#' ## test no value
+#' test2 <- NULL
+#'
+#' fct_plot_indic_donut(indicator = test2,
 #'                      subtitle_chart = NULL,
 #'                      caption_chart = NULL,
 #'                      ordered_threhold = NULL,
@@ -50,6 +59,10 @@ fct_plot_indic_donut <- function(indicator,
 
 # Loading data
 #indicator <- datalist[["main"]]$shelter
+ if (is.null(indicator)) {
+        cat("No value was supplied for plotting...")
+      } else { 
+  
 df2 <-sjmisc::frq(indicator)[[1]]
 #df2$label <- factor(df2$label, levels = c( "Yes","No"))
 
@@ -63,19 +76,26 @@ plot <- ggplot2::ggplot(df2) +
         fill = label  ),
   stat = "pie",  size = 1,  color = "#FFFFFF"  ) +
   
-  ggtext::geom_richtext(
+  ggtext::geom_textbox(
     x = 0,  y = 0,
     label = paste0(
       "<span style='font-family: \"Font Awesome 6 Free Solid\" font-size:44pt'>&#x",
-      iconunicode,";</span><br><span style='font-size:14pt'>",
-      sjlabelled::get_label(indicator),
+      iconunicode,";</span><br><span style='font-size:16pt'>",
+      sjlabelled::get_label(indicator) ,
       "</span><br><strong> ",
       round(df2 |>
               dplyr::filter(val == 1) |>
               dplyr::pull(raw.prc), 2),
       "%</strong>"),
     size = 16 ,  
-    fill = NA,  label.color = NA  ) +
+    
+   # hjust = 0, vjust = 1,
+    halign = 0.5, # centered text
+    width = grid::unit(0.60, "npc"), # 73% of plot panel width
+    box.colour = NA,
+    fill = NA#,  
+   # label.color = NA  
+    ) +
   
   ggplot2::labs( #title = sjlabelled::get_label(x ), 
        subtitle = subtitle_chart, 
@@ -91,5 +111,6 @@ plot <- ggplot2::ggplot(df2) +
 #plot
 
 return(plot)
+}
     
 }
