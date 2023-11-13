@@ -29,7 +29,7 @@ The package is designed to work based on dataset standard backup format exported
 Each calculation is implemented as a function with in-built check to identify whether the expected variables and modalities are within the dataset and a `mapper` to transform the data in the expected format in case of divergence of data structure between what was collected and what is expected. You can check each [function reference](/reference/index.html) to see in details all documented calculations
 
 
-Please check the [tutorial here](https://edouard-legoupil.github.io/IndicatorCalc/tutorial/index.html)
+Please check the [tutorial here](https://unhcr-americas.github.io/IndicatorCalc/tutorial/)
 
 ## Usage
 

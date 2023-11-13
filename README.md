@@ -52,7 +52,7 @@ reference](/reference/index.html) to see in details all documented
 calculations
 
 Please check the [tutorial
-here](https://edouard-legoupil.github.io/IndicatorCalc/tutorial/index.html)
+here](https://unhcr-americas.github.io/IndicatorCalc/tutorial/)
 
 ## Usage
 
