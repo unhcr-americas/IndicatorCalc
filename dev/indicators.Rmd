@@ -196,7 +196,7 @@ c("HEA01", "HEA01", "HEA01", "HEA01", "HEA01", "HEA01", "HEA01",
             label =  
 c("NGO facility (charity, faith-based organization)", "UNHCR Health Partner (Caritas, Save the Children)", 
 "Public Clinics / Hospitals", "Private Clinics / Hospitals", 
-"Pharmacy", "Other, specify", "Don't know", "By walk", "Private car", 
+"Pharmacy", "Other, specify", "Don\'t know", "By walk", "Private car", 
 "Public transport (bus, boat)", "Other, specify", NA, "Yes", 
 "No", "Electricity (including solar mini-grids, hybrid mini-grids and national grid)", 
 "Electricity (from diesel generator)", "Solar home system", "Solar-powered lantern or flashlight", 
@@ -205,13 +205,13 @@ c("NGO facility (charity, faith-based organization)", "UNHCR Health Partner (Car
 "Oil lamp", "Candle", "Open fire", "Other, specify", "No electricity in household", 
 "National grid connection from [COMPANY]", "Local mini grid", 
 "Solar home system", "Solar lantern", "Electric generator", "Rechargeable battery", 
-"Dry cell battery / torch", "Other, specify", "Don't know", "Piped Into Dwelling", 
+"Dry cell battery / torch", "Other, specify", "Don\'t know", "Piped Into Dwelling", 
 "Piped Into Yard/Plot", "Piped To Neighbor", "Public Tap/Standpipe", 
 "Tube Well/Borehole", "Protected Dug Well", "Unprotected Dug Well", 
 "Protected Spring", "Unprotected Spring", "Rain Water Collection", 
 "Tanker Truck/Water Vendor", "Cart With Small Tank/Drum", "Surface Water (River, Stream, Pond, Dam, Canal)", 
 "Bottled Water", "Sachet Water", "Water Kiosk", "Other (Specify)", 
-"Don't Know", "In Own Dwelling", "In Own Yard/Plot", "Elsewhere", 
+"Don\'t Know", "In Own Dwelling", "In Own Yard/Plot", "Elsewhere", 
 "Minutes", "Hours", NA, "Yes", "No", "Apartment", "House", "Tent", 
 "Caravan", "Collective Center", "Worksite/Unfinished Home/ Abandoned Building", 
 "Farm Building", "School, mosque, church or other religious building", 
@@ -693,9 +693,9 @@ c("EDU01", "EDU01", "EDU02", "EDU02", "EDU03", "EDU03", "EDU03",
 c("Yes", "No", "Yes", "No", "Early Childhood Education or Pre-primary", 
 "Primary", "Secondary", "Secondary - Technical and Vocational Education and Training (TVET)", 
 "Post-secondary - Technical and Vocational Education and Training (TVET)", 
-"Tertiary", "Don’t know", "Government or public", "UN or NGO (non-governmental organization)", 
+"Tertiary", "Don\u2019t know", "Government or public", "UN or NGO (non-governmental organization)", 
 "Religious or faith-based organization", "Community", "Private", 
-"Other (specify)", "Don’t know", NA)
+"Other (specify)", "Don\u2019t know", NA)
                ,
             standard =  
 c("1", "0", "1", "0", "1", "2", "3", "4", "5", "6", "98", "1", 
@@ -742,6 +742,9 @@ datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx"
                                                  package = "IndicatorCalc"))
 ## Apply calculation
 datalist <- impact3_2a(datalist  )
+table(datalist[["ind"]]$impact3_2a, useNA = "ifany")
+table(datalist[["ind"]]$edu_primary, useNA = "ifany")
+table(datalist[["ind"]]$age_primary, useNA = "ifany")
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["ind"]]$impact3_2a,
@@ -833,9 +836,9 @@ c("EDU01", "EDU01", "EDU02", "EDU02", "EDU03", "EDU03", "EDU03",
 c("Yes", "No", "Yes", "No", "Early Childhood Education or Pre-primary", 
 "Primary", "Secondary", "Secondary - Technical and Vocational Education and Training (TVET)", 
 "Post-secondary - Technical and Vocational Education and Training (TVET)", 
-"Tertiary", "Don’t know", "Government or public", "UN or NGO (non-governmental organization)", 
+"Tertiary", "Don\u2019t know", "Government or public", "UN or NGO (non-governmental organization)", 
 "Religious or faith-based organization", "Community", "Private", 
-"Other (specify)", "Don’t know", NA)
+"Other (specify)", "Don\u2019t know", NA)
                ,
             standard =  
 c("1", "0", "1", "0", "1", "2", "3", "4", "5", "6", "98", "1", 
@@ -957,7 +960,7 @@ mapper = list(
 c("SAF01", "SAF01", "SAF01", "SAF01", "SAF01", "SAF01")
                ,
             label =  
-c("Very safe", "Fairly safe", "Bit unsafe", "Very unsafe", "Don’t know", 
+c("Very safe", "Fairly safe", "Bit unsafe", "Very unsafe", "Don\u2019t know", 
 "Prefer not to respond")
                ,
             standard =  
@@ -1073,7 +1076,7 @@ mapper = list(
   hierarchy = "ind",
   variablemap = data.frame(
     label =
-      c("3. Does ${name_individual} have a birth certificate?", "4. Has ${name_individual}'s birth been registered with civil authorities?",
+      c("3. Does ${name_individual} have a birth certificate?", "4. Has ${name_individual}\'s birth been registered with civil authorities?",
         "6. Can you estimate how old is ${HH02}?")
     ,
     variable =
@@ -1085,7 +1088,7 @@ mapper = list(
         "HH07")
     ,
     label =
-      c("Yes", "No", "Don't know", "Yes", "No", "Don't know", "Prefer not to say",
+      c("Yes", "No", "Don\'t know", "Yes", "No", "Don\'t know", "Prefer not to say",
         NA)
     ,
     standard =
@@ -1266,7 +1269,7 @@ c("Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond",
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
-"Yes", "No", "Don't know", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Don\'t know", "Yes", "No", "Prefer not to respond", 
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond"
@@ -1461,8 +1464,8 @@ c("GBV01a", "GBV01a", "GBV01a", "GBV01b", "GBV01b", "GBV01b",
 "GBV01c", "GBV01c", "GBV01c", "GBV01d", "GBV01d", "GBV01d")
                ,
             label =  
-c("Yes", "No", "Don't know", "Yes", "No", "Don't know", "Yes", 
-"No", "Don't know", "Yes", "No", "Don't know")
+c("Yes", "No", "Don\'t know", "Yes", "No", "Don\'t know", "Yes", 
+"No", "Don\'t know", "Yes", "No", "Don\'t know")
                ,
             standard =  
 c("1", "0", "98", "1", "0", "98", "1", "0", "98", "1", "0", "98"
@@ -1703,7 +1706,7 @@ c("COMM01", "COMM01", "COMM02", "COMM03", "COMM03", "COMM03",
 "COMM04", "COMM04", "COMM04")
                ,
             label =  
-c("Yes", "No", NA, "Yes", "No", "Don't know", "Yes", "No", "Don't know"
+c("Yes", "No", NA, "Yes", "No", "Don\'t know", "Yes", "No", "Don\'t know"
 )
                ,
             standard =  
@@ -2195,7 +2198,7 @@ c("Yes", "No", "Electricity (including solar mini-grids, hybrid mini-grids and n
 "Oil lamp", "Candle", "Open fire", "Other, specify", "No electricity in household", 
 "National grid connection from [COMPANY]", "Local mini grid", 
 "Solar home system", "Solar lantern", "Electric generator", "Rechargeable battery", 
-"Dry cell battery / torch", "Other, specify", "Don't know")
+"Dry cell battery / torch", "Other, specify", "Don\'t know")
                ,
             standard =  
 c("1", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", 
@@ -2303,7 +2306,7 @@ mapper = list(
 c("MMR03", "MMR03", "MMR03")
                ,
             label =  
-c("Yes", "No", "Don't know")
+c("Yes", "No", "Don\'t know")
                ,
             standard =  
 c("1", "0", "98")
@@ -2417,7 +2420,7 @@ c("BIR01", "BIR01", "BIR02", "BIR02", "BIR03", "BIR03", "BIR03",
             label =  
 c("Yes", "No", "Yes", "No", "Health professional", "Doctor", 
 "Nurse/midwife", "Traditional birth attendant", "Community health worker", 
-"Relative/friend", "Other (specify)", "Don't know", "Respondent’s home", 
+"Relative/friend", "Other (specify)", "Don\'t know", "Respondent\u2019s home", 
 "Public sector", "Private sector", "Other, specify")
                ,
             standard =  
@@ -2547,7 +2550,7 @@ c("Piped Into Dwelling", "Piped Into Yard/Plot", "Piped To Neighbor",
 "Unprotected Dug Well", "Protected Spring", "Unprotected Spring", 
 "Rain Water Collection", "Tanker Truck/Water Vendor", "Cart With Small Tank/Drum", 
 "Surface Water (River, Stream, Pond, Dam, Canal)", "Bottled Water", 
-"Sachet Water", "Water Kiosk", "Other (Specify)", "Don't Know", 
+"Sachet Water", "Water Kiosk", "Other (Specify)", "Don\'t Know", 
 "In Own Dwelling", "In Own Yard/Plot", "Elsewhere", "Minutes", 
 "Hours", NA, "Yes", "No")
                ,
@@ -2708,15 +2711,15 @@ c("TOI01", "TOI01", "TOI01", "TOI01", "TOI01", "TOI01", "TOI01",
             label =  
 c("Flush/pour flush to the piped sewer system", "Flush/pour-flush to septic tank", 
 "Flush/pour-flush to pit latrine", "Flush/pour-flush to open drain", 
-"Flush/pour-flush to don't know where", "Ventilated improved pit latrine", 
+"Flush/pour-flush to don\'t know where", "Ventilated improved pit latrine", 
 "Pit latrine with slab", "Pit latrine without slab/open pit", 
 "Composting toilet", "Bucket", "Hanging toilet/hanging latrine", 
 "No facility/bush/field", "Other (Specify)", "Yes, emptied", 
-"No, never emptied", "Don't know", "Removed by a service provider to a treatment plant", 
+"No, never emptied", "Don\'t know", "Removed by a service provider to a treatment plant", 
 "Removed by a service provider and buried in a covered pit", 
-"Removed by a service provider to don’t know where", "Emptied by household and buried in a covered pit", 
+"Removed by a service provider to don\u2019t know where", "Emptied by household and buried in a covered pit", 
 "Emptied by household to uncovered pit, open ground, water body, or elsewhere", 
-"Other (specify)", "Don’t know", "In Own Dwelling", "In Own Yard/Plot", 
+"Other (specify)", "Don\u2019t know", "In Own Dwelling", "In Own Yard/Plot", 
 "Elsewhere", "Yes", "No")
                ,
             standard =  
@@ -2975,7 +2978,7 @@ mapper = list(
 c("INC01", "INC01", "INC01", "INC01")
                ,
             label =  
-c("More", "The same", "Fewer", "Don't know")
+c("More", "The same", "Fewer", "Don\'t know")
                ,
             standard =  
 c("1", "2", "3", "98")
@@ -3072,7 +3075,7 @@ c("1. During the past 7 days, did ${name_selectedadult18} work for someone else 
 "3. During the past 7 days, did ${name_selectedadult18} help in a family business or farm?", 
 "4. Even though ${name_selectedadult18} did not work, during the past 7 days, did he/she have a paid job from which he/she was temporarily absent?", 
 "5. Even though ${name_selectedadult18} did not work, during the past 7 days, did he/she have a business or a helper job in a family business/farm from which he/she was temporarily absent?", 
-"6. Last week, did ${name_selectedadult18} do any work in…?", 
+"6. Last week, did ${name_selectedadult18} do any work in\u2026?", 
 "7. Was this work that  ${name_selectedadult18} mentioned in...?", 
 "8. Thinking about this work, are the products intended...?", 
 "9. During the last 30 days, did ${name_selectedadult18} do anything to find a paid job or try to start a business?", 
@@ -3245,7 +3248,7 @@ c("Passport?", "Birth certificate?", "Civil/government-issued ID card ?",
 "Residency permit (both temporary and permanent)?", "Statelessness documentation?", 
 "Household card of address / family book/ marriage certificate?", 
 "Social security card?", "2. Does ${name_individual} have any other document that establishes his/her legal identity?", 
-"3. Does ${name_individual} have a birth certificate?", "4. Has ${name_individual}'s birth been registered with civil authorities?", 
+"3. Does ${name_individual} have a birth certificate?", "4. Has ${name_individual}\'s birth been registered with civil authorities?", 
 "Passport?", "Civil/government-issued ID card ?", "Residency permit (both temporary and permanent)?", 
 "Statelessness documentation?", "Household card of address / family book/ marriage certificate?", 
 "Social security card?", "6. Does ${name_individual} have any other document that establishes your legal identity?"
@@ -3272,7 +3275,7 @@ c("Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond",
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
-"Yes", "No", "Don't know", "Yes", "No", "Don't know", "Prefer not to say", 
+"Yes", "No", "Don\'t know", "Yes", "No", "Don\'t know", "Prefer not to say", 
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
@@ -3450,15 +3453,15 @@ c("DWE06", "DWE06", "DWE06", "DWE06", "DWE06", "DWE06", "DWE06",
 c("Respondent or another HH member", "Unrelated Person", "Friend Or Relative", 
 "Ngo/Non-Religious Charity", "Government Agency Or Municipality", 
 "UNHCR", "Religious Organization/ Charity", "Foreign Government", 
-"Unowned/Squatting", "Other (Specify)", "Don't know", "Prefer not to respond", 
+"Unowned/Squatting", "Other (Specify)", "Don\'t know", "Prefer not to respond", 
 "Respondent or another HH member", "Unrelated Person", "Friend Or Relative", 
 "Ngo/Non-Religious Charity", "Government Agency Or Municipality", 
 "UNHCR", "Religious Organization/ Charity", "Foreign Government", 
 "Unowned/Squatting", "Apartment Building", "Community", "Other(Specify)", 
-"Don't know", "Prefer not to respond", "Title deed", "Certificate of customary ownership", 
+"Don\'t know", "Prefer not to respond", "Title deed", "Certificate of customary ownership", 
 "Certificate of occupancy", "Certificate of hereditary acquisition listed in registry", 
 "Rental contract", "Lease registered", "Other (Specify)", "Very unlikely", 
-"Somewhat unlikely", "Somewhat likely", "Very likely", "Don't Know"
+"Somewhat unlikely", "Somewhat likely", "Very likely", "Don\'t Know"
 )
                ,
             standard =  
@@ -3599,10 +3602,10 @@ c("SPF01a", "SPF01a", "SPF01a", "SPF01b", "SPF01b", "SPF01b",
 "SPF01g", "SPF01h", "SPF01h", "SPF01h")
                ,
             label =  
-c("Yes", "No", "Don't know", "Yes", "No", "Don't know", "Yes", 
-"No", "Don't know", "Yes", "No", "Don't know", "Yes", "No", "Don't know", 
-"Yes", "No", "Don't know", "Yes", "No", "Don't know", "Yes", 
-"No", "Don't know")
+c("Yes", "No", "Don\'t know", "Yes", "No", "Don\'t know", "Yes", 
+"No", "Don\'t know", "Yes", "No", "Don\'t know", "Yes", "No", "Don\'t know", 
+"Yes", "No", "Don\'t know", "Yes", "No", "Don\'t know", "Yes", 
+"No", "Don\'t know")
                ,
             standard =  
 c("1", "0", "98", "1", "0", "98", "1", "0", "98", "1", "0", "98", 

@@ -61,7 +61,7 @@ is automatically read by R on startup.
 
 You can retrieve your `API TOKEN` in your [user page](https://ridl.unhcr.org/user/).
 
-![api_token_img](https://raw.githubusercontent.com/Edouard-Legoupil/riddle/main/inst/token.png)
+![](https://raw.githubusercontent.com/Edouard-Legoupil/riddle/main/inst/token.png)
 
 To use the package, you’ll need to store your RIDL API token in the `RIDL_API_TOKEN` environment variable. 
 The easiest way to do that is by calling `usethis::edit_r_environ()` and adding the line

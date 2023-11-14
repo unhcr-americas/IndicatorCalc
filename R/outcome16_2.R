@@ -69,10 +69,10 @@ c("SPF01a", "SPF01a", "SPF01a", "SPF01b", "SPF01b", "SPF01b",
 "SPF01g", "SPF01h", "SPF01h", "SPF01h")
                ,
             label =  
-c("Yes", "No", "Don't know", "Yes", "No", "Don't know", "Yes", 
-"No", "Don't know", "Yes", "No", "Don't know", "Yes", "No", "Don't know", 
-"Yes", "No", "Don't know", "Yes", "No", "Don't know", "Yes", 
-"No", "Don't know")
+c("Yes", "No", "Don\'t know", "Yes", "No", "Don\'t know", "Yes", 
+"No", "Don\'t know", "Yes", "No", "Don\'t know", "Yes", "No", "Don\'t know", 
+"Yes", "No", "Don\'t know", "Yes", "No", "Don\'t know", "Yes", 
+"No", "Don\'t know")
                ,
             standard =  
 c("1", "0", "98", "1", "0", "98", "1", "0", "98", "1", "0", "98", 

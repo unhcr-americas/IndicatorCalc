@@ -146,7 +146,7 @@ fct_var_dummy <- function( frame,
      ## numeric ###########    
      if( type %in% c("numeric", "integer", "calculate", "geopoint")) {
       ## TODO extract elements from constraint to define num1 an num2
-      num1 <-  18
+      num1 <-  0
       num2 <-  95
       
       res <- dplyr::tibble(
@@ -334,7 +334,7 @@ fct_kobo_dummy <- function(form,
   ## then apply fct_var_dummy interactively... 
   for(i in (1:nrow(conf)) ) {
    # i <- 1
-    cat(paste0(i, "-", conf[i, c("type")], "-", conf[i, c("name")],  "\n"))
+    # cat(paste0(i, "-", conf[i, c("type")], "-", conf[i, c("name")],  "\n"))
   
   ## manage specific case when list name is not defined in ccoices but pulled from data..
   ## in such case we replace type by select_one by text
@@ -450,7 +450,7 @@ fct_kobo_dummy <- function(form,
             ## then apply fct_var_dummy interactively... 
             for(i in (1:nrow(confrep)) ) {
              # i <- 6
-              cat(paste0(i, " in repeat -", rep, " ///", confrep[i, c("type")], "-", confrep[i, c("name")],  "\n"))
+            #  cat(paste0(i, " in repeat -", rep, " ///", confrep[i, c("type")], "-", confrep[i, c("name")],  "\n"))
             
             ## manage specific case when list name is not defined in ccoices but pulled from data..
             ## in such case we replace type by select_one by text
@@ -475,15 +475,9 @@ fct_kobo_dummy <- function(form,
                                    dplyr::pull(name) ),
                     constraint =  this.constraint )
             }
-        
-        
         ## append to the repeat
         datalist[[rep]] <- repframe
       }
-    
-  
-  
-
   return(datalist)
   }
 ```
@@ -494,7 +488,7 @@ fct_kobo_dummy <- function(form,
 ## CAPI
 form <- system.file("RMS_CAPI_v2.xlsx", package = "IndicatorCalc")
 datalist <- fct_kobo_dummy(form,
-                       n = 384,
+                       n = 1500,
                        file = NULL)
 # openxlsx::write.xlsx(datalist, here::here("inst", "dummy_RMS_CAPI_v2.xlsx"))
 
@@ -1071,7 +1065,7 @@ mapper = list(
               variable = c( "LIGHT01", 
                             "LIGHT03", "LIGHT03", "LIGHT03"),
               label = c( "yes",
-                "No electricity in household", "Other, specify", "Don't know"),
+                "No electricity in household", "Other, specify", "Don\'t know"),
               standard = c( "1",
                            "1", "96", "98"),
               map = c("yes",
@@ -1118,7 +1112,7 @@ datalist <- fct_re_map(datalist = datalist, mapper = mapperind )
 
 ## Writing this in the installation folder of the packages to run all examples
 # openxlsx::write.xlsx( list ( main = as.data.frame(datalist[["main"]]),
-#                              ind = as.data.frame(datalist[["ind"]]) ), 
+#                              ind = as.data.frame(datalist[["ind"]]) ),
 #                       here::here("inst","dummy_RMS_CAPI_v2_mapped.xlsx"))
 
 ```
@@ -1213,7 +1207,7 @@ mapper = list(
               variable = c( "LIGHT01", 
                             "LIGHT03", "LIGHT03", "LIGHT03"),
               label = c( "yes",
-          "No electricity in household", "Other, specify", "Don't know"),
+          "No electricity in household", "Other, specify", "Don\'t know"),
               standard = c( "1",
                            "1", "96", "98")
             )
@@ -1296,7 +1290,7 @@ fct_plot_indic_donut <- function(indicator,
         cat("No value was supplied for plotting...")
       } else { 
   
-df2 <-sjmisc::frq(indicator)[[1]]
+df2 <-sjmisc::frq(indicator, show.na = FALSE)[[1]]
 #df2$label <- factor(df2$label, levels = c( "Yes","No"))
 
 # Plot
@@ -1312,8 +1306,8 @@ plot <- ggplot2::ggplot(df2) +
   ggtext::geom_textbox(
     x = 0,  y = 0,
     label = paste0(
-      "<span style='font-family: \"Font Awesome 6 Free Solid\" font-size:44pt'>&#x",
-      iconunicode,";</span><br><span style='font-size:16pt'>",
+      "<span style=\'font-family: \"Font Awesome 6 Free Solid\" font-size:44pt\'>&#x",
+      iconunicode,";</span><br><span style=\'font-size:16pt\'>",
       sjlabelled::get_label(indicator) ,
       "</span><br><strong> ",
       round(df2 |>
@@ -1351,7 +1345,7 @@ return(plot)
   
 ```{r example-fct_plot_indic_donut, fig.height=3, fig.width=3}
 test <- data.frame(
-  shelter = rbinom(20, 1, 0.5)) |> 
+  shelter = c(rbinom(20, 1, 0.5), NA, NA, NA, NA, NA, NA) ) |> 
   dplyr::mutate( shelter = 
   labelled::labelled( shelter,
     labels = c( "Yes" = 1, "No" = 0),
@@ -1498,10 +1492,10 @@ sdg_rbm <-  structure(list(
 
   ## Check if the API did return something
   if(nrow(Ind1) == 0) {
-        #cat(paste0("\n ಠ_ಠ  \n No data rcould be etrieved  from API for ", sdg_code_label$SDG_indic , " in country: ", ctry$ctryname ,"n\n"))
+        #cat(paste0("\n \u0ca0_\u0ca0  \n No data rcould be etrieved  from API for ", sdg_code_label$SDG_indic , " in country: ", ctry$ctryname ,"n\n"))
         p <-  ggplot() +     
              annotate("text",  x = 1, y = 1,  size = 10,
-             label = stringr::str_wrap(paste0("\n ಠ_ಠ  \n No data could be retrieved from  UNStat API for: ", 
+             label = stringr::str_wrap(paste0("\n \u0ca0_\u0ca0  \n No data could be retrieved from  UNStat API for: ", 
                           sdg_code_label$SDG_indic , " (related to UNHCR Indicator ", rbm ,
                           ") in country: ", 
                           countrycode::countrycode(country,  
@@ -1512,7 +1506,7 @@ sdg_rbm <-  structure(list(
     
        return(p)
     } else {
-       # cat(paste0("Done! ", nrow(Ind1), " records gathered   ヽ(´▽`)/ \n\n"))
+       # cat(paste0("Done! ", nrow(Ind1), " records gathered   \u30fd(\u00b4\u25bd`)/ \n\n"))
   
   ## Remove rows when value is NaN
   Ind1 <- Ind1[ !(is.nan(Ind1$value)), ]
@@ -1594,10 +1588,10 @@ sdg_rbm <-  structure(list(
 ```
   
 ```{r example-fct_plot_rbm_sdg}
-# fct_plot_rbm_sdg( country = "BRA", 
-#           rbm = "impact2_2",
-#           years = c(2000, 2022)) +
-#         unhcrthemes::theme_unhcr(font_size = 10) 
+fct_plot_rbm_sdg( country = "BRA",
+          rbm = "impact2_2",
+          years = c(2000, 2022)) +
+        unhcrthemes::theme_unhcr(font_size = 10)
 ```
   
 ```{r tests-fct_plot_rbm_sdg}
@@ -1897,7 +1891,7 @@ fct_build_requirement <- function(xlsformpath){
   #             variable = c( "LIGHT01", 
   #                           "LIGHT03", "LIGHT03", "LIGHT03"),
   #             label = c( "yes",
-  #               "No electricity in household", "Other, specify", "Don't know"),
+  #               "No electricity in household", "Other, specify", "Don\'t know"),
   #             standard = c( "1",
   #                          "1", "96", "98"),
   #             map = c("yes",

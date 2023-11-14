@@ -77,7 +77,7 @@ c("Yes", "No", "Electricity (including solar mini-grids, hybrid mini-grids and n
 "Oil lamp", "Candle", "Open fire", "Other, specify", "No electricity in household", 
 "National grid connection from [COMPANY]", "Local mini grid", 
 "Solar home system", "Solar lantern", "Electric generator", "Rechargeable battery", 
-"Dry cell battery / torch", "Other, specify", "Don't know")
+"Dry cell battery / torch", "Other, specify", "Don\'t know")
                ,
             standard =  
 c("1", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", 

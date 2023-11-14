@@ -103,7 +103,7 @@ c("Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond",
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
-"Yes", "No", "Don't know", "Yes", "No", "Prefer not to respond", 
+"Yes", "No", "Don\'t know", "Yes", "No", "Prefer not to respond", 
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond", 
 "Yes", "No", "Prefer not to respond", "Yes", "No", "Prefer not to respond"

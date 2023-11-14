@@ -109,9 +109,8 @@
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"unhcr-americas/IndicatorCalc"</span><span class="op">)</span></span></code></pre></div>
 <p>The <a href="https://edouard-legoupil.github.io/riddle/" class="external-link">riddle</a> package is used to ensure integration with <a href="https://ridl.unhcr.org" class="external-link">UNHCR Data Repository</a>. It requires you to add your <strong>API token</strong> and store it for further use. The easiest way to do that is to store your API token in your <code>.Renviron</code> file which is automatically read by R on startup.</p>
 <p>You can retrieve your <code>API TOKEN</code> in your <a href="https://ridl.unhcr.org/user/" class="external-link">user page</a>.</p>
-<figure><img src="https://raw.githubusercontent.com/Edouard-Legoupil/riddle/main/inst/token.png" alt="api_token_img"><figcaption aria-hidden="true">
-api_token_img
-</figcaption></figure><p>To use the package, you’ll need to store your RIDL API token in the <code>RIDL_API_TOKEN</code> environment variable. The easiest way to do that is by calling <code><a href="https://usethis.r-lib.org/reference/edit.html" class="external-link">usethis::edit_r_environ()</a></code> and adding the line <code>RIDL_API_TOKEN=xxxxx</code> to the file before saving and restarting your R session.</p>
+<p><img src="https://raw.githubusercontent.com/Edouard-Legoupil/riddle/main/inst/token.png"></p>
+<p>To use the package, you’ll need to store your RIDL API token in the <code>RIDL_API_TOKEN</code> environment variable. The easiest way to do that is by calling <code><a href="https://usethis.r-lib.org/reference/edit.html" class="external-link">usethis::edit_r_environ()</a></code> and adding the line <code>RIDL_API_TOKEN=xxxxx</code> to the file before saving and restarting your R session.</p>
 </div>
 <div class="section level2">
 <h2 id="contributing">Contributing<a class="anchor" aria-label="anchor" href="#contributing"></a>

@@ -38,7 +38,7 @@
 #'               variable = c( "LIGHT01", 
 #'                             "LIGHT03", "LIGHT03", "LIGHT03"),
 #'               label = c( "yes",
-#'           "No electricity in household", "Other, specify", "Don't know"),
+#'           "No electricity in household", "Other, specify", "Don\'t know"),
 #'               standard = c( "1",
 #'                            "1", "96", "98")
 #'             )

@@ -73,8 +73,8 @@ c("GBV01a", "GBV01a", "GBV01a", "GBV01b", "GBV01b", "GBV01b",
 "GBV01c", "GBV01c", "GBV01c", "GBV01d", "GBV01d", "GBV01d")
                ,
             label =  
-c("Yes", "No", "Don't know", "Yes", "No", "Don't know", "Yes", 
-"No", "Don't know", "Yes", "No", "Don't know")
+c("Yes", "No", "Don\'t know", "Yes", "No", "Don\'t know", "Yes", 
+"No", "Don\'t know", "Yes", "No", "Don\'t know")
                ,
             standard =  
 c("1", "0", "98", "1", "0", "98", "1", "0", "98", "1", "0", "98"

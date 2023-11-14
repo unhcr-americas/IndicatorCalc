@@ -96,12 +96,7 @@ read by R on startup.
 You can retrieve your `API TOKEN` in your [user
 page](https://ridl.unhcr.org/user/).
 
-<figure>
-<img
-src="https://raw.githubusercontent.com/Edouard-Legoupil/riddle/main/inst/token.png"
-alt="api_token_img" />
-<figcaption aria-hidden="true">api_token_img</figcaption>
-</figure>
+![](https://raw.githubusercontent.com/Edouard-Legoupil/riddle/main/inst/token.png)
 
 To use the package, you’ll need to store your RIDL API token in the
 `RIDL_API_TOKEN` environment variable. The easiest way to do that is by

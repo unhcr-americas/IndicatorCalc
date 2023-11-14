@@ -156,7 +156,7 @@ fct_var_dummy <- function( frame,
      ## numeric ###########    
      if( type %in% c("numeric", "integer", "calculate", "geopoint")) {
       ## TODO extract elements from constraint to define num1 an num2
-      num1 <-  18
+      num1 <-  0
       num2 <-  95
       
       res <- dplyr::tibble(

@@ -72,7 +72,7 @@ c("BIR01", "BIR01", "BIR02", "BIR02", "BIR03", "BIR03", "BIR03",
             label =  
 c("Yes", "No", "Yes", "No", "Health professional", "Doctor", 
 "Nurse/midwife", "Traditional birth attendant", "Community health worker", 
-"Relative/friend", "Other (specify)", "Don't know", "Respondent’s home", 
+"Relative/friend", "Other (specify)", "Don\'t know", "Respondent\u2019s home", 
 "Public sector", "Private sector", "Other, specify")
                ,
             standard =  

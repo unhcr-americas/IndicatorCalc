@@ -61,6 +61,9 @@ datalist <- kobocruncher::kobo_data( system.file("dummy_RMS_CAPI_v2_mapped.xlsx"
                                                  package = "IndicatorCalc"))
 ## Apply calculation
 datalist <- impact3_2a(datalist  )
+table(datalist[["ind"]]$impact3_2a, useNA = "ifany")
+table(datalist[["ind"]]$edu_primary, useNA = "ifany")
+table(datalist[["ind"]]$age_primary, useNA = "ifany")
 
 ## Visualise value
 fct_plot_indic_donut(indicator = datalist[["ind"]]$impact3_2a,

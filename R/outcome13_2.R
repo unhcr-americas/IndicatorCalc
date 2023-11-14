@@ -55,7 +55,7 @@ mapper = list(
 c("INC01", "INC01", "INC01", "INC01")
                ,
             label =  
-c("More", "The same", "Fewer", "Don't know")
+c("More", "The same", "Fewer", "Don\'t know")
                ,
             standard =  
 c("1", "2", "3", "98")

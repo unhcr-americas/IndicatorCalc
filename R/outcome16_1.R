@@ -76,15 +76,15 @@ c("DWE06", "DWE06", "DWE06", "DWE06", "DWE06", "DWE06", "DWE06",
 c("Respondent or another HH member", "Unrelated Person", "Friend Or Relative", 
 "Ngo/Non-Religious Charity", "Government Agency Or Municipality", 
 "UNHCR", "Religious Organization/ Charity", "Foreign Government", 
-"Unowned/Squatting", "Other (Specify)", "Don't know", "Prefer not to respond", 
+"Unowned/Squatting", "Other (Specify)", "Don\'t know", "Prefer not to respond", 
 "Respondent or another HH member", "Unrelated Person", "Friend Or Relative", 
 "Ngo/Non-Religious Charity", "Government Agency Or Municipality", 
 "UNHCR", "Religious Organization/ Charity", "Foreign Government", 
 "Unowned/Squatting", "Apartment Building", "Community", "Other(Specify)", 
-"Don't know", "Prefer not to respond", "Title deed", "Certificate of customary ownership", 
+"Don\'t know", "Prefer not to respond", "Title deed", "Certificate of customary ownership", 
 "Certificate of occupancy", "Certificate of hereditary acquisition listed in registry", 
 "Rental contract", "Lease registered", "Other (Specify)", "Very unlikely", 
-"Somewhat unlikely", "Somewhat likely", "Very likely", "Don't Know"
+"Somewhat unlikely", "Somewhat likely", "Very likely", "Don\'t Know"
 )
                ,
             standard =  

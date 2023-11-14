@@ -65,7 +65,7 @@ mapper = list(
 c("SAF01", "SAF01", "SAF01", "SAF01", "SAF01", "SAF01")
                ,
             label =  
-c("Very safe", "Fairly safe", "Bit unsafe", "Very unsafe", "Don’t know", 
+c("Very safe", "Fairly safe", "Bit unsafe", "Very unsafe", "Don\u2019t know", 
 "Prefer not to respond")
                ,
             standard =  

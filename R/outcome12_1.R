@@ -75,7 +75,7 @@ c("Piped Into Dwelling", "Piped Into Yard/Plot", "Piped To Neighbor",
 "Unprotected Dug Well", "Protected Spring", "Unprotected Spring", 
 "Rain Water Collection", "Tanker Truck/Water Vendor", "Cart With Small Tank/Drum", 
 "Surface Water (River, Stream, Pond, Dam, Canal)", "Bottled Water", 
-"Sachet Water", "Water Kiosk", "Other (Specify)", "Don't Know", 
+"Sachet Water", "Water Kiosk", "Other (Specify)", "Don\'t Know", 
 "In Own Dwelling", "In Own Yard/Plot", "Elsewhere", "Minutes", 
 "Hours", NA, "Yes", "No")
                ,

@@ -24,7 +24,7 @@
 #' @export
 #' @examples
 #' test <- data.frame(
-#'   shelter = rbinom(20, 1, 0.5)) |> 
+#'   shelter = c(rbinom(20, 1, 0.5), NA, NA, NA, NA, NA, NA) ) |> 
 #'   dplyr::mutate( shelter = 
 #'   labelled::labelled( shelter,
 #'     labels = c( "Yes" = 1, "No" = 0),
@@ -63,7 +63,7 @@ fct_plot_indic_donut <- function(indicator,
         cat("No value was supplied for plotting...")
       } else { 
   
-df2 <-sjmisc::frq(indicator)[[1]]
+df2 <-sjmisc::frq(indicator, show.na = FALSE)[[1]]
 #df2$label <- factor(df2$label, levels = c( "Yes","No"))
 
 # Plot
@@ -79,8 +79,8 @@ plot <- ggplot2::ggplot(df2) +
   ggtext::geom_textbox(
     x = 0,  y = 0,
     label = paste0(
-      "<span style='font-family: \"Font Awesome 6 Free Solid\" font-size:44pt'>&#x",
-      iconunicode,";</span><br><span style='font-size:16pt'>",
+      "<span style=\'font-family: \"Font Awesome 6 Free Solid\" font-size:44pt\'>&#x",
+      iconunicode,";</span><br><span style=\'font-size:16pt\'>",
       sjlabelled::get_label(indicator) ,
       "</span><br><strong> ",
       round(df2 |>

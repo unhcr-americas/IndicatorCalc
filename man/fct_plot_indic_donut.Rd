@@ -34,7 +34,7 @@ and interpretation threshold if available
 }
 \examples{
 test <- data.frame(
-  shelter = rbinom(20, 1, 0.5)) |> 
+  shelter = c(rbinom(20, 1, 0.5), NA, NA, NA, NA, NA, NA) ) |> 
   dplyr::mutate( shelter = 
   labelled::labelled( shelter,
     labels = c( "Yes" = 1, "No" = 0),

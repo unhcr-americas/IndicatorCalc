@@ -27,8 +27,8 @@ https://drmattg.github.io/SDGsR/articles/Introduction_to_SDGsR.html
 devtools::install_github("DrMattG/SDGsR", dependencies = TRUE)
 }
 \examples{
-# fct_plot_rbm_sdg( country = "BRA", 
-#           rbm = "impact2_2",
-#           years = c(2000, 2022)) +
-#         unhcrthemes::theme_unhcr(font_size = 10) 
+fct_plot_rbm_sdg( country = "BRA",
+          rbm = "impact2_2",
+          years = c(2000, 2022)) +
+        unhcrthemes::theme_unhcr(font_size = 10)
 }

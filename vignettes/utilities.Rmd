@@ -264,7 +264,7 @@ mapper = list(
               variable = c( "LIGHT01", 
                             "LIGHT03", "LIGHT03", "LIGHT03"),
               label = c( "yes",
-                "No electricity in household", "Other, specify", "Don't know"),
+                "No electricity in household", "Other, specify", "Don\'t know"),
               standard = c( "1",
                            "1", "96", "98"),
               map = c("yes",
@@ -337,7 +337,7 @@ mapper = list(
               variable = c( "LIGHT01", 
                             "LIGHT03", "LIGHT03", "LIGHT03"),
               label = c( "yes",
-          "No electricity in household", "Other, specify", "Don't know"),
+          "No electricity in household", "Other, specify", "Don\'t know"),
               standard = c( "1",
                            "1", "96", "98")
             )
@@ -380,7 +380,7 @@ check
 
 ```{r example-fct_plot_indic_donut, fig.height = 3, fig.width = 3}
 test <- data.frame(
-  shelter = rbinom(20, 1, 0.5)) |> 
+  shelter = c(rbinom(20, 1, 0.5), NA, NA, NA, NA, NA, NA) ) |> 
   dplyr::mutate( shelter = 
   labelled::labelled( shelter,
     labels = c( "Yes" = 1, "No" = 0),
@@ -414,10 +414,10 @@ fct_plot_indic_donut(indicator = test2,
   
 
 ```{r example-fct_plot_rbm_sdg}
-# fct_plot_rbm_sdg( country = "BRA", 
-#           rbm = "impact2_2",
-#           years = c(2000, 2022)) +
-#         unhcrthemes::theme_unhcr(font_size = 10) 
+fct_plot_rbm_sdg( country = "BRA",
+          rbm = "impact2_2",
+          years = c(2000, 2022)) +
+        unhcrthemes::theme_unhcr(font_size = 10)
 ```
 
   

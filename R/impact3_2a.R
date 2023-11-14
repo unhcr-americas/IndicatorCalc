@@ -56,6 +56,9 @@
 #'                                                  package = "IndicatorCalc"))
 #' ## Apply calculation
 #' datalist <- impact3_2a(datalist  )
+#' table(datalist[["ind"]]$impact3_2a, useNA = "ifany")
+#' table(datalist[["ind"]]$edu_primary, useNA = "ifany")
+#' table(datalist[["ind"]]$age_primary, useNA = "ifany")
 #'
 #' ## Visualise value
 #' fct_plot_indic_donut(indicator = datalist[["ind"]]$impact3_2a,
@@ -85,9 +88,9 @@ c("EDU01", "EDU01", "EDU02", "EDU02", "EDU03", "EDU03", "EDU03",
 c("Yes", "No", "Yes", "No", "Early Childhood Education or Pre-primary", 
 "Primary", "Secondary", "Secondary - Technical and Vocational Education and Training (TVET)", 
 "Post-secondary - Technical and Vocational Education and Training (TVET)", 
-"Tertiary", "Don’t know", "Government or public", "UN or NGO (non-governmental organization)", 
+"Tertiary", "Don\u2019t know", "Government or public", "UN or NGO (non-governmental organization)", 
 "Religious or faith-based organization", "Community", "Private", 
-"Other (specify)", "Don’t know", NA)
+"Other (specify)", "Don\u2019t know", NA)
                ,
             standard =  
 c("1", "0", "1", "0", "1", "2", "3", "4", "5", "6", "98", "1", 

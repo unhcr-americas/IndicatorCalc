@@ -22,10 +22,10 @@
 #' @return a ggplot2 object
 #' @export
 #' @examples
-#' # fct_plot_rbm_sdg( country = "BRA", 
-#' #           rbm = "impact2_2",
-#' #           years = c(2000, 2022)) +
-#' #         unhcrthemes::theme_unhcr(font_size = 10) 
+#' fct_plot_rbm_sdg( country = "BRA",
+#'           rbm = "impact2_2",
+#'           years = c(2000, 2022)) +
+#'         unhcrthemes::theme_unhcr(font_size = 10)
 fct_plot_rbm_sdg <- function( country = "BRA", 
                       rbm = "outcome16_2",
                       years = c(2000, 2022)) {
@@ -120,10 +120,10 @@ sdg_rbm <-  structure(list(
 
   ## Check if the API did return something
   if(nrow(Ind1) == 0) {
-        #cat(paste0("\n ಠ_ಠ  \n No data rcould be etrieved  from API for ", sdg_code_label$SDG_indic , " in country: ", ctry$ctryname ,"n\n"))
+        #cat(paste0("\n \u0ca0_\u0ca0  \n No data rcould be etrieved  from API for ", sdg_code_label$SDG_indic , " in country: ", ctry$ctryname ,"n\n"))
         p <-  ggplot() +     
              annotate("text",  x = 1, y = 1,  size = 10,
-             label = stringr::str_wrap(paste0("\n ಠ_ಠ  \n No data could be retrieved from  UNStat API for: ", 
+             label = stringr::str_wrap(paste0("\n \u0ca0_\u0ca0  \n No data could be retrieved from  UNStat API for: ", 
                           sdg_code_label$SDG_indic , " (related to UNHCR Indicator ", rbm ,
                           ") in country: ", 
                           countrycode::countrycode(country,  
@@ -134,7 +134,7 @@ sdg_rbm <-  structure(list(
     
        return(p)
     } else {
-       # cat(paste0("Done! ", nrow(Ind1), " records gathered   ヽ(´▽`)/ \n\n"))
+       # cat(paste0("Done! ", nrow(Ind1), " records gathered   \u30fd(\u00b4\u25bd`)/ \n\n"))
   
   ## Remove rows when value is NaN
   Ind1 <- Ind1[ !(is.nan(Ind1$value)), ]

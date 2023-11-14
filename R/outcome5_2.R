@@ -63,7 +63,7 @@ c("COMM01", "COMM01", "COMM02", "COMM03", "COMM03", "COMM03",
 "COMM04", "COMM04", "COMM04")
                ,
             label =  
-c("Yes", "No", NA, "Yes", "No", "Don't know", "Yes", "No", "Don't know"
+c("Yes", "No", NA, "Yes", "No", "Don\'t know", "Yes", "No", "Don\'t know"
 )
                ,
             standard =  

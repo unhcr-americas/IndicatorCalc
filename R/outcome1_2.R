@@ -81,7 +81,7 @@ mapper = list(
   hierarchy = "ind",
   variablemap = data.frame(
     label =
-      c("3. Does ${name_individual} have a birth certificate?", "4. Has ${name_individual}'s birth been registered with civil authorities?",
+      c("3. Does ${name_individual} have a birth certificate?", "4. Has ${name_individual}\'s birth been registered with civil authorities?",
         "6. Can you estimate how old is ${HH02}?")
     ,
     variable =
@@ -93,7 +93,7 @@ mapper = list(
         "HH07")
     ,
     label =
-      c("Yes", "No", "Don't know", "Yes", "No", "Don't know", "Prefer not to say",
+      c("Yes", "No", "Don\'t know", "Yes", "No", "Don\'t know", "Prefer not to say",
         NA)
     ,
     standard =

@@ -117,7 +117,7 @@ fct_kobo_dummy <- function(form,
   ## then apply fct_var_dummy interactively... 
   for(i in (1:nrow(conf)) ) {
    # i <- 1
-    cat(paste0(i, "-", conf[i, c("type")], "-", conf[i, c("name")],  "\n"))
+    # cat(paste0(i, "-", conf[i, c("type")], "-", conf[i, c("name")],  "\n"))
   
   ## manage specific case when list name is not defined in ccoices but pulled from data..
   ## in such case we replace type by select_one by text
@@ -233,7 +233,7 @@ fct_kobo_dummy <- function(form,
             ## then apply fct_var_dummy interactively... 
             for(i in (1:nrow(confrep)) ) {
              # i <- 6
-              cat(paste0(i, " in repeat -", rep, " ///", confrep[i, c("type")], "-", confrep[i, c("name")],  "\n"))
+            #  cat(paste0(i, " in repeat -", rep, " ///", confrep[i, c("type")], "-", confrep[i, c("name")],  "\n"))
             
             ## manage specific case when list name is not defined in ccoices but pulled from data..
             ## in such case we replace type by select_one by text
@@ -258,14 +258,8 @@ fct_kobo_dummy <- function(form,
                                    dplyr::pull(name) ),
                     constraint =  this.constraint )
             }
-        
-        
         ## append to the repeat
         datalist[[rep]] <- repframe
       }
-    
-  
-  
-
   return(datalist)
   }

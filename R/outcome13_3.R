@@ -56,7 +56,7 @@ c("1. During the past 7 days, did ${name_selectedadult18} work for someone else 
 "3. During the past 7 days, did ${name_selectedadult18} help in a family business or farm?", 
 "4. Even though ${name_selectedadult18} did not work, during the past 7 days, did he/she have a paid job from which he/she was temporarily absent?", 
 "5. Even though ${name_selectedadult18} did not work, during the past 7 days, did he/she have a business or a helper job in a family business/farm from which he/she was temporarily absent?", 
-"6. Last week, did ${name_selectedadult18} do any work in…?", 
+"6. Last week, did ${name_selectedadult18} do any work in\u2026?", 
 "7. Was this work that  ${name_selectedadult18} mentioned in...?", 
 "8. Thinking about this work, are the products intended...?", 
 "9. During the last 30 days, did ${name_selectedadult18} do anything to find a paid job or try to start a business?", 
